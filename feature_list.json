@@ -128,6 +128,31 @@
       "notes": "Facebook retired the embeddable Customer Chat plugin in 2024 and be/chat.py only speaks to Messenger, so the box hands off to m.me; messages are not typed on the site. Typing on the site would need a new web endpoint.",
       "evidence": ["2026-11-06: fe vitest 26 files / 162 tests pass, fe build ok; one-off browser check at 1440px and 375px: open, m.me link in a new tab, Escape and outside click close, no sideways scroll; without VITE_FACEBOOK_PAGE no button; screenshots reviewed. Toast position not checked in a browser. Playwright suite not run, at the user's request."],
       "status": "passing"
+    },
+    {
+      "id": "chat-1.2",
+      "priority": 5,
+      "role": "all",
+      "area": "ui",
+      "srs_ref": "User request 2026-11-06: embedded chat box, not a redirect link",
+      "title": "Embedded chat box answered by the Gemini bot",
+      "user_visible_behavior": "Visitors type in the chat box on the site and read the bot's replies there, without leaving for Messenger.",
+      "acceptance": [
+        "The button opens a box with a message list and a field; Escape closes it and keeps the conversation.",
+        "Sending shows the message, a typing line, then the reply; no redirect.",
+        "If the bot is unavailable the box says so and the typed text returns to the field.",
+        "POST /api/chat refuses invalid input and limits calls per minute.",
+        "The Messenger webhook keeps working and no longer answers echoes."
+      ],
+      "verification": [
+        "python be/chat_test.py",
+        "fe vitest and fe build pass (no e2e, user 2026-11-06)",
+        "One-off browser check against a real Gemini reply at 1440px and 375px, plus the bot-down path",
+        "docs/changes/chat-1.2.md"
+      ],
+      "notes": "Replaces the chat-1.1 m.me hand-off and VITE_FACEBOOK_PAGE. Site conversations do not appear in the Facebook page inbox. Production needs /api/chat routed to chat.py; the Vite proxy only covers dev.",
+      "evidence": ["2026-11-06: python be/chat_test.py 5/5; fe vitest 26 files / 162 tests, fe build ok; browser check at 1440px and 375px with real Gemini replies in the box, same URL, Escape closes, conversation kept, no sideways scroll; bot-down path shows the error and restores the text; screenshots reviewed. Not checked: a live Messenger message through the webhook. Playwright suite not run, at the user's request."],
+      "status": "passing"
     }
   ]
 }

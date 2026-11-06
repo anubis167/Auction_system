@@ -546,3 +546,13 @@
 - Prisma P1017 / P1001 errors in the stopped baseline came from the database going away when that run was stopped, not from refresh code; sec-005 failed at that time, so it probably failed for the same reason (not rerun)
 - Still failing or unknown from that baseline: adm-001, adm-003, adm-005, crd-003, cust-002, cust-006, gds-001, sec-005. Their error details were overwritten by the sec-003 run. cust-002, gds-001 and sys-004 still have the same unscoped link pattern
 - Next best step: run those eight specs alone and fix what remains
+
+### Session 021: embedded chat box (2026-11-06)
+
+- User wanted an embedded box, not the chat-1.1 m.me link. chat-1.2: fe/src/components/ChatBox.tsx replaces MessengerChat.tsx; be/chat.py gained POST /api/chat; Vite proxies it to 127.0.0.1:5000; VITE_FACEBOOK_PAGE, fe/.env and fe/.env.example removed
+- Found live: gemini-2.5-flash is refused for this key, so the Messenger bot was only sending its fallback text. Both paths now use GEMINI_MODEL = gemini-flash-lite-latest (gemini-flash-latest and gemini-3.8-flash answered 503 high demand on 2026-11-06)
+- Also fixed in be/chat.py: Messenger echoes skipped, home() route added
+- Verification: python be/chat_test.py 5/5, fe vitest 162, fe build ok, one-off browser check with real Gemini replies at 1440px and 375px, bot-down path checked
+- Not done: POST /webhook still has no X-Hub-Signature-256 check (needs the Facebook app secret); no production route for /api/chat; live Messenger message not tested
+- The box now shows on every page without config, and the e2e suite has not run with it; older e2e failures from session 020 are still open
+- Next best step: user restarts chat.py so port 5000 serves the new code

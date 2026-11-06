@@ -5,7 +5,7 @@ import { can, useAuth } from '../auth';
 import { useAppSelector } from '../store';
 import { useCredit, useCreditSync } from '../store/useCredit';
 import { useStaffEvents } from '../store/useStaffEvents';
-import { MessengerChat } from './MessengerChat';
+import { ChatBox } from './ChatBox';
 import { ResendActivation } from './ResendActivation';
 import { TopSearch } from './TopSearch';
 import { initials } from './ui';
@@ -135,7 +135,7 @@ export function Layout() {
         <Outlet />
       </main>
       <SiteFooter />
-      <MessengerChat />
+      <ChatBox />
     </>
   );
 }
