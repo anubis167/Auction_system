@@ -151,7 +151,7 @@
         "docs/changes/chat-1.2.md"
       ],
       "notes": "Replaces the chat-1.1 m.me hand-off and VITE_FACEBOOK_PAGE. Site conversations do not appear in the Facebook page inbox. Production needs /api/chat routed to chat.py; the Vite proxy only covers dev.",
-      "evidence": ["2026-11-06: python be/chat_test.py 5/5; fe vitest 26 files / 162 tests, fe build ok; browser check at 1440px and 375px with real Gemini replies in the box, same URL, Escape closes, conversation kept, no sideways scroll; bot-down path shows the error and restores the text; screenshots reviewed. Not checked: a live Messenger message through the webhook. Playwright suite not run, at the user's request."],
+      "evidence": ["2026-11-06: python be/chat_test.py 5/5; fe vitest 26 files / 162 tests, fe build ok; browser check at 1440px and 375px with real Gemini replies in the box, same URL, Escape closes, conversation kept, no sideways scroll; bot-down path shows the error and restores the text; screenshots reviewed. Not checked: a live Messenger message through the webhook. Playwright suite not run, at the user's request.", "2026-11-06 fix: long bot replies no longer end the conversation and Gemini 408/429/5xx answers are retried; python be/chat_test.py 6/6; retry checked against a fake server answering 503 twice (200 after 3 attempts)."],
       "status": "passing"
     }
   ]

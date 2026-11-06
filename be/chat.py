@@ -11,7 +11,11 @@ load_dotenv()
 app = Flask(__name__)
 ngrok.set_auth_token(os.getenv("NGROK_AUTHTOKEN"))
 # Initialize Gemini Client
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+# Gemini often answers 503 "high demand" for a few seconds, so the SDK retries; the timeout stops a hung call blocking the box
+client = genai.Client(
+    api_key=os.getenv("GEMINI_API_KEY"),
+    http_options={"timeout": 30000, "retry_options": {"attempts": 4}},
+)
 # An alias, because Google retires pinned models (gemini-2.5-flash stopped working for this key)
 GEMINI_MODEL = "gemini-flash-lite-latest"
 
@@ -51,9 +55,10 @@ def web_chat():
     for message in messages:
         role = message.get("role") if isinstance(message, dict) else None
         text = message.get("text") if isinstance(message, dict) else None
-        if role not in ("user", "model") or not isinstance(text, str) or not 1 <= len(text) <= MAX_TEXT:
+        if role not in ("user", "model") or not isinstance(text, str) or not text or (role == "user" and len(text) > MAX_TEXT):
             return jsonify(error="Invalid messages"), 400
-        contents.append({"role": role, "parts": [{"text": text}]})
+        # The bot's own replies can pass MAX_TEXT and come back as history: trim them, refusing would end the conversation
+        contents.append({"role": role, "parts": [{"text": text[:MAX_TEXT]}]})
     if contents[-1]["role"] != "user":
         return jsonify(error="Invalid messages"), 400
 

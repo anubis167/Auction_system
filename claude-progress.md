@@ -556,3 +556,13 @@
 - Not done: POST /webhook still has no X-Hub-Signature-256 check (needs the Facebook app secret); no production route for /api/chat; live Messenger message not tested
 - The box now shows on every page without config, and the e2e suite has not run with it; older e2e failures from session 020 are still open
 - Next best step: user restarts chat.py so port 5000 serves the new code
+
+### Session 022: chat box stopping (2026-11-06)
+
+- User report: the chat box stops at 'Gemini call failed'. The user's own traceback was not available and gemini-flash-lite-latest answered every direct call, so the exact exception was not seen. gemini-flash-latest answered 503 high demand during the check
+- Fixed in be/chat.py: Gemini client retries (attempts 4, timeout 30 s); a bot reply over 1000 characters no longer gets 400 on the next message (reproduced live with a 1658-character reply; that error showed in the box as 'assistant unavailable' until a reload)
+- Verification: python be/chat_test.py 6/6; a fake Gemini answering 503 twice then a reply gave 200 after 3 attempts through /api/chat; 10-turn live conversation ok. Not run: ./init.sh, fe tests and Playwright (Python only change)
+- Not covered: a Gemini outage longer than the retries still shows 'assistant unavailable'
+- Left uncommitted (user's): the WEB_PROMPT edit in be/chat.py, be/chat_cli.py. That prompt tells the bot it can see the user's lots, bids and credit, but chat.py gives it no such data, so it may invent them
+- auction_db stopped per CLAUDE.md
+- Next best step: user restarts chat.py; if it still fails, read the last line of the traceback under 'Gemini call failed'

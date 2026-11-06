@@ -13,3 +13,9 @@ Changed files:
 - `fe/src/vite-env.d.ts`, `fe/.env.example` (removed): `VITE_FACEBOOK_PAGE` is gone
 
 No e2e spec, at the user's request (2026-11-06).
+
+## Fix: chat stopping (2026-11-06)
+
+- `be/chat.py`: a bot reply over 1000 characters came back as history and got `400 Invalid messages`, so every later message in that conversation failed. Only the visitor's text is limited now; older bot replies are trimmed to 1000 characters
+- `be/chat.py`: the Gemini client retries 408, 429 and 5xx answers (4 attempts, about 7 seconds) and gives up on a call after 30 seconds. This also covers the Messenger bot and `be/chat_cli.py`
+- `be/chat_test.py`: long-reply case added

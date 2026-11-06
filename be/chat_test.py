@@ -32,6 +32,13 @@ class WebChat(unittest.TestCase):
         self.assertEqual(self.http.post("/api/chat", data="not json").status_code, 400)
         chat.client.models.generate_content.assert_not_called()
 
+    def test_long_bot_reply_does_not_end_the_conversation(self):
+        long_reply = "b" * (chat.MAX_TEXT + 1)
+        res = self.post([{"role": "user", "text": "a"}, {"role": "model", "text": long_reply}, {"role": "user", "text": "c"}])
+        self.assertEqual(res.status_code, 200)
+        contents = chat.client.models.generate_content.call_args.kwargs["contents"]
+        self.assertEqual(len(contents[1]["parts"][0]["text"]), chat.MAX_TEXT)
+
     def test_rate_limit(self):
         ok = [{"role": "user", "text": "a"}]
         for _ in range(chat.WEB_CALLS_PER_MINUTE):
