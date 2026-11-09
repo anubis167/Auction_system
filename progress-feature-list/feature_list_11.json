@@ -1,6 +1,6 @@
 {
   "project": "Online Auction System",
-  "last_updated": "2026-10-28",
+  "last_updated": "2026-11-09",
   "scope": "Round 11. User request (2026-10-28): 'modify the header for customer: search bar at center, left first 3 navlinks, right 3 last'. Builds on round 10 (archived as progress-feature-list/feature_list_10.json). Layout only; links, routes, search behaviour and every business rule from rounds 1-10 stay. Extended (2026-10-28): \"modify header to all role required, keep them same as customer, but with admin and staff the navlink on right side change to role based dashboard\" -> hdr-1.2. Extended (2026-10-28): \"reside header to fit with height of body\" -> hdr-1.3 (read as: header content width matches the body column).",
   "source_requirements": {
     "file": "user chat request",
@@ -55,8 +55,13 @@
         "docs/changes/hdr-1.1.md"
       ],
       "notes": "One <nav> with two .nav-group children; on wide screens the nav is display: contents and flex order places left group, search, right group. hdr-1.1 acceptance \"Guest and staff bars keep their current layout\": the staff part is superseded by hdr-1.2 (user request, same day).",
-      "evidence": [],
-      "status": "in_progress"
+      "evidence": [
+        "e2e/hdr-1-1-customer-header.spec.ts (from 438bbe0): 4/4 passed",
+        "Screenshots 1440px / 1000px reviewed: 3 links | search | 3 links | bid limit, avatar; search on its own row at 1000px",
+        "docs/changes/hdr-1.1.md",
+        "2026-11-09 session 023: npm run verify exit 0 with the hdr-1-* specs restored from 438bbe0 -> be vitest 74 files / 362, fe vitest 26 / 162, fe build ok, Playwright 100/100. Specs then removed again (deleted on purpose in session 019); rerun with `git show 438bbe0:e2e/<spec>`"
+      ],
+      "status": "passing"
     },
     {
       "id": "hdr-1.2",
@@ -78,9 +83,14 @@
         "Screenshot review of staff and admin bars at 1440px and 1000px",
         "docs/changes/hdr-1.2.md"
       ],
-      "notes": "Reuses hdr-1.1 split classes; the header class becomes topbar-split for any signed-in user. Revised by hdr-1.3: staff/admin search on its own row at every desktop width (was: below 1301px).",
-      "evidence": [],
-      "status": "not_started"
+      "notes": "Reuses hdr-1.1 split classes; the header class becomes topbar-split for any signed-in user. Revised by hdr-1.3: staff/admin search on its own row at every desktop width (was: below 1301px). Superseded in layout by hdr-1.4: the role links sit in one 'Dashboard' menu right of the search (still permission-driven) and the bar is one row again.",
+      "evidence": [
+        "e2e/hdr-1-2-staff-admin-header.spec.ts (from 438bbe0): 9/9 passed, incl. 375px folding menu and permission-driven links",
+        "Screenshots staff 1440px, admin 1000px / 1600px reviewed: Browse | search | Dashboard menu | role pill, avatar",
+        "docs/changes/hdr-1.2.md, docs/changes/hdr-1.4.md",
+        "2026-11-09 session 023: npm run verify exit 0 with the hdr-1-* specs restored from 438bbe0 -> be vitest 74 files / 362, fe vitest 26 / 162, fe build ok, Playwright 100/100. Specs then removed again (deleted on purpose in session 019); rerun with `git show 438bbe0:e2e/<spec>`"
+      ],
+      "status": "passing"
     },
     {
       "id": "hdr-1.3",
@@ -102,8 +112,37 @@
         "docs/changes/hdr-1.3.md"
       ],
       "notes": "CSS only: .topbar padding-inline = max(1rem, (100% - 1240px)/2 + 1rem), mirroring .container.",
-      "evidence": [],
-      "status": "in_progress"
+      "evidence": [
+        "e2e/hdr-1-3-header-body-width.spec.ts (from 438bbe0): 12/12 passed (guest, customer, staff, admin at 1920 / 1440 / 1100px)",
+        "Screenshots guest and admin at 1600px reviewed: brand and last item on the body column edges",
+        "docs/changes/hdr-1.3.md",
+        "2026-11-09 session 023: npm run verify exit 0 with the hdr-1-* specs restored from 438bbe0 -> be vitest 74 files / 362, fe vitest 26 / 162, fe build ok, Playwright 100/100. Specs then removed again (deleted on purpose in session 019); rerun with `git show 438bbe0:e2e/<spec>`"
+      ],
+      "status": "passing"
+    },
+    {
+      "id": "hdr-1.4",
+      "priority": 4,
+      "role": "staff, admin",
+      "area": "ui",
+      "srs_ref": "Shipped in 438bbe0 without a feature entry; recorded in session 023",
+      "title": "Staff and admin role links in one Dashboard menu",
+      "user_visible_behavior": "Signed-in staff and admin on desktop see Browse | search | a 'Dashboard' dropdown with their role pages | role pill, avatar, on one row.",
+      "acceptance": [
+        "Role links open from one Dashboard menu right of the search, still permission-driven",
+        "Toggle is active on a role page; choosing a link closes the menu",
+        "At 900px and below the folding menu lists every role link flat"
+      ],
+      "verification": [
+        "e2e/hdr-1-2-staff-admin-header.spec.ts (from 438bbe0)",
+        "docs/changes/hdr-1.4.md"
+      ],
+      "notes": "Added after the fact so the list matches the code.",
+      "evidence": [
+        "e2e/hdr-1-2-staff-admin-header.spec.ts: 9/9 passed (Dashboard menu tests incl.)",
+        "2026-11-09 session 023: npm run verify exit 0 with the hdr-1-* specs restored from 438bbe0 -> be vitest 74 files / 362, fe vitest 26 / 162, fe build ok, Playwright 100/100. Specs then removed again (deleted on purpose in session 019); rerun with `git show 438bbe0:e2e/<spec>`"
+      ],
+      "status": "passing"
     },
     {
       "id": "chat-1.1",
@@ -126,7 +165,9 @@
         "docs/changes/chat-1.1.md"
       ],
       "notes": "Facebook retired the embeddable Customer Chat plugin in 2024 and be/chat.py only speaks to Messenger, so the box hands off to m.me; messages are not typed on the site. Typing on the site would need a new web endpoint.",
-      "evidence": ["2026-11-06: fe vitest 26 files / 162 tests pass, fe build ok; one-off browser check at 1440px and 375px: open, m.me link in a new tab, Escape and outside click close, no sideways scroll; without VITE_FACEBOOK_PAGE no button; screenshots reviewed. Toast position not checked in a browser. Playwright suite not run, at the user's request."],
+      "evidence": [
+        "2026-11-06: fe vitest 26 files / 162 tests pass, fe build ok; one-off browser check at 1440px and 375px: open, m.me link in a new tab, Escape and outside click close, no sideways scroll; without VITE_FACEBOOK_PAGE no button; screenshots reviewed. Toast position not checked in a browser. Playwright suite not run, at the user's request."
+      ],
       "status": "passing"
     },
     {
@@ -151,7 +192,10 @@
         "docs/changes/chat-1.2.md"
       ],
       "notes": "Replaces the chat-1.1 m.me hand-off and VITE_FACEBOOK_PAGE. Site conversations do not appear in the Facebook page inbox. Production needs /api/chat routed to chat.py; the Vite proxy only covers dev.",
-      "evidence": ["2026-11-06: python be/chat_test.py 5/5; fe vitest 26 files / 162 tests, fe build ok; browser check at 1440px and 375px with real Gemini replies in the box, same URL, Escape closes, conversation kept, no sideways scroll; bot-down path shows the error and restores the text; screenshots reviewed. Not checked: a live Messenger message through the webhook. Playwright suite not run, at the user's request.", "2026-11-06 fix: long bot replies no longer end the conversation and Gemini 408/429/5xx answers are retried; python be/chat_test.py 6/6; retry checked against a fake server answering 503 twice (200 after 3 attempts)."],
+      "evidence": [
+        "2026-11-06: python be/chat_test.py 5/5; fe vitest 26 files / 162 tests, fe build ok; browser check at 1440px and 375px with real Gemini replies in the box, same URL, Escape closes, conversation kept, no sideways scroll; bot-down path shows the error and restores the text; screenshots reviewed. Not checked: a live Messenger message through the webhook. Playwright suite not run, at the user's request.",
+        "2026-11-06 fix: long bot replies no longer end the conversation and Gemini 408/429/5xx answers are retried; python be/chat_test.py 6/6; retry checked against a fake server answering 503 twice (200 after 3 attempts)."
+      ],
       "status": "passing"
     }
   ]
