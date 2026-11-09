@@ -566,3 +566,16 @@
 - Left uncommitted (user's): the WEB_PROMPT edit in be/chat.py, be/chat_cli.py. That prompt tells the bot it can see the user's lots, bids and credit, but chat.py gives it no such data, so it may invent them
 - auction_db stopped per CLAUDE.md
 - Next best step: user restarts chat.py; if it still fails, read the last line of the traceback under 'Gemini call failed'
+
+### Session 023: round 11 header features verified and archived (2026-11-09)
+
+- Startup: Docker Desktop was not running (no containers to stop); started it. ./init.sh exit 0 but Playwright 66 passed / 9 failed
+- Baseline fix (d4b9b75): all 9 failures (adm-001, adm-003, adm-005, crd-003, cust-002, cust-006, gds-001, sell-001, sys-004) were spec locators matching twice: the site footer repeats header links, and the top search has a 'Search in' select. Scoped to 'header nav' / user-menu / exact label, as sec-003 was. No assertion and no app code changed. The 9 then passed
+- hdr-1.1 to hdr-1.3: code was already in 438bbe0. Their specs were deleted in session 019 at the user's request, so they were restored from 438bbe0 just for this run: hdr-1-1 4/4, hdr-1-2 9/9, hdr-1-3 12/12. Screenshots reviewed at 1440 / 1000 / 1600px
+- hdr-1.4 (Dashboard dropdown for staff/admin role links) was in the code but not in the list: added as a passing entry, plus docs/changes/hdr-1.4.md
+- Gate: npm run verify exit 0 -> be 362, fe 162, build ok, Playwright 100/100 (incl. the 3 hdr specs)
+- The hdr specs were removed again afterwards, so the header layout has no e2e cover in the repo. To rerun: `git show 438bbe0:e2e/hdr-1-1-customer-header.spec.ts > e2e/hdr-1-1-customer-header.spec.ts` (same for hdr-1-2, hdr-1-3)
+- Round 11: 6/6 passing; archived as progress-feature-list/feature_list_11.json. No feature_list.json at the root now
+- Left uncommitted (user's): CLAUDE.md docker line, be/chat.py WEB_PROMPT edit, be/chat_cli.py, be/__pycache__/
+- Still open from earlier: POST /webhook has no X-Hub-Signature-256 check; WEB_PROMPT says the bot can see user data it is not given
+- Next best step: a new round needs a fresh feature_list.json from a new user request
