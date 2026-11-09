@@ -46,7 +46,7 @@ test('crd-003: credit stays put while bidding; locked credit follows bids and ou
   await expect(bob.getByTestId('header-locked')).toHaveText('$100.00');
   await expect(bob.getByTestId('header-credit')).toHaveText('$1,000.00');
   // Client-side navigation to the dashboard (no page load)
-  await bob.getByRole('link', { name: 'Dashboard' }).click();
+  await bob.locator('header nav').getByRole('link', { name: 'Dashboard' }).click();
   await expect(bob.getByTestId('dashboard-credit')).toHaveText('$1,000.00');
   await expect(bob.getByTestId('dashboard-locked')).toHaveText('$100.00');
   expect(bobFetches).toEqual([]);

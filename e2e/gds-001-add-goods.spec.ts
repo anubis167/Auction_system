@@ -3,7 +3,7 @@ import { approveGoodsViaApi, login, logout, testPng } from './helpers';
 
 test('gds-001: seller adds goods with an uploaded image on My goods; an image is required; others cannot see it', async ({ page }) => {
   await login(page, 'alice');
-  await page.getByRole('link', { name: 'My goods' }).click();
+  await page.locator('header nav').getByRole('link', { name: 'My goods' }).click();
   await expect(page).toHaveURL(/\/goods$/);
   await expect(page.getByRole('heading', { name: 'My goods' })).toBeVisible();
   await page.getByRole('link', { name: '+ Add goods' }).click();
@@ -39,7 +39,7 @@ test('gds-001: seller adds goods with an uploaded image on My goods; an image is
 
   // bob does not see alice's goods.
   await login(page, 'bob');
-  await page.getByRole('link', { name: 'My goods' }).click();
+  await page.locator('header nav').getByRole('link', { name: 'My goods' }).click();
   await expect(page.getByRole('heading', { name: 'My goods' })).toBeVisible();
   await expect(page.getByText('Walnut Jewellery Box')).toHaveCount(0);
   const bobGoods = (await (await page.request.get('/api/me/goods')).json()).goods as { name: string }[];

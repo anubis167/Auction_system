@@ -4,7 +4,7 @@ import { login } from './helpers';
 test('cust-002: customer views, edits and persists profile; invalid email rejected', async ({ page }) => {
   await login(page, 'carol');
   await page.getByTestId('avatar').click();
-  await page.getByRole('link', { name: 'Profile' }).click();
+  await page.getByTestId('user-menu').getByRole('link', { name: 'Profile' }).click();
 
   // Current details displayed
   await expect(page.getByLabel('Full name')).toHaveValue('Carol Customer');

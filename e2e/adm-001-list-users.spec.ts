@@ -9,14 +9,14 @@ test('adm-001: admin lists users, searches for one and opens the detail page', a
   await expect(table.getByTestId('user-row-staff')).toContainText('staff');
 
   // Search by username
-  await page.getByLabel('Search').fill('bob');
+  await page.getByLabel('Search', { exact: true }).fill('bob');
   await page.getByRole('button', { name: 'Apply' }).click();
   await expect(page).toHaveURL(/q=bob/);
   await expect(table.getByTestId('user-row-bob')).toBeVisible();
   await expect(table.getByTestId('user-row-alice')).toHaveCount(0);
 
   // Filter by role
-  await page.getByLabel('Search').fill('');
+  await page.getByLabel('Search', { exact: true }).fill('');
   await page.getByLabel('Role').selectOption('staff');
   await page.getByRole('button', { name: 'Apply' }).click();
   await expect(table.locator('tbody tr')).toHaveCount(1);

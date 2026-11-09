@@ -11,7 +11,7 @@ test('sell-001: seller creates an auction that other customers can see; invalid 
   await login(page, 'alice');
   // sell-003: the auction is created for goods added first.
   await createGoodsViaApi(page.request, { name: 'Antique Clock', description: 'A mahogany mantel clock from 1890, fully working.' });
-  await page.getByRole('link', { name: 'My Auctions' }).click();
+  await page.locator('header nav').getByRole('link', { name: 'My Auctions' }).click();
   await page.getByRole('link', { name: '+ New auction' }).click();
 
   // Invalid: negative price (server), then a duration under 1 hour (sell-004, checked before sending)
@@ -38,7 +38,7 @@ test('sell-001: seller creates an auction that other customers can see; invalid 
   const auctionUrl = page.url();
 
   // Appears in the seller's list
-  await page.getByRole('link', { name: 'My Auctions' }).click();
+  await page.locator('header nav').getByRole('link', { name: 'My Auctions' }).click();
   await expect(page.getByTestId('my-auctions').getByRole('link', { name: 'Antique Clock' })).toBeVisible();
 
   // Visible to a different customer

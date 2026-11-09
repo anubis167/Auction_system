@@ -21,7 +21,7 @@ test('cust-006: seller sees own auctions by status with highest bid, and opens o
   await logout(page);
 
   await login(page, 'ivy');
-  await page.getByRole('link', { name: 'My Auctions' }).click();
+  await page.locator('header nav').getByRole('link', { name: 'My Auctions' }).click();
   const table = page.getByTestId('my-auctions');
   await expect(table.getByRole('row')).toHaveCount(5);
   await expect(table).not.toContainText('Not Ivy');

@@ -59,7 +59,7 @@ test('sys-004: forms, bids and uploads go through the axios client; a 401 sends 
 
   // The session goes away (cookie cleared): the next protected call signs the user out and sends them to log in.
   await context.clearCookies();
-  await page.getByRole('link', { name: 'My goods' }).click();
+  await page.locator('header nav').getByRole('link', { name: 'My goods' }).click();
   await expect(page).toHaveURL(/\/login$/);
   await expect(page.getByTestId('session-expired')).toHaveText('Your session has ended. Please log in again.');
   await expect(page.getByTestId('current-user')).toHaveCount(0);

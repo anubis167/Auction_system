@@ -6,7 +6,7 @@ test('adm-005: admin sets a new password from the user detail page', async ({ pa
   await registerViaApi(request, username);
 
   await login(page, 'admin');
-  await page.getByLabel('Search').fill(username);
+  await page.getByLabel('Search', { exact: true }).fill(username);
   await page.getByRole('button', { name: 'Apply' }).click();
   await page.getByRole('link', { name: username }).click();
 

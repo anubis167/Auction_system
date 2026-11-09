@@ -6,7 +6,7 @@ test('adm-003: admin edits a user role and the list shows it; own role is fixed'
   await registerViaApi(request, username);
 
   await login(page, 'admin');
-  await page.getByLabel('Search').fill(username);
+  await page.getByLabel('Search', { exact: true }).fill(username);
   await page.getByRole('button', { name: 'Apply' }).click();
   await expect(page.getByTestId(`user-row-${username}`)).toContainText('customer');
   await page.getByRole('link', { name: username }).click();
@@ -21,12 +21,12 @@ test('adm-003: admin edits a user role and the list shows it; own role is fixed'
   await expect(page.getByTestId('user-detail')).toContainText('Edited Name');
 
   await page.getByRole('link', { name: 'All users' }).click();
-  await page.getByLabel('Search').fill(username);
+  await page.getByLabel('Search', { exact: true }).fill(username);
   await page.getByRole('button', { name: 'Apply' }).click();
   await expect(page.getByTestId(`user-row-${username}`).getByTestId('user-role')).toHaveText('staff');
 
   // Editing yourself: role and status are disabled
-  await page.getByLabel('Search').fill('admin');
+  await page.getByLabel('Search', { exact: true }).fill('admin');
   await page.getByRole('button', { name: 'Apply' }).click();
   await page.getByTestId('user-row-admin').getByRole('link', { name: 'admin' }).click();
   await expect(form.getByLabel('Role')).toBeDisabled();
