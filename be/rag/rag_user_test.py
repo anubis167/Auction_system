@@ -1,5 +1,5 @@
 """rag-1.7 integration: /api/chat knows only the signed-in visitor's own account (auction_test, Gemini stubbed).
-Run: python be/rag_user_test.py"""
+Run: python be/rag/rag_user_test.py"""
 import os
 import unittest
 from types import SimpleNamespace

@@ -1,4 +1,4 @@
-"""rag-1.1 integration: knowledge tables in the real Postgres. Run: python be/rag_db_test.py (needs docker compose db, migrated)."""
+"""rag-1.1 integration: knowledge tables in the real Postgres. Run: python be/rag/rag_db_test.py (needs docker compose db, migrated)."""
 import os
 import unittest
 

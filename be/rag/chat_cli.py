@@ -1,4 +1,4 @@
-"""Chat with the site's Gemini bot in the terminal: python be/chat_cli.py (type exit or press Ctrl+C to quit)."""
+"""Chat with the site's Gemini bot in the terminal: python be/rag/chat_cli.py (type exit or press Ctrl+C to quit)."""
 from chat import GEMINI_MODEL, WEB_PROMPT, client
 
 history = []

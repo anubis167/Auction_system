@@ -1,4 +1,4 @@
-"""rag-1.4 integration: /api/docs on the real Postgres (auction_test), Gemini stubbed. Run: python be/rag_docs_test.py"""
+"""rag-1.4 integration: /api/docs on the real Postgres (auction_test), Gemini stubbed. Run: python be/rag/rag_docs_test.py"""
 import base64
 import hashlib
 import hmac

@@ -1,4 +1,4 @@
-"""rag-1.2 unit tests for chunk_text. Run: python be/rag_chunk_test.py"""
+"""rag-1.2 unit tests for chunk_text. Run: python be/rag/rag_chunk_test.py"""
 import re
 import unittest
 

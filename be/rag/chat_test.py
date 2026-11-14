@@ -1,4 +1,4 @@
-"""chat-1.2 self-check for POST /api/chat. Run: python be/chat_test.py (Gemini is stubbed, no network)."""
+"""chat-1.2 self-check for POST /api/chat. Run: python be/rag/chat_test.py (Gemini is stubbed, no network)."""
 import unittest
 from types import SimpleNamespace
 from unittest.mock import MagicMock

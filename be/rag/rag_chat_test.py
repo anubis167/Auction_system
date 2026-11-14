@@ -1,5 +1,5 @@
 """rag-1.5: ranking (unit) and /api/chat grounded in uploaded documents (integration on auction_test, Gemini stubbed).
-Run: python be/rag_chat_test.py"""
+Run: python be/rag/rag_chat_test.py"""
 import io
 import os
 import unittest

@@ -603,3 +603,9 @@
 - Still open: ./init.sh fails at npm install while the user's `npm run dev` holds the Prisma DLL (stop dev, then rerun); no production route for /api/chat and /api/docs (Vite dev proxy only); no UI for uploading documents (HTTP API only); retrieval scores all chunks in Python (shortcut, pgvector later); e2e '[WebServer] job ... table does not exist' noise during global setup; POST /webhook still has no signature check
 - Left uncommitted (user's): CLAUDE.md, SRS.txt, be/chat_cli.py, fe/tsconfig.tsbuildinfo
 - Next best step: a new round needs a fresh feature_list.json from a new user request. To try RAG locally: restart `python be/chat.py`, then as staff/admin `curl -b auction_token=... -F file=@doc.md http://localhost:5173/api/docs`
+
+## 2026-11-14: Python RAG files moved to be/rag/
+- `be/chat.py`, `chat_cli.py`, `rag.py`, `requirements.txt` and all `*_test.py` moved to `be/rag/` (flat, so the plain `import chat` / `import rag` lines still work).
+- Run: `python be/rag/chat.py`; install: `python -m pip install -r be/rag/requirements.txt`; `npm run test:py` now discovers in `be/rag`.
+- `.env` stays in `be/`: `load_dotenv()` searches parent folders, so it is still found.
+- Verified: `npm run test:py`, 37 tests OK. The older docs/changes/*.md still name the old paths; they are history and were left as they are.

@@ -1,4 +1,4 @@
-"""rag-1.3 unit tests for embed (Gemini stubbed, no sleeping). Run: python be/rag_embed_test.py"""
+"""rag-1.3 unit tests for embed (Gemini stubbed, no sleeping). Run: python be/rag/rag_embed_test.py"""
 import unittest
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
