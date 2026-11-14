@@ -595,4 +595,6 @@
 - Dev db note: the dev database has no demo staff/admin (only admin anh001), so the staff/admin demo logins answer 401 there
 - Seen in the gate log: '[WebServer] job close-auctions failed ... table public.auctions does not exist' before the first e2e test (the e2e server's job ran during the global setup's db reset). Tests unaffected; not investigated
 - be/chat.py commits stage only round-12 lines (patch onto the index); the user's WEB_PROMPT and `isinstance(message,  )` edits remain uncommitted
-- Next best step: rag-1.5 (retrieval in /api/chat; also fixes the isinstance crash)
+- rag-1.5 passing: /api/chat embeds the question, ranks live chunks (top 4, cosine >= 0.6, calibrated live) and appends them to WEB_PROMPT; `sources` only when used; search failures fall back to a plain answer. `isinstance(message, dict)` restored (chat_test 6/6 again). be/rag_chat_test.py 7/7; live answer from an uploaded doc confirmed. npm run verify exit 0
+- Live note: with the user's uncommitted WEB_PROMPT ('only serve account logged in'), the bot answered an off-topic guest question with 'Please log in'. The bot cannot see login status yet; rag-1.7 settles the prompt
+- Next best step: rag-1.6 (requirements.txt + Python tests in npm run verify), then rag-1.7

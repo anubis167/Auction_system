@@ -155,15 +155,22 @@
         "The system prompt tells the bot to use the context when relevant and not to invent facts it is not given.",
         "With no documents, or none above the threshold, the call to Gemini carries no context block.",
         "If retrieval fails (db down or embedding fails after retries) the chat still answers without context and logs the failure.",
-        "The response may include `sources` (list of document titles used); the existing ChatBox ignores unknown fields."
+        "The response includes `sources` (document titles used) only when excerpts were used; otherwise it is exactly {reply} as in chat-1.2. The existing ChatBox reads only `reply`."
       ],
       "verification": [
         "be/chat_test.py still passes (6 existing cases)",
         "be/rag_chat_test.py (unit: ranking + prompt building; integration: uploaded doc's chunk reaches the Gemini call, soft-deleted doc's chunk does not, db failure falls back)",
         "docs/changes/rag-1.5.md"
       ],
-      "evidence": [],
-      "status": "not_started"
+      "evidence": [
+        "python be/chat_test.py: 6/6 OK unchanged (was 1/6 with the uncommitted isinstance edit)",
+        "python be/rag_chat_test.py: 7/7 OK (cosine incl. zero vector, rank top-k above threshold, context block; integration: matching doc reaches system_instruction and sources, no match -> prompt is exactly WEB_PROMPT, soft-deleted doc unused, db down and embed down -> still 200 without context)",
+        "MIN_SCORE 0.6 calibrated live: matching questions 0.68-0.77, off-topic 0.47-0.57",
+        "Live on auction_test with real Gemini: uploaded 7% commission doc; 'How much commission do you take when my lot sells?' -> 'Beat'em keeps a commission of 7% of the hammer price on every sold lot.', sources ['fees']",
+        "2026-11-14 session 024: npm run verify exit 0 -> be 362, fe 162, build ok, Playwright 75/75; all 6 Python test files OK after it",
+        "docs/changes/rag-1.5.md"
+      ],
+      "status": "passing"
     },
     {
       "id": "rag-1.6",

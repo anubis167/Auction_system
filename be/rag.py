@@ -3,6 +3,7 @@ import base64
 import hashlib
 import hmac
 import json
+import math
 import os
 import re
 import time
@@ -154,3 +155,38 @@ def delete_document(conn, doc_id):
     return conn.execute(
         "UPDATE knowledge_documents SET deleted_at = now() WHERE id = %s AND deleted_at IS NULL", (doc_id,)
     ).rowcount == 1
+
+
+# rag-1.5: retrieval. MIN_SCORE from a live check (2026-11-14, gemini-embedding-001 at 768 dims):
+# matching questions scored 0.68-0.77, small talk and off-topic questions 0.47-0.57.
+TOP_K = 4
+MIN_SCORE = 0.6
+
+
+def cosine(a, b):
+    norm = math.sqrt(sum(x * x for x in a) * sum(y * y for y in b))
+    return sum(x * y for x, y in zip(a, b)) / norm if norm else 0.0
+
+
+def rank(rows, query_vector, k=TOP_K, min_score=MIN_SCORE):
+    """rows: (title, text, embedding). The k best at or above min_score, best first, as (score, title, text)."""
+    scored = [(cosine(query_vector, embedding), title, text) for title, text, embedding in rows if embedding]
+    return sorted((hit for hit in scored if hit[0] >= min_score), key=lambda hit: hit[0], reverse=True)[:k]
+
+
+def retrieve(conn, query_vector):
+    """shortcut: scores every live chunk in Python on each question; move to pgvector past a few thousand chunks."""
+    rows = conn.execute(
+        "SELECT d.title, c.text, c.embedding FROM knowledge_chunks c "
+        "JOIN knowledge_documents d ON d.id = c.document_id WHERE d.deleted_at IS NULL"
+    ).fetchall()
+    return rank(rows, query_vector)
+
+
+def context_block(hits):
+    """Text added to the system prompt; empty when nothing relevant was found."""
+    if not hits:
+        return ""
+    excerpts = "\n\n".join(f"[{title}]\n{text}" for _, title, text in hits)
+    return ("\n\nExcerpts from Beat'em's own documents that may answer the question. Use them when they are relevant, "
+            "and do not state facts about Beat'em that they or this prompt do not give you.\n\n" + excerpts)

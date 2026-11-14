@@ -70,11 +70,20 @@ def web_chat():
     if over_web_limit():
         return jsonify(error="Too many messages, please wait a minute"), 429
 
+    # rag-1.5: the best matching excerpts of uploaded documents; without them the bot still answers
+    hits = []
+    try:
+        question = rag.embed(client, [contents[-1]["parts"][0]["text"]], "RETRIEVAL_QUERY")[0]
+        with rag.connect() as conn:
+            hits = rag.retrieve(conn, question)
+    except Exception:
+        app.logger.exception("Document search failed, answering without documents")
+
     try:
         response = client.models.generate_content(
             model=GEMINI_MODEL,
             contents=contents,
-            config={"system_instruction": WEB_PROMPT},
+            config={"system_instruction": WEB_PROMPT + rag.context_block(hits)},
         )
         reply = response.text
     except Exception:
@@ -82,7 +91,9 @@ def web_chat():
         reply = None
     if not reply:
         return jsonify(error="The assistant is unavailable right now"), 503
-    return jsonify(reply=reply)
+    if not hits:
+        return jsonify(reply=reply)
+    return jsonify(reply=reply, sources=list(dict.fromkeys(title for _, title, _ in hits)))
 
 DOC_TYPES = {".txt": "text/plain", ".md": "text/markdown"}
 
