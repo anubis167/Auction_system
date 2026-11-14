@@ -7,6 +7,7 @@ verification over speed.
 
 At the start of every session:
 If docker still run container then stop it before do any steps below
+If feature_list.json was finished , then check the commit ,if previous change not commit , stop right away then alert me to commit it.
 1. Run `pwd` and confirm you are in the expected repository root.
 2. Read `claude-progress.md`.
 3. Read `feature_list.json`.

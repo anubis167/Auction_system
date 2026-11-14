@@ -3,10 +3,11 @@ then write me a feature-list.json file, with e2e function, unit and intergration
 Write changed description (files, changed in code) to docs folder
 All delete mean soft delete
 
-system - Ui change
+system - Chatbox with Gemini API
 description and Priority
-Modify homepage to show trending auction only , both logged and un-logged users
-just completed auction show 8 closed auction
+i already built small chatbox with python and gemini, for now update to
+it RAG system, upload documents, chunk datas, retries ,...
 
-Req-1: UI should stick with Auction Mockups.dc.html (focus on homepage section)
-Req-2: just completed auction show 8 closed auction, API return 8 auctions
+Req-1: Use gemini api settings i put in ./be/chat.py
+Req-2: Only unit test and intergration test, e2e skip
+Req-3: Database will save documents
