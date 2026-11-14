@@ -597,4 +597,5 @@
 - be/chat.py commits stage only round-12 lines (patch onto the index); the user's WEB_PROMPT and `isinstance(message,  )` edits remain uncommitted
 - rag-1.5 passing: /api/chat embeds the question, ranks live chunks (top 4, cosine >= 0.6, calibrated live) and appends them to WEB_PROMPT; `sources` only when used; search failures fall back to a plain answer. `isinstance(message, dict)` restored (chat_test 6/6 again). be/rag_chat_test.py 7/7; live answer from an uploaded doc confirmed. npm run verify exit 0
 - Live note: with the user's uncommitted WEB_PROMPT ('only serve account logged in'), the bot answered an off-topic guest question with 'Please log in'. The bot cannot see login status yet; rag-1.7 settles the prompt
-- Next best step: rag-1.6 (requirements.txt + Python tests in npm run verify), then rag-1.7
+- rag-1.6 passing: be/requirements.txt (pinned), `npm run test:py` (unittest discover in be/) runs at the end of `npm test`, so verify and init.sh include the 32 Python tests; __pycache__/ ignored. npm run verify exit 0. ./init.sh again blocked at npm install by the Prisma DLL lock from the user's dev server
+- Next best step: rag-1.7 (signed-in user context in /api/chat; replaces the user's uncommitted WEB_PROMPT edit)

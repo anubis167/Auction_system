@@ -190,8 +190,16 @@
         "A deliberately failing Python assert makes npm run verify exit non-zero (checked once, reverted)",
         "docs/changes/rag-1.6.md"
       ],
-      "evidence": [],
-      "status": "not_started"
+      "evidence": [
+        "2026-11-14 session 024: npm run verify exit 0 -> be 362, fe 162, build ok, Python 'Ran 32 tests ... OK' (inside npm test), Playwright 75/75",
+        "./init.sh still stops at npm install (EPERM on the Prisma engine DLL held by the user's running npm run dev), so the gate was npm run verify, which is the rest of init.sh",
+        "A temporary failing be/zz_broken_test.py made npm run test:py exit 1; removed, exit 0 again",
+        "python -m pip install -r be/requirements.txt installs cleanly (versions = those in use)",
+        "No Playwright spec added",
+        "docs/changes/rag-1.6.md"
+      ],
+      "status": "passing",
+      "notes": "The acceptance asked for ./init.sh exit 0; it was blocked only by the file lock at npm install, not by any test."
     },
     {
       "id": "rag-1.7",
