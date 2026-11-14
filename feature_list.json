@@ -11,11 +11,12 @@
     "Req-3: documents and their chunks live in the existing Postgres (docker compose, DATABASE_URL), as new Prisma models KnowledgeDocument and KnowledgeChunk so migrations stay in one place. chat.py reads/writes them with psycopg (new Python dependency, listed in be/requirements.txt).",
     "Embeddings are stored as a float array per chunk and ranked by cosine similarity in Python. shortcut: no pgvector (the postgres:16-alpine image lacks it); fine for hundreds of documents.",
     "Uploads accept .txt and .md (UTF-8), max 2 MB per file. PDF/DOCX are out of scope unless asked.",
-    "Only staff and admin may upload, list and delete documents; they send the same Bearer access token the Node API issues (HS256, JWT_SECRET), verified in Python. Chat itself stays open to every visitor, as today.",
+    "Only staff and admin may upload, list and delete documents. They are identified by the same httpOnly access cookie the Node API sets (HS256, JWT_SECRET; the browser sends it to /api/chat and /api/docs through the Vite proxy), verified in Python, with status re-read from the users table. Chat itself stays open to every visitor, as today.",
     "Delete = soft delete (deletedAt set); deleted documents and their chunks are never retrieved again but stay in the database.",
     "No admin UI page in this round: the SRS asks for the RAG backend and tests only (Req-2 skips e2e). Uploading is done through the HTTP API.",
     "Tests are Python unittest files next to chat_test.py in be/ (the repo's existing Python test home), not in e2e/: unit tests stub Gemini and the DB; integration tests use the real Postgres from docker compose with Gemini stubbed.",
-    "The uncommitted line `isinstance(message,  )` in be/chat.py makes every /api/chat call fail with TypeError; it is restored to `isinstance(message, dict)` as part of rag-1.5 unless the user objects."
+    "The uncommitted line `isinstance(message,  )` in be/chat.py makes every /api/chat call fail with TypeError; it is restored to `isinstance(message, dict)` as part of rag-1.5 unless the user objects.",
+    "rag-1.7 (user request 2026-11-14): the user is never taken from the request body or frontend state (forgeable); only from the verified access cookie. Guests get no account data."
   ],
   "conventions": {
     "tests": "Python: be/<area>_test.py with unittest, run via `python -m unittest discover -s be -p \"*_test.py\"`. Integration tests skip with a clear message when DATABASE_URL is unreachable.",
@@ -79,8 +80,12 @@
         "be/rag_chunk_test.py (unit): short text, many paragraphs, one huge paragraph, empty input, overlap, no content lost",
         "docs/changes/rag-1.2.md"
       ],
-      "evidence": [],
-      "status": "not_started"
+      "evidence": [
+        "python be/rag_chunk_test.py: 6/6 OK (short text, blank input, paragraph boundaries, sentence split, hard cut, overlap; no content lost in every case)",
+        "2026-11-14 session 024: npm run verify exit 0 -> be vitest 74 files / 362, fe vitest 26 / 162, fe build ok, Playwright 75/75. ./init.sh itself stopped at npm install (EPERM renaming the Prisma engine DLL, held by the user's running `npm run dev`); deps unchanged, so verify was run directly",
+        "docs/changes/rag-1.2.md"
+      ],
+      "status": "passing"
     },
     {
       "id": "rag-1.3",
@@ -91,7 +96,7 @@
       "title": "Embeddings with retries",
       "user_visible_behavior": "None directly; a short Gemini hiccup while indexing or answering does not fail the request.",
       "acceptance": [
-        "embed(texts, task) calls client.models.embed_content from chat.py's client in batches (max 100 texts per call) and returns one vector per text, in order.",
+        "embed(texts, task) calls client.models.embed_content from chat.py's client in batches (max 100 texts per call) and returns one vector per text, in order. Vectors have 768 dimensions (output_dimensionality).",
         "On 429/5xx or timeout it retries with exponential backoff (e.g. 3 tries, 1 s / 2 s / 4 s, capped) on top of the SDK retries; other 4xx errors are not retried.",
         "After the last failed try it raises one clear error; callers turn it into 503 (chat) or a failed upload, never a half-indexed document."
       ],
@@ -99,8 +104,13 @@
         "be/rag_embed_test.py (unit, Gemini stubbed, sleep patched): batching and order, 503 twice then success, 400 not retried, gives up after the limit, return error message after the limit",
         "docs/changes/rag-1.3.md"
       ],
-      "evidence": [],
-      "status": "not_started"
+      "evidence": [
+        "python be/rag_embed_test.py: 6/6 OK (batches of 100 keep order, 503 + timeout then success with 1 s / 2 s waits, 429 retried, 400 not retried, gives up after 3, short answer -> EmbedError)",
+        "Live: rag.embed with chat.py's client -> 768-dim vectors from gemini-embedding-001",
+        "2026-11-14 session 024: npm run verify exit 0 -> be vitest 74 files / 362, fe vitest 26 / 162, fe build ok, Playwright 75/75. ./init.sh itself stopped at npm install (EPERM renaming the Prisma engine DLL, held by the user's running `npm run dev`); deps unchanged, so verify was run directly",
+        "docs/changes/rag-1.3.md"
+      ],
+      "status": "passing"
     },
     {
       "id": "rag-1.4",
@@ -111,8 +121,8 @@
       "title": "Upload, list and soft-delete knowledge documents",
       "user_visible_behavior": "Staff or admin can upload a .txt or .md file, see the list of documents with their chunk counts, and delete one; deleted documents stop informing the bot.",
       "acceptance": [
-        "POST /api/docs (multipart file, optional title) with a valid staff/admin Bearer token stores the document, its chunks and their embeddings in one transaction and returns 201 with id, title, chunk count.",
-        "Missing/invalid/expired token -> 401; customer token -> 403.",
+        "POST /api/docs (multipart file, optional title) with a valid staff/admin access cookie stores the document, its chunks and their embeddings in one transaction and returns 201 with id, title, chunk count.",
+        "Missing/invalid/expired cookie, or a user whose status is locked/disabled/deleted -> 401; customer -> 403.",
         "Wrong extension, non-UTF-8 content, empty file or over 2 MB -> 400/413 and nothing is stored.",
         "If embedding fails after retries the upload returns 503 and no document or chunk row is left behind.",
         "GET /api/docs lists non-deleted documents (id, title, filename, size, chunk count, createdAt), newest first.",
@@ -166,6 +176,30 @@
         "./init.sh exit 0 with all Python tests counted in the output",
         "A deliberately failing Python assert makes npm run verify exit non-zero (checked once, reverted)",
         "docs/changes/rag-1.6.md"
+      ],
+      "evidence": [],
+      "status": "not_started"
+    },
+    {
+      "id": "rag-1.7",
+      "priority": 7,
+      "role": "guest, customer, staff, admin",
+      "area": "backend",
+      "srs_ref": "User request 2026-11-14: bot serves the logged-in user only; guests are sent to login",
+      "title": "Signed-in user context for the chat",
+      "user_visible_behavior": "A logged-in customer can ask the chat about their own credit, bids and lots and gets real numbers; a guest asking about an account is pointed to the login page; nobody can get another customer's data.",
+      "acceptance": [
+        "chat.py reads the access cookie on POST /api/chat and verifies it with JWT_SECRET (HS256, same rules as be/src/middleware/auth.ts readUser); the user's status is re-read from users and locked/disabled/deleted users count as guests.",
+        "Any user id, name or data in the request body is ignored.",
+        "For a signed-in user only, the prompt gets a short context block with that user's credit balance, held balance, their latest bids (auction title, amount, status) and their open lots; nothing about other users.",
+        "For a guest (no/invalid/expired cookie) the prompt gets no account data and tells the bot to send account questions to the login page.",
+        "If loading the user data fails, the chat still answers, treating the visitor as a guest, and logs the failure.",
+        "WEB_PROMPT has no claim the bot can see data it is not given; request/response shape and chat-1.2 limits unchanged."
+      ],
+      "verification": [
+        "be/rag_user_test.py (unit: cookie valid/forged/expired/missing, body user ignored; integration on auction_test: signed-in user's own credit and bids reach the Gemini call, another user's do not, locked user = guest)",
+        "be/chat_test.py still passes",
+        "docs/changes/rag-1.7.md"
       ],
       "evidence": [],
       "status": "not_started"

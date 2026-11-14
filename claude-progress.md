@@ -586,4 +586,9 @@
 - Startup: user's earlier edits (CLAUDE.md, SRS.txt, be/chat.py, be/chat_cli.py) were still uncommitted; the gate only applies to a finished feature_list, so the round went ahead. Docker Desktop started; ./init.sh exit 0 (Playwright 75/75)
 - Baseline note: python be/chat_test.py fails 5/6 because of the user's uncommitted `isinstance(message,  )` in be/chat.py (TypeError on every /api/chat call). Planned fix in rag-1.5
 - rag-1.1 passing: KnowledgeDocument / KnowledgeChunk Prisma models + migration; be/rag_db_test.py 1/1; be vitest 362/362. psycopg 3.3.9 installed with pip (not yet in a requirements file; rag-1.6)
-- Next best step: rag-1.2 (chunk_text, unit tests)
+- User asked for the bot to serve only the logged-in user: added rag-1.7 (user taken only from the verified httpOnly access cookie `auction_token`, never from the request body). rag-1.4 wording fixed from Bearer token to that cookie
+- rag-1.2 passing: be/rag.py chunk_text (paragraphs -> sentences -> hard cut, 1000 chars, 150 overlap); be/rag_chunk_test.py 6/6
+- rag-1.3 passing: rag.embed(client, texts, task) with chat.py's client, gemini-embedding-001 at 768 dims, batches of 100, 3 tries with backoff on 429/5xx/timeouts; be/rag_embed_test.py 6/6; live call ok
+- Gate: npm run verify exit 0 (be 362, fe 162, build, Playwright 75/75). ./init.sh failed at npm install: EPERM on node_modules/.prisma/client/query_engine-windows.dll.node, locked by the user's own `npm run dev` (left running)
+- Notes for rag-1.4: Vite proxies only /api/chat to Flask, so /api/docs needs its own proxy entry; Node's JWT_SECRET falls back to 'dev-secret'
+- Next best step: rag-1.4 (upload/list/soft-delete documents)
