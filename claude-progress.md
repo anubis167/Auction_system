@@ -591,4 +591,8 @@
 - rag-1.3 passing: rag.embed(client, texts, task) with chat.py's client, gemini-embedding-001 at 768 dims, batches of 100, 3 tries with backoff on 429/5xx/timeouts; be/rag_embed_test.py 6/6; live call ok
 - Gate: npm run verify exit 0 (be 362, fe 162, build, Playwright 75/75). ./init.sh failed at npm install: EPERM on node_modules/.prisma/client/query_engine-windows.dll.node, locked by the user's own `npm run dev` (left running)
 - Notes for rag-1.4: Vite proxies only /api/chat to Flask, so /api/docs needs its own proxy entry; Node's JWT_SECRET falls back to 'dev-secret'
-- Next best step: rag-1.4 (upload/list/soft-delete documents)
+- rag-1.4 passing: POST/GET /api/docs, DELETE /api/docs/<id> in be/chat.py (staff/admin via the auction_token cookie, checked in Python with hmac); Vite proxies /api/docs to Flask; be/rag_docs_test.py 6/6; a jsonwebtoken-signed admin token accepted, real customer cookie -> 403. npm run verify exit 0 (Playwright 75/75)
+- Dev db note: the dev database has no demo staff/admin (only admin anh001), so the staff/admin demo logins answer 401 there
+- Seen in the gate log: '[WebServer] job close-auctions failed ... table public.auctions does not exist' before the first e2e test (the e2e server's job ran during the global setup's db reset). Tests unaffected; not investigated
+- be/chat.py commits stage only round-12 lines (patch onto the index); the user's WEB_PROMPT and `isinstance(message,  )` edits remain uncommitted
+- Next best step: rag-1.5 (retrieval in /api/chat; also fixes the isinstance crash)

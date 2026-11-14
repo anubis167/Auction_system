@@ -132,8 +132,14 @@
         "be/rag_docs_test.py (integration, real Postgres, Gemini stubbed): upload ok, auth 401/403, bad files, embed failure rolls back, list, soft delete keeps rows with deletedAt",
         "docs/changes/rag-1.4.md"
       ],
-      "evidence": [],
-      "status": "not_started"
+      "evidence": [
+        "python be/rag_docs_test.py: 6/6 OK on auction_test, Gemini stubbed (upload stores doc + ordered chunks + vectors; title default and admin upload; 401 no cookie / locked user / wrong secret / expired / alg none / garbage, 403 customer, on all three routes; bad type, no ext, non-UTF-8, blank, >2 MB and >MAX_CONTENT_LENGTH store nothing; embed failure -> 503, no rows; list newest first, soft delete keeps rows, second delete and unknown id -> 404)",
+        "Interop: a token signed by the Node API's jsonwebtoken with JWT_SECRET for admin anh001 -> GET /api/docs 200; a real alice login cookie from :4000 -> 403; tampered cookie -> 401",
+        "2026-11-14 session 024: npm run verify exit 0 -> be 362, fe 162, fe build ok (vite.config.ts changed), Playwright 75/75; rag_db/chunk/embed/docs tests all OK after it",
+        "docs/changes/rag-1.4.md"
+      ],
+      "status": "passing",
+      "notes": "Routes live in be/chat.py next to /api/chat; helpers in be/rag.py. Only this feature's lines of be/chat.py were committed; the user's uncommitted WEB_PROMPT and isinstance edits stay in the working tree."
     },
     {
       "id": "rag-1.5",

@@ -1,7 +1,13 @@
 """Round 12: RAG helpers for the chat box in chat.py (chunking, embeddings, retrieval)."""
+import base64
+import hashlib
+import hmac
+import json
+import os
 import re
 import time
 
+import psycopg
 from google.genai import errors
 
 CHUNK_SIZE = 1000
@@ -73,3 +79,78 @@ def embed(client, texts, task):
     if len(vectors) != len(texts):
         raise EmbedError(f"Embedding returned {len(vectors)} vectors for {len(texts)} texts")
     return vectors
+
+
+# rag-1.4: the Node API's session cookie (be/src/config.ts cookieName) and the statuses it locks out (BLOCKED_STATUSES)
+COOKIE = "auction_token"
+BLOCKED_STATUSES = ("locked", "disabled", "deleted")
+
+
+def connect():
+    """shortcut: one connection per request, no pool; add psycopg_pool if chat traffic grows."""
+    return psycopg.connect(os.environ["DATABASE_URL"], connect_timeout=5)
+
+
+def _b64(part):
+    return base64.urlsafe_b64decode(part + "=" * (-len(part) % 4))
+
+
+def read_token(token):
+    """Same check as readUser in be/src/middleware/auth.ts: HS256 signed with JWT_SECRET and not expired. User id or None."""
+    try:
+        header, payload, signature = token.split(".")
+        if json.loads(_b64(header)).get("alg") != "HS256":
+            return None
+        secret = os.getenv("JWT_SECRET", "dev-secret").encode()  # same fallback as be/src/config.ts
+        expected = hmac.new(secret, f"{header}.{payload}".encode(), hashlib.sha256).digest()
+        if not hmac.compare_digest(expected, _b64(signature)):
+            return None
+        claims = json.loads(_b64(payload))
+        if not isinstance(claims.get("exp"), (int, float)) or claims["exp"] <= time.time():
+            return None
+        return int(claims["sub"])
+    except (ValueError, TypeError, KeyError, AttributeError):
+        return None
+
+
+def session_user(conn, token):
+    """The signed-in user as {id, role}, re-read from the db like loadSessionUser; None = guest."""
+    user_id = read_token(token) if token else None
+    if user_id is None:
+        return None
+    row = conn.execute("SELECT id, role, status FROM users WHERE id = %s", (user_id,)).fetchone()
+    if not row or row[2] in BLOCKED_STATUSES:
+        return None
+    return {"id": row[0], "role": row[1]}
+
+
+def save_document(conn, user_id, title, filename, mime_type, content, chunks, vectors):
+    """Document and all its chunks in one transaction, so a failure leaves nothing half-indexed."""
+    with conn.transaction():
+        doc_id = conn.execute(
+            "INSERT INTO knowledge_documents (title, filename, mime_type, content, size_bytes, uploaded_by_id) "
+            "VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
+            (title, filename, mime_type, content, len(content.encode()), user_id),
+        ).fetchone()[0]
+        conn.cursor().executemany(
+            "INSERT INTO knowledge_chunks (document_id, position, text, embedding) VALUES (%s, %s, %s, %s)",
+            [(doc_id, i, text, vector) for i, (text, vector) in enumerate(zip(chunks, vectors))],
+        )
+    return doc_id
+
+
+def list_documents(conn):
+    rows = conn.execute(
+        "SELECT d.id, d.title, d.filename, d.size_bytes, d.created_at, count(c.id) FROM knowledge_documents d "
+        "LEFT JOIN knowledge_chunks c ON c.document_id = d.id WHERE d.deleted_at IS NULL "
+        "GROUP BY d.id ORDER BY d.created_at DESC, d.id DESC"
+    ).fetchall()
+    return [{"id": r[0], "title": r[1], "filename": r[2], "sizeBytes": r[3], "createdAt": r[4].isoformat() + "Z", "chunks": r[5]}
+            for r in rows]
+
+
+def delete_document(conn, doc_id):
+    """Soft delete (SRS: all delete means soft delete). False when there is no live document with this id."""
+    return conn.execute(
+        "UPDATE knowledge_documents SET deleted_at = now() WHERE id = %s AND deleted_at IS NULL", (doc_id,)
+    ).rowcount == 1

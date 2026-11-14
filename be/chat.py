@@ -6,9 +6,14 @@ from google import genai
 import ngrok
 import time
 from collections import deque
+
+import rag
 load_dotenv()
 
 app = Flask(__name__)
+# rag-1.4: room for one 2 MB document plus its multipart wrapping; bigger bodies get 413 before they are read
+DOC_MAX_BYTES = 2 * 1024 * 1024
+app.config["MAX_CONTENT_LENGTH"] = DOC_MAX_BYTES + 64 * 1024
 ngrok.set_auth_token(os.getenv("NGROK_AUTHTOKEN"))
 # Initialize Gemini Client
 # Gemini often answers 503 "high demand" for a few seconds, so the SDK retries; the timeout stops a hung call blocking the box
@@ -78,6 +83,69 @@ def web_chat():
     if not reply:
         return jsonify(error="The assistant is unavailable right now"), 503
     return jsonify(reply=reply)
+
+DOC_TYPES = {".txt": "text/plain", ".md": "text/markdown"}
+
+
+def staff_only(conn):
+    """rag-1.4: (user, None) for staff/admin, else (None, error response)."""
+    user = rag.session_user(conn, request.cookies.get(rag.COOKIE))
+    if not user:
+        return None, (jsonify(error="Authentication required"), 401)
+    if user["role"] not in ("staff", "admin"):
+        return None, (jsonify(error="Forbidden"), 403)
+    return user, None
+
+
+@app.route("/api/docs", methods=["POST"])
+def upload_doc():
+    """rag-1.4: store a .txt/.md document, its chunks and their embeddings for the chat box"""
+    with rag.connect() as conn:
+        user, denied = staff_only(conn)
+        if denied:
+            return denied
+        file = request.files.get("file")
+        filename = os.path.basename(file.filename or "") if file else ""
+        ext = os.path.splitext(filename)[1].lower()
+        if ext not in DOC_TYPES:
+            return jsonify(error="Choose a .txt or .md file"), 400
+        data = file.read(DOC_MAX_BYTES + 1)
+        if len(data) > DOC_MAX_BYTES:
+            return jsonify(error="The file is larger than 2 MB"), 413
+        try:
+            content = data.decode("utf-8-sig")
+        except UnicodeDecodeError:
+            return jsonify(error="The file must be UTF-8 text"), 400
+        chunks = rag.chunk_text(content)
+        if not chunks:
+            return jsonify(error="The file is empty"), 400
+        title = (request.form.get("title") or "").strip()[:255] or os.path.splitext(filename)[0][:255]
+
+        try:
+            vectors = rag.embed(client, chunks, "RETRIEVAL_DOCUMENT")
+        except rag.EmbedError:
+            app.logger.exception("Embedding the upload failed")
+            return jsonify(error="The assistant is unavailable right now, try again later"), 503
+        doc_id = rag.save_document(conn, user["id"], title, filename[:255], DOC_TYPES[ext], content, chunks, vectors)
+    return jsonify(id=doc_id, title=title, chunks=len(chunks)), 201
+
+
+@app.route("/api/docs", methods=["GET"])
+def list_docs():
+    with rag.connect() as conn:
+        _, denied = staff_only(conn)
+        return denied or jsonify(documents=rag.list_documents(conn))
+
+
+@app.route("/api/docs/<int:doc_id>", methods=["DELETE"])
+def delete_doc(doc_id):
+    with rag.connect() as conn:
+        _, denied = staff_only(conn)
+        if denied:
+            return denied
+        if not rag.delete_document(conn, doc_id):
+            return jsonify(error="Document not found"), 404
+    return "", 204
 
 @app.route("/webhook", methods=["GET"])
 def verify_webhook():
