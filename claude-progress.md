@@ -580,7 +580,7 @@
 - Still open from earlier: POST /webhook has no X-Hub-Signature-256 check; WEB_PROMPT says the bot can see user data it is not given
 - Next best step: a new round needs a fresh feature_list.json from a new user request
 
-### Session 024: round 12 (RAG chat box) started (2026-11-14)
+### Session 024: round 12 (RAG chat box) built, verified and archived (2026-11-14)
 
 - New round from SRS.txt (chat box with Gemini -> RAG, upload documents, chunking, retries; unit + integration tests only, no e2e). feature_list.json: rag-1.1 .. rag-1.6
 - Startup: user's earlier edits (CLAUDE.md, SRS.txt, be/chat.py, be/chat_cli.py) were still uncommitted; the gate only applies to a finished feature_list, so the round went ahead. Docker Desktop started; ./init.sh exit 0 (Playwright 75/75)
@@ -598,4 +598,8 @@
 - rag-1.5 passing: /api/chat embeds the question, ranks live chunks (top 4, cosine >= 0.6, calibrated live) and appends them to WEB_PROMPT; `sources` only when used; search failures fall back to a plain answer. `isinstance(message, dict)` restored (chat_test 6/6 again). be/rag_chat_test.py 7/7; live answer from an uploaded doc confirmed. npm run verify exit 0
 - Live note: with the user's uncommitted WEB_PROMPT ('only serve account logged in'), the bot answered an off-topic guest question with 'Please log in'. The bot cannot see login status yet; rag-1.7 settles the prompt
 - rag-1.6 passing: be/requirements.txt (pinned), `npm run test:py` (unittest discover in be/) runs at the end of `npm test`, so verify and init.sh include the 32 Python tests; __pycache__/ ignored. npm run verify exit 0. ./init.sh again blocked at npm install by the Prisma DLL lock from the user's dev server
-- Next best step: rag-1.7 (signed-in user context in /api/chat; replaces the user's uncommitted WEB_PROMPT edit)
+- rag-1.7 passing: /api/chat reads the auction_token cookie; signed-in users get their own credit, latest bids and open lots in the prompt, guests a 'log in at /login' note; body fields ignored. WEB_PROMPT rewritten (the user's uncommitted lines replaced). be/rag_user_test.py 5/5; live replies confirmed. npm run verify exit 0 (Python 37/37)
+- Round 12: 7/7 passing; archived as progress-feature-list/feature_list_12.json. No feature_list.json at the root now
+- Still open: ./init.sh fails at npm install while the user's `npm run dev` holds the Prisma DLL (stop dev, then rerun); no production route for /api/chat and /api/docs (Vite dev proxy only); no UI for uploading documents (HTTP API only); retrieval scores all chunks in Python (shortcut, pgvector later); e2e '[WebServer] job ... table does not exist' noise during global setup; POST /webhook still has no signature check
+- Left uncommitted (user's): CLAUDE.md, SRS.txt, be/chat_cli.py, fe/tsconfig.tsbuildinfo
+- Next best step: a new round needs a fresh feature_list.json from a new user request. To try RAG locally: restart `python be/chat.py`, then as staff/admin `curl -b auction_token=... -F file=@doc.md http://localhost:5173/api/docs`

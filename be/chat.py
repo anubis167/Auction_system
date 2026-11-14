@@ -34,7 +34,8 @@ MAX_TEXT = 1000
 WEB_CALLS_PER_MINUTE = 30
 WEB_PROMPT = (
     "You are the assistant on Beat'em, an online auction site. Keep answers short and in plain text, without markdown. "
-    "You cannot see lots, bids, accounts or credit, so never state them; point the user to the matching page instead."
+    "You only know the account details given below for the visitor you are talking to (rag-1.7). Never state account, "
+    "bid, lot or credit details that are not given, and never discuss other customers."
 )
 web_calls = deque()
 
@@ -70,20 +71,23 @@ def web_chat():
     if over_web_limit():
         return jsonify(error="Too many messages, please wait a minute"), 429
 
-    # rag-1.5: the best matching excerpts of uploaded documents; without them the bot still answers
-    hits = []
+    # rag-1.7: the visitor's own account, only from the verified session cookie (never from the body); guest otherwise.
+    # rag-1.5: the best matching excerpts of uploaded documents. Without either the bot still answers.
+    account, hits = rag.GUEST_CONTEXT, []
     try:
-        question = rag.embed(client, [contents[-1]["parts"][0]["text"]], "RETRIEVAL_QUERY")[0]
         with rag.connect() as conn:
-            hits = rag.retrieve(conn, question)
+            user = rag.session_user(conn, request.cookies.get(rag.COOKIE))
+            if user:
+                account = rag.user_context(conn, user["id"])
+            hits = rag.retrieve(conn, rag.embed(client, [contents[-1]["parts"][0]["text"]], "RETRIEVAL_QUERY")[0])
     except Exception:
-        app.logger.exception("Document search failed, answering without documents")
+        app.logger.exception("Account or document lookup failed, answering without it")
 
     try:
         response = client.models.generate_content(
             model=GEMINI_MODEL,
             contents=contents,
-            config={"system_instruction": WEB_PROMPT + rag.context_block(hits)},
+            config={"system_instruction": WEB_PROMPT + account + rag.context_block(hits)},
         )
         reply = response.text
     except Exception:

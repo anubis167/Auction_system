@@ -190,3 +190,30 @@ def context_block(hits):
     excerpts = "\n\n".join(f"[{title}]\n{text}" for _, title, text in hits)
     return ("\n\nExcerpts from Beat'em's own documents that may answer the question. Use them when they are relevant, "
             "and do not state facts about Beat'em that they or this prompt do not give you.\n\n" + excerpts)
+
+
+# rag-1.7: what the bot may know about the visitor. The user only ever comes from the verified session cookie.
+GUEST_CONTEXT = ("\n\nThe visitor is not logged in. If they ask about their account, bids, credit or lots, "
+                 "tell them to log in first on the login page (/login).")
+
+
+def user_context(conn, user_id):
+    """The signed-in visitor's own credit, latest bids and open lots, as text for the system prompt."""
+    username, balance, held = conn.execute(
+        "SELECT username, credit_balance, held_balance FROM users WHERE id = %s", (user_id,)).fetchone()
+    bids = conn.execute(
+        "SELECT a.name, b.amount, b.status FROM bid_tickets b JOIN auctions a ON a.id = b.auction_id "
+        "WHERE b.bidder_id = %s AND a.deleted_at IS NULL ORDER BY b.created_at DESC, b.id DESC LIMIT 5", (user_id,)).fetchall()
+    lots = conn.execute(
+        "SELECT name, status, coalesce(current_price, initial_price), end_time FROM auctions "
+        "WHERE seller_id = %s AND deleted_at IS NULL AND status IN ('upcoming', 'active') AND end_time > now() "
+        "ORDER BY end_time LIMIT 5", (user_id,)).fetchall()
+    lines = [
+        f"\n\nThe visitor is logged in as {username}. Their own account, read from the database just now:",
+        f"- Credit: balance {balance}, held for bids {held}, available {balance - held}",
+        "- Latest bids: " + ("; ".join(f"{name}: {amount} ({status})" for name, amount, status in bids) or "none"),
+        "- Their open lots: " + ("; ".join(f"{name}: {status}, price {price}, ends {end:%Y-%m-%d %H:%M} UTC"
+                                            for name, status, price, end in lots) or "none"),
+        "This is everything you know about their account; for anything else, point them to the matching page.",
+    ]
+    return "\n".join(lines)

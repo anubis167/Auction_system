@@ -13,6 +13,8 @@ import chat  # noqa: E402
 import rag  # noqa: E402
 from rag_docs_test import PREFIX, token  # noqa: E402
 
+EXCERPTS = "Excerpts from Beat'em's own documents"
+
 
 class Ranking(unittest.TestCase):
     def test_cosine(self):
@@ -104,24 +106,27 @@ class GroundedChat(unittest.TestCase):
     def test_no_match_means_no_context(self):
         self.upload("Fees", "The seller fee is 5% of the final price.")
         res, prompt = self.ask("Tell me a joke")
-        self.assertEqual((res.status_code, res.json, prompt), (200, {"reply": "answer"}, chat.WEB_PROMPT))
+        self.assertEqual((res.status_code, res.json), (200, {"reply": "answer"}))
+        self.assertNotIn(EXCERPTS, prompt)
 
     def test_soft_deleted_document_is_not_used(self):
         doc_id = self.upload("Fees", "The seller fee is 5% of the final price.")
         self.assertEqual(self.http.delete(f"/api/docs/{doc_id}").status_code, 204)
         _, prompt = self.ask("What fee do you charge?")
-        self.assertEqual(prompt, chat.WEB_PROMPT)
+        self.assertNotIn(EXCERPTS, prompt)
 
     def test_search_failures_still_answer(self):
         self.upload("Fees", "The seller fee is 5% of the final price.")
         with patch.object(rag, "connect", side_effect=psycopg.OperationalError("db down")):
             res, prompt = self.ask("What fee do you charge?")
-        self.assertEqual((res.status_code, prompt), (200, chat.WEB_PROMPT))
+        self.assertEqual(res.status_code, 200)
+        self.assertNotIn(EXCERPTS, prompt)
 
         self.client.models.embed_content.side_effect = TimeoutError("down")
         with patch("rag.time.sleep"):
             res, prompt = self.ask("What fee do you charge?")
-        self.assertEqual((res.status_code, prompt), (200, chat.WEB_PROMPT))
+        self.assertEqual(res.status_code, 200)
+        self.assertNotIn(EXCERPTS, prompt)
 
 
 if __name__ == "__main__":
