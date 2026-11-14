@@ -34,6 +34,7 @@ model User {
   resetTokens        PasswordResetToken[]
   verificationTokens EmailVerificationToken[]
   refreshTokens      RefreshToken[]
+  knowledgeDocuments KnowledgeDocument[]
 
   @@map("users")
 }
@@ -276,4 +277,35 @@ model RolePermission {
 
   @@id([role, permissionId])
   @@map("role_permissions")
+}
+
+// rag-1.1: documents uploaded for the chat box (be/chat.py) and their embedded chunks. Delete = soft delete.
+model KnowledgeDocument {
+  id           BigInt           @id @default(autoincrement())
+  title        String           @db.VarChar(255)
+  filename     String           @db.VarChar(255)
+  mimeType     String           @map("mime_type") @db.VarChar(100)
+  content      String
+  sizeBytes    Int              @map("size_bytes")
+  uploadedById BigInt           @map("uploaded_by_id")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  deletedAt    DateTime?        @map("deleted_at")
+  uploadedBy   User             @relation(fields: [uploadedById], references: [id])
+  chunks       KnowledgeChunk[]
+
+  @@map("knowledge_documents")
+}
+
+model KnowledgeChunk {
+  id         BigInt            @id @default(autoincrement())
+  documentId BigInt            @map("document_id")
+  position   Int
+  text       String
+  embedding  Float[]
+  createdAt  DateTime          @default(now()) @map("created_at")
+  document   KnowledgeDocument @relation(fields: [documentId], references: [id])
+
+  @@unique([documentId, position])
+  @@index([documentId])
+  @@map("knowledge_chunks")
 }

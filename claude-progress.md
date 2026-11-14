@@ -579,3 +579,11 @@
 - Left uncommitted (user's): CLAUDE.md docker line, be/chat.py WEB_PROMPT edit, be/chat_cli.py, be/__pycache__/
 - Still open from earlier: POST /webhook has no X-Hub-Signature-256 check; WEB_PROMPT says the bot can see user data it is not given
 - Next best step: a new round needs a fresh feature_list.json from a new user request
+
+### Session 024: round 12 (RAG chat box) started (2026-11-14)
+
+- New round from SRS.txt (chat box with Gemini -> RAG, upload documents, chunking, retries; unit + integration tests only, no e2e). feature_list.json: rag-1.1 .. rag-1.6
+- Startup: user's earlier edits (CLAUDE.md, SRS.txt, be/chat.py, be/chat_cli.py) were still uncommitted; the gate only applies to a finished feature_list, so the round went ahead. Docker Desktop started; ./init.sh exit 0 (Playwright 75/75)
+- Baseline note: python be/chat_test.py fails 5/6 because of the user's uncommitted `isinstance(message,  )` in be/chat.py (TypeError on every /api/chat call). Planned fix in rag-1.5
+- rag-1.1 passing: KnowledgeDocument / KnowledgeChunk Prisma models + migration; be/rag_db_test.py 1/1; be vitest 362/362. psycopg 3.3.9 installed with pip (not yet in a requirements file; rag-1.6)
+- Next best step: rag-1.2 (chunk_text, unit tests)
