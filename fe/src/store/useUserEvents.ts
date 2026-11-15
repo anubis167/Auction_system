@@ -10,6 +10,7 @@ import { useAppDispatch } from './index';
  * 'auction-finished' fetches credit again. After a dropped connection credit is fetched once on reconnect,
  * since events sent meanwhile are lost. sec-003: the stream is reopened after the session is renewed.
  * stf-010: approval decisions on the user's goods and credit requests show a toast on any page.
+ * sch-1.7: chat-message / chat-claimed / chat-closed are passed on to the ChatBox as a 'support-chat' window event.
  */
 export function useUserEvents(enabled: boolean, userId: number | undefined) {
   const dispatch = useAppDispatch();
@@ -40,6 +41,13 @@ export function useUserEvents(enabled: boolean, userId: number | undefined) {
         toast(message.text, message.kind);
         window.dispatchEvent(new CustomEvent<GoodsReviewedEvent>('goods-reviewed', { detail: data }));
       });
+      // sch-1.7: the customer's conversation with staff; the ChatBox listens for the window event.
+      for (const type of ['chat-message', 'chat-claimed', 'chat-closed']) {
+        source.addEventListener(type, (e) => {
+          const data = JSON.parse((e as MessageEvent<string>).data) as unknown;
+          window.dispatchEvent(new CustomEvent('support-chat', { detail: { type, data } }));
+        });
+      }
       source.onerror = () => {
         dropped = true;
       };

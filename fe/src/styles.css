@@ -215,6 +215,9 @@ th { color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: u
 .chat-msg { margin: 0; padding: 0.5rem 0.75rem; border-radius: 12px; max-width: 85%; white-space: pre-wrap; overflow-wrap: anywhere; }
 .chat-msg-model { align-self: flex-start; background: var(--steel-light); color: var(--ink); }
 .chat-msg-user { align-self: flex-end; background: var(--navy); color: #fff; }
+/* sch-1.7: staff replies and system notes after a handoff */
+.chat-msg-staff { align-self: flex-start; background: var(--surface); color: var(--ink); border: 1px solid var(--navy); }
+.chat-msg-system { align-self: center; max-width: 100%; padding: 0.25rem 0.5rem; color: var(--ink); font-size: 0.85rem; font-style: italic; text-align: center; }
 .chat-error { margin: 0; color: var(--ink); font-size: 0.9rem; }
 .chat-form { display: flex; gap: 0.5rem; }
 .chat-form input { flex: 1; min-width: 0; }

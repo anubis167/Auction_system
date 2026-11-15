@@ -630,3 +630,5 @@
 - Next: sch-1.6 (SSE chat events to staff and to the customer).
 - sch-1.6 passing: chat events over the existing SSE bus (staff channel 'chat' + user channels). Admins see the queue live but not other staff's messages (plan changed, recorded). ./init.sh exit 0 (be 384, fe 162, Python 44, Playwright 75/75).
 - Next: sch-1.7 (customer ChatBox switches to staff mode).
+- sch-1.7 passing: ChatBox bot/staff modes (fe/src/supportChat.ts pure rules + ChatBox + useUserEvents forwarding 'support-chat'). Manual browser walk-through on the e2e servers (servers stopped afterwards). ./init.sh exit 0 (be 390, fe 162, Python 44, Playwright 75/75).
+- Next: sch-1.8 (staff chat panel page /staff/chats).

@@ -196,12 +196,17 @@
         "Guests see the login note, no staff mode."
       ],
       "verification": [
-        "fe vitest for the ChatBox mode switch (stubbed fetch/EventSource)",
+        "e2e/unit/sch-1-7-support-chat.test.ts: the ChatBox mode rules (fe/src/supportChat.ts) as pure functions; fe has no DOM test setup",
         "Manual check in the browser: handoff, staff reply shows live, reload restores, close returns to bot",
         "docs/changes/sch-1.7.md"
       ],
-      "evidence": [],
-      "status": "not_started"
+      "evidence": [
+        "2026-11-15 session 025: e2e/unit/sch-1-7-support-chat.test.ts 6/6 (transcript/bot history filtering and caps, handoff state, reload with join note in place, live claim/reply/dedupe/close, foreign events ignored)",
+        "Manual check: throwaway Playwright script on the e2e servers with /api/chat stubbed to hand off: 16/16 checks (handoff, live claim + reply, own message once, bot not called in staff mode, reload restores, close -> bot, guest stays with bot); screenshots reviewed at 1440 and 390 px",
+        "COMPOSE_PROJECT_NAME=auction_system ./init.sh exit 0: be 81 files / 390 tests, fe 162, build ok, Python 44, Playwright 75/75",
+        "docs/changes/sch-1.7.md"
+      ],
+      "status": "passing"
     },
     {
       "id": "sch-1.8",
