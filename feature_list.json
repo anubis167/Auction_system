@@ -134,7 +134,7 @@
       "user_visible_behavior": "Staff see waiting conversations, take one or many, reply, and close them.",
       "acceptance": [
         "New permission chat.handle granted to staff and admin; customers 403.",
-        "GET /api/staff/chats?status=waiting|mine|all lists conversations with customer username, reason, last message, unread count for the assigned staff.",
+        "GET /api/staff/chats?status=waiting|mine|all lists conversations with customer username, reason, assigned staff and last message. (Unread counts moved to the panel, sch-1.8: kept client-side from live events, so no read-tracking columns are needed.)",
         "POST /api/staff/chats/:id/claim: waiting -> assigned to the caller; already assigned to someone else -> 409 (two staff claiming at once: exactly one wins).",
         "POST /api/staff/chats/:id/messages {text 1-1000}: only the assigned staff; others 403; closed 409.",
         "POST /api/staff/chats/:id/close: assigned staff or admin; sets closedAt.",
@@ -146,8 +146,13 @@
         "e2e/unit/sch-1-5-permissions.test.ts: chat.handle in the role/permission table",
         "docs/changes/sch-1.5.md"
       ],
-      "evidence": [],
-      "status": "not_started"
+      "evidence": [
+        "2026-11-15 session 025: e2e/integration/sch-1-5-staff-chat.test.ts 8/8 (access, queue order, concurrent claim -> one 200 one 409, many per staff, assigned-only replies, each customer sees only own reply, view rules, close, admin soft delete); e2e/unit/sch-1-5-permissions.test.ts 2/2",
+        "be/tests/sec.permissions.test.ts updated for the new chat.handle grant, 8/8",
+        "COMPOSE_PROJECT_NAME=auction_system ./init.sh exit 0: be 79 files / 381 tests, fe 162, build ok, Python 44, Playwright 75/75",
+        "docs/changes/sch-1.5.md"
+      ],
+      "status": "passing"
     },
     {
       "id": "sch-1.6",

@@ -18,6 +18,7 @@ import { messagesRouter } from './routes/messages';
 import { staffRouter } from './routes/staff';
 import { staffApprovalsRouter } from './routes/staffApprovals';
 import { staffAuctionsRouter } from './routes/staffAuctions';
+import { staffChatsRouter } from './routes/staffChats';
 import { staffCreditRouter } from './routes/staffCredit';
 import { staffGoodsRouter } from './routes/staffGoods';
 import { supportRouter } from './routes/support';
@@ -66,6 +67,7 @@ export function createApp() {
   app.use('/api/admin', adminRouter);
   app.use('/api/staff/goods', staffGoodsRouter);
   app.use('/api/staff/credit', staffCreditRouter);
+  app.use('/api/staff/chats', staffChatsRouter);
   app.use('/api/staff/manage/auctions', staffAuctionsRouter);
   app.use('/api/staff', staffApprovalsRouter);
   app.use('/api/staff', staffRouter);

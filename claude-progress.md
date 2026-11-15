@@ -626,3 +626,5 @@
 - sch-1.4 passing: chat_conversations / chat_messages tables (migration made with `prisma migrate diff`, so the shared dev db is untouched) and /api/support/conversations (open/reuse, mine, customer messages). Routes are under /api/support because Vite proxies /api/chat* to Flask. e2e/integration/sch-1-4-customer-chat.test.ts 7/7. ./init.sh exit 0 (be 371, fe 162, Python 44, Playwright 75/75).
 - To run the app from this worktree: `npx prisma migrate deploy -w be` first (dev db lacks the chat tables), and copy be/.env.
 - Next: sch-1.5 (staff queue/claim/reply/close API, permission chat.handle).
+- sch-1.5 passing: /api/staff/chats (queue, mine/all, view, claim with one conditional update, reply, close, admin soft delete), permission chat.handle (staff + admin). Unread counts moved to the panel (sch-1.8, client-side). ./init.sh exit 0 (be 381, fe 162, Python 44, Playwright 75/75).
+- Next: sch-1.6 (SSE chat events to staff and to the customer).
