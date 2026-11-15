@@ -12,6 +12,7 @@ import { ForgotPasswordPage } from './pages/ForgotPassword';
 import { HomePage } from './pages/Home';
 import { LoginPage } from './pages/Login';
 import { AdminPermissionsPage } from './pages/AdminPermissions';
+import { AdminRagPage } from './pages/AdminRag';
 import { AdminUserDetailPage } from './pages/AdminUserDetail';
 import { AdminUserNewPage } from './pages/AdminUserNew';
 import { AdminUsersPage } from './pages/AdminUsers';
@@ -65,6 +66,7 @@ export function App() {
         <Route path="/admin/users/new" element={<RequireAuth permission="user.manage"><AdminUserNewPage /></RequireAuth>} />
         <Route path="/admin/users/:id" element={<RequireAuth permission="user.manage"><AdminUserDetailPage /></RequireAuth>} />
         <Route path="/admin/permissions" element={<RequireAuth permission="permission.manage"><AdminPermissionsPage /></RequireAuth>} />
+        <Route path="/admin/rag" element={<RequireAuth permission="user.manage"><AdminRagPage /></RequireAuth>} />
         <Route path="*" element={<p>Page not found.</p>} />
       </Route>
     </Routes>

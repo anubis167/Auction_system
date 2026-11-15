@@ -3,11 +3,11 @@ then write me a feature-list.json file, with e2e function, unit and intergration
 Write changed description (files, changed in code) to docs folder
 All delete mean soft delete
 
-system - Chatbox with Gemini API
+system - Chatbox with Gemini API - admin side
 description and Priority
-i already built small chatbox with python and gemini, for now update to
-it RAG system, upload documents, chunk datas, retries ,...
+for now you handle both be-fe for admin side of chatbox, including RAG documents upload,tonal,business rules, licenses,...
 
-Req-1: Use gemini api settings i put in ./be/chat.py
-Req-2: Only unit test and intergration test, e2e skip
-Req-3: Database will save documents
+Req-1: admin side handle upload RAG, the documents upload with <10mb
+Req-2: If documents bigger, send the small notification
+Req-3: all documents chunked before save to db
+Req-4: put new navigation link into header for admin

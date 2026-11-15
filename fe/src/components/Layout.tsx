@@ -206,6 +206,7 @@ const ROLE_LINKS: { to: string; label: string; permission: string; badge?: 'good
   { to: '/staff/credit', label: 'Credit management', permission: 'credit.manage', badge: 'credit' },
   { to: '/admin/users', label: 'Users', permission: 'user.manage' },
   { to: '/admin/permissions', label: 'Permissions', permission: 'permission.manage' },
+  { to: '/admin/rag', label: 'Chatbot', permission: 'user.manage' },
 ];
 
 const BADGES = {

@@ -5,7 +5,7 @@ import { DEFAULT_GRANTS, PERMISSIONS } from '../src/lib/permissions';
 
 const prisma = new PrismaClient();
 
-// Demo accounts, password for all: Password123!
+// Demo accounts, password for all:   
 const DEMO_USERS = [
   { username: 'alice', email: 'alice@example.com', fullName: 'Alice Seller', credit: 1000 },
   { username: 'bob', email: 'bob@example.com', fullName: 'Bob Bidder', credit: 1000 },

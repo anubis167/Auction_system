@@ -11,9 +11,9 @@ import rag
 load_dotenv()
 
 app = Flask(__name__)
-# rag-1.4: room for one 2 MB document plus its multipart wrapping; bigger bodies get 413 before they are read
-DOC_MAX_BYTES = 2 * 1024 * 1024
-app.config["MAX_CONTENT_LENGTH"] = DOC_MAX_BYTES + 64 * 1024
+# rag-2.1: room for one 10 MB document plus its multipart wrapping; bigger bodies get 413 before they are read
+DOC_MAX_BYTES = 10 * 1024 * 1024
+app.config["MAX_CONTENT_LENGTH"] = DOC_MAX_BYTES + 128 * 1024
 ngrok.set_auth_token(os.getenv("NGROK_AUTHTOKEN"))
 # Initialize Gemini Client
 # Gemini often answers 503 "high demand" for a few seconds, so the SDK retries; the timeout stops a hung call blocking the box
@@ -126,7 +126,7 @@ def upload_doc():
             return jsonify(error="Choose a .txt or .md file"), 400
         data = file.read(DOC_MAX_BYTES + 1)
         if len(data) > DOC_MAX_BYTES:
-            return jsonify(error="The file is larger than 2 MB"), 413
+            return jsonify(error="The file is larger than 10 MB"), 413
         try:
             content = data.decode("utf-8-sig")
         except UnicodeDecodeError:
