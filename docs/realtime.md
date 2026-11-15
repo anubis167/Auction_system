@@ -156,3 +156,21 @@ Toast wording lives in fe/src/requestToasts.ts. Staff and admin have no own good
 so their user stream is not opened (it is customer-only, as before).
 
 Store slices now: `auction`, `credit` and `approvals`.
+
+## Staff chat (sch-1.6)
+
+Chats handed off by the bot (sch-1.3/1.4/1.5) use the same bus (be/src/lib/chatEvents.ts). Events are published
+after the db write; a refused request publishes nothing.
+
+| Event | Staff stream `GET /api/staff/events` (channel `chat`, needs `chat.handle`) | User stream `GET /api/me/events` |
+|---|---|---|
+| `chat-waiting` `{id, customer, handoffReason, createdAt, lastMessage}` | yes: a new conversation entered the queue | no |
+| `chat-message` `{conversationId, message}` | only while the conversation is `waiting` | its customer, always; its assigned staff member once claimed |
+| `chat-claimed` `{conversationId, assignedStaff}` | yes (other staff drop it from Waiting) | its customer |
+| `chat-closed` `{conversationId, reason: closed\|deleted}` | yes | its customer |
+
+- A customer only ever receives events of their own conversation.
+- Once claimed, messages reach only the customer and the assigned staff member (their user stream), so the panel
+  keeps both streams open. Admins see the queue live and can open any conversation (`GET /api/staff/chats/:id`),
+  but do not receive other staff members' messages live.
+- A sender also receives their own message on their stream (other tabs stay in step); clients drop duplicates by message id.

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db';
+import { publishChatClaimed, publishChatClosed, publishChatMessages } from '../lib/chatEvents';
 import { HttpError, asyncHandler } from '../lib/http';
 import { requirePermission } from '../middleware/auth';
 import { conversationInclude } from './support';
@@ -75,7 +76,9 @@ staffChatsRouter.post(
       if (!row || row.deletedAt) throw new HttpError(404, 'Conversation not found');
       throw new HttpError(409, 'This conversation is no longer waiting');
     }
-    res.json({ conversation: await loadVisible(id, req.user!) });
+    const conversation = await loadVisible(id, req.user!);
+    publishChatClaimed(conversation, { id: req.user!.id, username: req.user!.username });
+    res.json({ conversation });
   }),
 );
 
@@ -90,6 +93,7 @@ staffChatsRouter.post(
       .object({ text: z.string({ required_error: 'Message cannot be empty' }).trim().min(1, 'Message cannot be empty').max(1000, 'Message is too long (max 1000 characters)') })
       .parse(req.body);
     const message = await prisma.chatMessage.create({ data: { conversationId: id, sender: 'staff', senderId: req.user!.id, text } });
+    publishChatMessages(conversation, [message]);
     res.status(201).json({ message });
   }),
 );
@@ -101,7 +105,8 @@ staffChatsRouter.post(
     const conversation = await loadVisible(id, req.user!);
     if (conversation.status === 'closed') throw new HttpError(409, 'This conversation is already closed');
     if (conversation.assignedStaffId !== req.user!.id && req.user!.role !== 'admin') throw new HttpError(403, 'Only the assigned staff member or an admin can close it');
-    await prisma.chatConversation.update({ where: { id }, data: { status: 'closed', closedAt: new Date() } });
+    const closed = await prisma.chatConversation.update({ where: { id }, data: { status: 'closed', closedAt: new Date() } });
+    publishChatClosed(closed, 'closed');
     res.json({ conversation: await loadVisible(id, req.user!) });
   }),
 );
@@ -111,8 +116,10 @@ staffChatsRouter.delete(
   '/:id',
   asyncHandler(async (req, res) => {
     if (req.user!.role !== 'admin') throw new HttpError(403, 'Only admins can delete conversations');
-    const { count } = await prisma.chatConversation.updateMany({ where: { id: idParam(req.params.id), deletedAt: null }, data: { deletedAt: new Date() } });
+    const id = idParam(req.params.id);
+    const { count } = await prisma.chatConversation.updateMany({ where: { id, deletedAt: null }, data: { deletedAt: new Date() } });
     if (count === 0) throw new HttpError(404, 'Conversation not found');
+    publishChatClosed(await prisma.chatConversation.findUniqueOrThrow({ where: { id } }), 'deleted');
     res.json({ message: 'Conversation deleted' });
   }),
 );

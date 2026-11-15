@@ -163,7 +163,7 @@
       "title": "Realtime chat events (SSE)",
       "user_visible_behavior": "New handoffs, claims, messages and closes appear for staff and the customer without reloading.",
       "acceptance": [
-        "Staff stream (existing staff SSE) gets chat-waiting, chat-claimed, chat-message (for conversations assigned to that staff member, or all for admin), chat-closed.",
+        "Staff stream (existing /api/staff/events, new channel 'chat' for chat.handle) gets chat-waiting, chat-claimed, chat-closed, and chat-message while a conversation is waiting. Once assigned, its messages go only to the customer and the assigned staff member's user stream (admins: queue live, any conversation on request; changed from 'all for admin' to keep messages with whoever handles them).",
         "Customer's own user stream (/api/me/events) gets chat-message (staff replies), chat-claimed (staff name) and chat-closed for their conversation only.",
         "Events are published only after the db write commits; a rejected request publishes nothing.",
         "No customer ever receives another customer's conversation events."
@@ -173,8 +173,13 @@
         "docs/realtime.md updated with the chat events",
         "docs/changes/sch-1.6.md"
       ],
-      "evidence": [],
-      "status": "not_started"
+      "evidence": [
+        "2026-11-15 session 025: e2e/integration/sch-1-6-chat-events.test.ts 3/3 (2 customers + 2 staff over real SSE streams: waiting, queue message, claim, assigned-only replies, close, admin delete; no cross-customer events; refused requests publish nothing)",
+        "be/tests/staff.events.test.ts 6/6 unchanged",
+        "COMPOSE_PROJECT_NAME=auction_system ./init.sh exit 0: be 80 files / 384 tests, fe 162, build ok, Python 44, Playwright 75/75",
+        "docs/realtime.md (Staff chat section), docs/changes/sch-1.6.md"
+      ],
+      "status": "passing"
     },
     {
       "id": "sch-1.7",

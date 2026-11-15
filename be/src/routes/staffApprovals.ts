@@ -11,7 +11,7 @@ import { requireAuth } from '../middleware/auth';
  */
 export const staffApprovalsRouter = Router();
 
-const CHANNEL_PERMISSION: Record<StaffChannel, string> = { goods: 'goods.manage', credit: 'credit.manage' };
+const CHANNEL_PERMISSION: Record<StaffChannel, string> = { goods: 'goods.manage', credit: 'credit.manage', chat: 'chat.handle' };
 
 async function allowedChannels(role: string) {
   const perms = await permissionsForRole(role);

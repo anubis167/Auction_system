@@ -628,3 +628,5 @@
 - Next: sch-1.5 (staff queue/claim/reply/close API, permission chat.handle).
 - sch-1.5 passing: /api/staff/chats (queue, mine/all, view, claim with one conditional update, reply, close, admin soft delete), permission chat.handle (staff + admin). Unread counts moved to the panel (sch-1.8, client-side). ./init.sh exit 0 (be 381, fe 162, Python 44, Playwright 75/75).
 - Next: sch-1.6 (SSE chat events to staff and to the customer).
+- sch-1.6 passing: chat events over the existing SSE bus (staff channel 'chat' + user channels). Admins see the queue live but not other staff's messages (plan changed, recorded). ./init.sh exit 0 (be 384, fe 162, Python 44, Playwright 75/75).
+- Next: sch-1.7 (customer ChatBox switches to staff mode).

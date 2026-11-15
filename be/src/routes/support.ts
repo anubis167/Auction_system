@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db';
+import { publishChatMessages, publishChatWaiting } from '../lib/chatEvents';
 import { HttpError, asyncHandler } from '../lib/http';
 import { requireAuth } from '../middleware/auth';
 import { parseId } from './auctions';
@@ -45,7 +46,7 @@ supportRouter.post(
   asyncHandler(async (req, res) => {
     const { reason, transcript } = handoffBody.parse(req.body);
     const customerId = req.user!.id;
-    const { id, created } = await prisma.$transaction(async (tx) => {
+    const { id, created, added } = await prisma.$transaction(async (tx) => {
       // Locks the customer's row so two handoffs at once cannot open two conversations.
       await tx.$queryRaw`SELECT id FROM users WHERE id = ${customerId} FOR UPDATE`;
       const open = await tx.chatConversation.findFirst({
@@ -53,7 +54,7 @@ supportRouter.post(
         select: { id: true },
       });
       const conversation = open ?? (await tx.chatConversation.create({ data: { customerId, handoffReason: reason }, select: { id: true } }));
-      await tx.chatMessage.createMany({
+      const added = await tx.chatMessage.createManyAndReturn({
         data: transcript.map((line) => ({
           conversationId: conversation.id,
           sender: line.role === 'user' ? 'customer' : 'bot',
@@ -61,9 +62,15 @@ supportRouter.post(
           text: line.text,
         })),
       });
-      return { id: conversation.id, created: !open };
+      return { id: conversation.id, created: !open, added };
     });
     const conversation = await prisma.chatConversation.findUniqueOrThrow({ where: { id }, include: conversationInclude });
+    // sch-1.6: a new conversation enters the staff queue; a reused one streams the added lines to whoever follows it.
+    if (created) {
+      publishChatWaiting({ id, customer: { id: customerId, username: req.user!.username }, handoffReason: conversation.handoffReason, createdAt: conversation.createdAt }, added.at(-1));
+    } else {
+      publishChatMessages(conversation, added);
+    }
     res.status(created ? 201 : 200).json({ conversation });
   }),
 );
@@ -83,12 +90,13 @@ supportRouter.post(
   '/conversations/:id/messages',
   asyncHandler(async (req, res) => {
     const id = parseId(req.params.id);
-    const conversation = await prisma.chatConversation.findUnique({ where: { id }, select: { customerId: true, status: true, deletedAt: true } });
+    const conversation = await prisma.chatConversation.findUnique({ where: { id }, select: { id: true, customerId: true, assignedStaffId: true, status: true, deletedAt: true } });
     // Someone else's conversation answers like a missing one, so ids cannot be probed.
     if (!conversation || conversation.deletedAt || conversation.customerId !== req.user!.id) throw new HttpError(404, 'Conversation not found');
     if (conversation.status === 'closed') throw new HttpError(409, 'This conversation is closed');
     const body = z.object({ text }).parse(req.body);
     const message = await prisma.chatMessage.create({ data: { conversationId: id, sender: 'customer', senderId: req.user!.id, text: body.text } });
+    publishChatMessages(conversation, [message]);
     res.status(201).json({ message });
   }),
 );

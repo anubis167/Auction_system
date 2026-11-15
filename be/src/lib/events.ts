@@ -19,8 +19,8 @@ export interface StreamEvent {
 
 const auctionChannel = (auctionId: bigint) => `auction:${auctionId}`;
 const userChannel = (userId: bigint) => `user:${userId}`;
-/** stf-009: the two staff approval queues; a stream listens only to the ones its user may manage. */
-export type StaffChannel = 'goods' | 'credit';
+/** stf-009: the staff queues (approvals; sch-1.6 chat); a stream listens only to the ones its user may manage. */
+export type StaffChannel = 'goods' | 'credit' | 'chat';
 const staffChannel = (name: StaffChannel) => `staff:${name}`;
 
 export function publishAuctionEvent(auctionId: bigint, event: StreamEvent) {
