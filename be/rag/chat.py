@@ -49,6 +49,12 @@ def over_web_limit():
     web_calls.append(now)
     return False
 
+def handoff_or_error(user, reason, error, status):
+    """sch-1.3: a signed-in customer the bot cannot serve is handed to staff; guests and staff get the error as before."""
+    if user and user["role"] == "customer":
+        return jsonify(handoff=True, reason=reason)
+    return jsonify(error=error), status
+
 @app.route("/api/chat", methods=["POST"])
 def web_chat():
     """Embedded site chat: the browser sends the conversation, Gemini answers the last message"""
@@ -68,20 +74,24 @@ def web_chat():
     if contents[-1]["role"] != "user":
         return jsonify(error="Invalid messages"), 400
 
-    if over_web_limit():
-        return jsonify(error="Too many messages, please wait a minute"), 429
+    limited = over_web_limit()
 
     # rag-1.7: the visitor's own account, only from the verified session cookie (never from the body); guest otherwise.
     # rag-1.5: the best matching excerpts of uploaded documents. Without either the bot still answers.
-    account, hits = rag.GUEST_CONTEXT, []
+    user, account, hits = None, rag.GUEST_CONTEXT, []
     try:
         with rag.connect() as conn:
             user = rag.session_user(conn, request.cookies.get(rag.COOKIE))
-            if user:
-                account = rag.user_context(conn, user["id"])
-            hits = rag.retrieve(conn, rag.embed(client, [contents[-1]["parts"][0]["text"]], "RETRIEVAL_QUERY")[0])
+            # sch-1.3: when limited only the user is needed (to hand off); the embedding would be one more Gemini call
+            if not limited:
+                if user:
+                    account = rag.user_context(conn, user["id"])
+                hits = rag.retrieve(conn, rag.embed(client, [contents[-1]["parts"][0]["text"]], "RETRIEVAL_QUERY")[0])
     except Exception:
         app.logger.exception("Account or document lookup failed, answering without it")
+
+    if limited:
+        return handoff_or_error(user, "limit", "Too many messages, please wait a minute", 429)
 
     try:
         response = client.models.generate_content(
@@ -94,7 +104,7 @@ def web_chat():
         app.logger.exception("Gemini call failed")
         reply = None
     if not reply:
-        return jsonify(error="The assistant is unavailable right now"), 503
+        return handoff_or_error(user, "unavailable", "The assistant is unavailable right now", 503)
     if not hits:
         return jsonify(reply=reply)
     return jsonify(reply=reply, sources=list(dict.fromkeys(title for _, title, _ in hits)))

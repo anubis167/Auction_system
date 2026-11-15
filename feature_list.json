@@ -85,8 +85,12 @@
         "be/rag/chat_test.py and rag_*_test.py still pass",
         "docs/changes/sch-1.3.md"
       ],
-      "evidence": [],
-      "status": "not_started"
+      "evidence": [
+        "2026-11-15 session 025: e2e/py/sch_1_3_handoff_test.py 6/6 (limit, unavailable, empty reply, guests 429/503, staff/admin 503, db down); be/rag 37/37 unchanged",
+        "COMPOSE_PROJECT_NAME=auction_system ./init.sh exit 0: be 364, fe 162, build ok, Python 37 + 7, Playwright 75/75",
+        "docs/changes/sch-1.3.md"
+      ],
+      "status": "passing"
     },
     {
       "id": "sch-1.4",
@@ -97,6 +101,9 @@
       "title": "Customer conversation API",
       "user_visible_behavior": "A handed-off customer's conversation is stored and they can keep writing; staff replies come back to them.",
       "acceptance": [
+        "Prisma model ChatConversation (id, customerId -> User, status waiting|assigned|closed, handoffReason limit|unavailable, assignedStaffId -> User nullable, createdAt, assignedAt, closedAt, deletedAt) with an index on (status, createdAt).",
+        "Prisma model ChatMessage (id, conversationId, sender customer|bot|staff, senderId -> User nullable for bot, text max 1000, createdAt, deletedAt) with an index on (conversationId, createdAt).",
+        "One Prisma migration for both tables (folded in from deferred sch-1.2, user 2026-11-15).",
         "POST /api/chat/conversations (signed-in customer) {reason, transcript[]} creates a waiting conversation with the transcript as customer/bot messages; if the customer already has an open (waiting/assigned) conversation, it is reused and the new messages appended.",
         "POST /api/chat/conversations/:id/messages (owner only) {text 1-1000} adds a customer message; closed -> 409; someone else's -> 404.",
         "GET /api/chat/conversations/mine returns the open conversation (or null) with its messages, oldest first, soft-deleted ones excluded.",
@@ -104,6 +111,7 @@
         "Transcript size capped (20 messages, 1000 chars each) -> 400 otherwise."
       ],
       "verification": [
+        "npx prisma migrate reset on auction_test applies all migrations cleanly",
         "e2e/integration/sch-1-4-customer-chat.test.ts (supertest on createApp, auction_test db)",
         "docs/changes/sch-1.4.md"
       ],
@@ -246,7 +254,7 @@
       ],
       "evidence": [],
       "status": "deferred",
-      "deferred_reason": "User, 2026-11-15: 'feature 1 - 2 skip for now'. Not started; revive in a later round."
+      "deferred_reason": "User, 2026-11-15: 'feature 1 - 2 skip for now'. Not started; revive in a later round. Its conversation/message tables were folded into sch-1.4 (user, 2026-11-15)."
     },
     {
       "id": "sch-1.9",

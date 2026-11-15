@@ -620,3 +620,6 @@
 - Watch out: do not run tests in the main repo / project-gemini while this worktree tests; they share the db container.
 - Still open: sch-1.4 .. sch-1.6 need conversation tables, which were in the deferred sch-1.2; decide with the user (fold tables into sch-1.4?) before starting them. No be/.env in this worktree (needed to run the app, not the tests).
 - Next: sch-1.3 (bot handoff on limit / Gemini unavailable, signed-in only).
+- sch-1.3 passing: /api/chat returns {handoff: true, reason: limit|unavailable} for signed-in customers instead of 429/503; guests, staff and admin keep the errors. e2e/py/sch_1_3_handoff_test.py 6/6. ./init.sh exit 0 (be 364, fe 162, Python 44, Playwright 75/75).
+- User approved folding the conversation/message tables (deferred sch-1.2) into sch-1.4.
+- Next: sch-1.4 (tables + customer conversation API in Node).
