@@ -623,3 +623,6 @@
 - sch-1.3 passing: /api/chat returns {handoff: true, reason: limit|unavailable} for signed-in customers instead of 429/503; guests, staff and admin keep the errors. e2e/py/sch_1_3_handoff_test.py 6/6. ./init.sh exit 0 (be 364, fe 162, Python 44, Playwright 75/75).
 - User approved folding the conversation/message tables (deferred sch-1.2) into sch-1.4.
 - Next: sch-1.4 (tables + customer conversation API in Node).
+- sch-1.4 passing: chat_conversations / chat_messages tables (migration made with `prisma migrate diff`, so the shared dev db is untouched) and /api/support/conversations (open/reuse, mine, customer messages). Routes are under /api/support because Vite proxies /api/chat* to Flask. e2e/integration/sch-1-4-customer-chat.test.ts 7/7. ./init.sh exit 0 (be 371, fe 162, Python 44, Playwright 75/75).
+- To run the app from this worktree: `npx prisma migrate deploy -w be` first (dev db lacks the chat tables), and copy be/.env.
+- Next: sch-1.5 (staff queue/claim/reply/close API, permission chat.handle).

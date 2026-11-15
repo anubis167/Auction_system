@@ -15,7 +15,8 @@
     "Req-2 (admin approval for db changes) and Req-3 (chunk before save) are deferred (user, 2026-11-15: 'change in db skip for now'). The knowledge-request/approval features are kept under `deferred` so the work stays visible. Chat conversations and messages are stored directly.",
     "One conversation is answered by one staff member at a time (claim). A staff member can hold many conversations at once; the panel shows them all and switches without reload.",
     "Delete = soft delete (deletedAt) for conversations, messages and knowledge requests.",
-    "Tests: per SRS new unit/integration tests live under e2e/: TypeScript as e2e/unit/*.test.ts and e2e/integration/*.test.ts (vitest, wired into npm test), Python as e2e/py/*_test.py (unittest, wired into npm run test:py). No new Playwright e2e specs this round (user, 2026-11-15: 'don't write e2e test for now'); UI is checked by fe vitest and manual screenshots. Existing test homes and Playwright specs stay and must keep passing."
+    "Tests: per SRS new unit/integration tests live under e2e/: TypeScript as e2e/unit/*.test.ts and e2e/integration/*.test.ts (vitest, wired into npm test), Python as e2e/py/*_test.py (unittest, wired into npm run test:py). No new Playwright e2e specs this round (user, 2026-11-15: 'don't write e2e test for now'); UI is checked by fe vitest and manual screenshots. Existing test homes and Playwright specs stay and must keep passing.",
+    "Node conversation routes live under /api/support (not /api/chat/...): the Vite dev proxy sends every /api/chat* path to the Python bot (sch-1.4)."
   ],
   "conventions": {
     "ids": "sch-1.x (staff chat)",
@@ -104,9 +105,9 @@
         "Prisma model ChatConversation (id, customerId -> User, status waiting|assigned|closed, handoffReason limit|unavailable, assignedStaffId -> User nullable, createdAt, assignedAt, closedAt, deletedAt) with an index on (status, createdAt).",
         "Prisma model ChatMessage (id, conversationId, sender customer|bot|staff, senderId -> User nullable for bot, text max 1000, createdAt, deletedAt) with an index on (conversationId, createdAt).",
         "One Prisma migration for both tables (folded in from deferred sch-1.2, user 2026-11-15).",
-        "POST /api/chat/conversations (signed-in customer) {reason, transcript[]} creates a waiting conversation with the transcript as customer/bot messages; if the customer already has an open (waiting/assigned) conversation, it is reused and the new messages appended.",
-        "POST /api/chat/conversations/:id/messages (owner only) {text 1-1000} adds a customer message; closed -> 409; someone else's -> 404.",
-        "GET /api/chat/conversations/mine returns the open conversation (or null) with its messages, oldest first, soft-deleted ones excluded.",
+        "POST /api/support/conversations (signed-in customer) {reason, transcript[]} creates a waiting conversation with the transcript as customer/bot messages; if the customer already has an open (waiting/assigned) conversation, it is reused and the new messages appended.",
+        "POST /api/support/conversations/:id/messages (owner only) {text 1-1000} adds a customer message; closed -> 409; someone else's -> 404.",
+        "GET /api/support/conversations/mine returns the open conversation (or null) with its messages, oldest first, soft-deleted ones excluded.",
         "Guests 401; staff/admin cannot open customer conversations (403).",
         "Transcript size capped (20 messages, 1000 chars each) -> 400 otherwise."
       ],
@@ -115,8 +116,13 @@
         "e2e/integration/sch-1-4-customer-chat.test.ts (supertest on createApp, auction_test db)",
         "docs/changes/sch-1.4.md"
       ],
-      "evidence": [],
-      "status": "not_started"
+      "evidence": [
+        "2026-11-15 session 025: migration 20261115090000_chat_conversations applied by prisma migrate reset on auction_test",
+        "e2e/integration/sch-1-4-customer-chat.test.ts 7/7 (guests 401, staff/admin 403, validation, open 201 / reuse 200, concurrent handoff -> one conversation, mine, owner-only messages, closed 409, soft delete)",
+        "COMPOSE_PROJECT_NAME=auction_system ./init.sh exit 0: be 77 files / 371 tests, fe 162, build ok, Python 44, Playwright 75/75",
+        "docs/changes/sch-1.4.md"
+      ],
+      "status": "passing"
     },
     {
       "id": "sch-1.5",
@@ -174,9 +180,9 @@
       "title": "Customer ChatBox switches to staff mode",
       "user_visible_behavior": "After a handoff the ChatBox says 'Connecting you to our staff', then shows the staff member's name and their replies live; after close it returns to the bot.",
       "acceptance": [
-        "On {handoff: true} the ChatBox posts the transcript to /api/chat/conversations and switches to staff mode; later messages go to Node, not Flask.",
+        "On {handoff: true} the ChatBox posts the transcript to /api/support/conversations and switches to staff mode; later messages go to Node, not Flask.",
         "Staff replies appear live (chat-message event); 'X joined the chat' on chat-claimed; 'Chat closed' on chat-closed, then bot mode again.",
-        "On page reload an open conversation is restored from GET /api/chat/conversations/mine.",
+        "On page reload an open conversation is restored from GET /api/support/conversations/mine.",
         "Guests see the login note, no staff mode."
       ],
       "verification": [
