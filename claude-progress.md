@@ -609,3 +609,14 @@
 - Run: `python be/rag/chat.py`; install: `python -m pip install -r be/rag/requirements.txt`; `npm run test:py` now discovers in `be/rag`.
 - `.env` stays in `be/`: `load_dotenv()` searches parent folders, so it is still found.
 - Verified: `npm run test:py`, 37 tests OK. The older docs/changes/*.md still name the old paths; they are history and were left as they are.
+
+### Session 025: round 13 (staff chat panel) planned; sch-1.1 passing (2026-11-15)
+
+- Worked only in the project-claude worktree (branch feature/claude-staff), as the user asked.
+- New round from SRS.txt (staff chat panel, Gemini). feature_list.json: sch-1.1, sch-1.3 .. sch-1.8, sch-1.11. Deferred by the user (kept under `deferred`): sch-1.2 tables, sch-1.9 / sch-1.10 knowledge requests + admin approval (Req-2, Req-3). Off-topic handoff and new Playwright specs also skipped for now. Handoff is for signed-in customers only (confirmed).
+- Startup: Docker not running (nothing to stop); started it. The worktree's compose clashes with the main repo's container name `auction_db`, so run everything with `COMPOSE_PROJECT_NAME=auction_system` (reuses the main repo's container; tests only reset auction_test / auction_e2e).
+- Baseline issues met: npm install EPERM while the VS Code Playwright test-server held node_modules (user stopped it); 15 be failures caused by an `npm test` running at the same time in the main repo on the same auction_test db (passed once it ended); Python suite failed to import chat.py without be/.env (no GEMINI_API_KEY / NGROK_AUTHTOKEN) -> test:py now sets dummy values.
+- sch-1.1 passing: e2e/unit and e2e/integration run in be's vitest, e2e/py in test:py, Playwright limited to *.spec.ts. ./init.sh exit 0 (be 364, fe 162, Python 38, Playwright 75/75).
+- Watch out: do not run tests in the main repo / project-gemini while this worktree tests; they share the db container.
+- Still open: sch-1.4 .. sch-1.6 need conversation tables, which were in the deferred sch-1.2; decide with the user (fold tables into sch-1.4?) before starting them. No be/.env in this worktree (needed to run the app, not the tests).
+- Next: sch-1.3 (bot handoff on limit / Gemini unavailable, signed-in only).

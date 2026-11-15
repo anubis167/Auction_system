@@ -13,6 +13,8 @@ export default defineConfig({
       GMAIL_REFRESH_TOKEN: '',
       SMTP_HOST: '',
     },
+    // sch-1.1: new unit/integration tests live in e2e/ (SRS) but run here, with be's env and test db
+    include: ['tests/**/*.test.ts', '../e2e/unit/**/*.test.ts', '../e2e/integration/**/*.test.ts'],
     fileParallelism: false,
     testTimeout: 20000,
   },

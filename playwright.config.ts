@@ -4,6 +4,8 @@ const E2E_DB = 'postgresql://auction:auction@localhost:5436/auction_e2e';
 
 export default defineConfig({
   testDir: './e2e',
+  // sch-1.1: e2e/unit and e2e/integration hold vitest *.test.ts files; Playwright runs only specs
+  testMatch: '**/*.spec.ts',
   globalSetup: './e2e/global-setup.ts',
   fullyParallel: false,
   workers: 1,

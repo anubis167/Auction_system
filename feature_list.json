@@ -1,0 +1,303 @@
+{
+  "project": "Online Auction System",
+  "last_updated": "2026-11-15",
+  "scope": "Round 13. SRS.txt 'system - Chatbox with Gemini API - Staff side': a staff chat panel that serves many signed-in customers at once in real time; conversations the bot cannot handle (rate limit or Gemini unavailable) are handed to staff. Off-topic detection, admin approval of db changes (Req-2) and chunking saved data (Req-3) are deferred by the user (2026-11-15). Builds on round 12 (archived as progress-feature-list/feature_list_12.json). Every business rule from rounds 1-12 stays.",
+  "source_requirements": {
+    "file": "SRS.txt",
+    "text": "build me a chat panel for staff role, panel can handle multiple chat with clients, request to save datas to Database. when Agent reach to limit or questions out of scope, the messsge will come into chat panel of staff. Req-1: chat panel can handle multiple clients, in realtime. Req-2: any change tounch into db need approve from admin. Req-3: any datas must be chunked before save to db. Tests: e2e, unit and integration tests written to the e2e folder. Changed files described in docs. All delete mean soft delete."
+  },
+  "readings_to_confirm": [
+    "Gemini: reuse be/rag/chat.py's `client` and GEMINI_MODEL (round 12). No second Gemini config.",
+    "'Agent reach to limit' = the existing over_web_limit() (30 calls/min) answering 429, plus Gemini failing (503 after retries). Either makes /api/chat return {handoff: true, reason}. Off-topic detection is deferred (user, 2026-11-15).",
+    "Confirmed (user, 2026-11-15): only signed-in customers can be handed to staff (identity from the auction_token cookie, as rag-1.7). Guests get the existing 'log in at /login' note.",
+    "Conversations and messages live in Postgres as new Prisma models, served by the Node API (Express + Prisma), because the realtime bus (be/src/lib/events.ts, SSE) is in Node. The browser ChatBox, on {handoff: true}, posts the transcript to Node itself; Flask does not call Node.",
+    "Realtime (Req-1) reuses SSE, as rt-001/stf-009: a staff channel 'chat' on the existing staff stream and the customer's own user channel. No socket.io. Limit stays one API process (documented in docs/realtime.md).",
+    "Req-2 (admin approval for db changes) and Req-3 (chunk before save) are deferred (user, 2026-11-15: 'change in db skip for now'). The knowledge-request/approval features are kept under `deferred` so the work stays visible. Chat conversations and messages are stored directly.",
+    "One conversation is answered by one staff member at a time (claim). A staff member can hold many conversations at once; the panel shows them all and switches without reload.",
+    "Delete = soft delete (deletedAt) for conversations, messages and knowledge requests.",
+    "Tests: per SRS new unit/integration tests live under e2e/: TypeScript as e2e/unit/*.test.ts and e2e/integration/*.test.ts (vitest, wired into npm test), Python as e2e/py/*_test.py (unittest, wired into npm run test:py). No new Playwright e2e specs this round (user, 2026-11-15: 'don't write e2e test for now'); UI is checked by fe vitest and manual screenshots. Existing test homes and Playwright specs stay and must keep passing."
+  ],
+  "conventions": {
+    "ids": "sch-1.x (staff chat)",
+    "tests": "See readings_to_confirm: everything new under e2e/. Integration tests use the auction_test database like the existing be suite and skip with a clear message when DATABASE_URL is unreachable. Gemini is stubbed in unit and integration tests; only manual live checks call it. No new Playwright specs (e2e/*.spec.ts) this round.",
+    "existing_tests": "All round 1-12 tests (be vitest, fe vitest, be/rag Python, Playwright) must keep passing. be/rag/chat_test.py may change only where a feature documents why.",
+    "change_docs": "docs/changes/<id>.md lists changed files and what changed in code.",
+    "run_all": "npm run verify and ./init.sh must exit 0 before a feature moves to passing."
+  },
+  "rules": {
+    "single_active_feature": true,
+    "passing_requires_evidence": true,
+    "do_not_skip_verification": true
+  },
+  "status_legend": {
+    "not_started": "Work has not begun.",
+    "in_progress": "The feature is the current active task.",
+    "blocked": "Work cannot continue until a documented blocker is resolved.",
+    "passing": "Required verification has passed and evidence is recorded.",
+    "deferred": "Postponed by the user; kept visible, not part of this round's completion."
+  },
+  "features": [
+    {
+      "id": "sch-1.1",
+      "priority": 1,
+      "role": "system",
+      "area": "tests",
+      "srs_ref": "SRS: e2e, unit and integration tests written to e2e folder",
+      "title": "Test layout under e2e/",
+      "user_visible_behavior": "None; new unit, integration and Python tests in e2e/ run with npm test and npm run verify.",
+      "acceptance": [
+        "e2e/unit/*.test.ts and e2e/integration/*.test.ts are picked up by vitest and run as part of `npm test`.",
+        "e2e/py/*_test.py are picked up by `npm run test:py` next to be/rag.",
+        "Playwright still only runs e2e/*.spec.ts (unit/integration/py files are ignored by it); no new spec is added.",
+        "One placeholder test in each folder proves the wiring; existing suites unchanged."
+      ],
+      "verification": [
+        "npm test shows the e2e/unit and e2e/integration placeholder tests passing",
+        "npm run test:py shows the e2e/py placeholder passing",
+        "npx playwright test --list does not list unit/integration/py files",
+        "docs/changes/sch-1.1.md"
+      ],
+      "evidence": [
+        "2026-11-15 session 025: npm run test:py -> be/rag 37 OK, e2e/py 1 OK",
+        "npx vitest run ../e2e (in be): e2e/unit + e2e/integration placeholders 2/2 passed",
+        "npx playwright test --list: 75 tests in 65 files, no unit/integration/py files",
+        "COMPOSE_PROJECT_NAME=auction_system ./init.sh exit 0: be 76 files / 364 tests, fe 162, build ok, Python 37 + 1, Playwright 75/75",
+        "docs/changes/sch-1.1.md"
+      ],
+      "status": "passing"
+    },
+    {
+      "id": "sch-1.3",
+      "priority": 3,
+      "role": "system",
+      "area": "chat bot",
+      "srs_ref": "SRS: when Agent reach to limit, the message will come into chat panel of staff (out of scope: deferred)",
+      "title": "Bot signals handoff",
+      "user_visible_behavior": "When the bot is rate limited or unavailable, a signed-in customer is told they are being connected to staff instead of getting an error.",
+      "acceptance": [
+        "POST /api/chat returns 200 {handoff: true, reason: 'limit'} instead of 429 when over_web_limit() trips, for a signed-in customer.",
+        "Returns {handoff: true, reason: 'unavailable'} instead of 503 when Gemini fails after retries, for a signed-in customer.",
+        "Guests keep today's 429 / 503 responses and the login note; no handoff.",
+        "In-scope questions behave exactly as in round 12 (reply + sources)."
+      ],
+      "verification": [
+        "e2e/py/sch_1_3_handoff_test.py (unit, Gemini and DB stubbed): limit, unavailable, guest, in-scope cases",
+        "be/rag/chat_test.py and rag_*_test.py still pass",
+        "docs/changes/sch-1.3.md"
+      ],
+      "evidence": [],
+      "status": "not_started"
+    },
+    {
+      "id": "sch-1.4",
+      "priority": 4,
+      "role": "customer",
+      "area": "chat api",
+      "srs_ref": "SRS: the message will come into chat panel of staff",
+      "title": "Customer conversation API",
+      "user_visible_behavior": "A handed-off customer's conversation is stored and they can keep writing; staff replies come back to them.",
+      "acceptance": [
+        "POST /api/chat/conversations (signed-in customer) {reason, transcript[]} creates a waiting conversation with the transcript as customer/bot messages; if the customer already has an open (waiting/assigned) conversation, it is reused and the new messages appended.",
+        "POST /api/chat/conversations/:id/messages (owner only) {text 1-1000} adds a customer message; closed -> 409; someone else's -> 404.",
+        "GET /api/chat/conversations/mine returns the open conversation (or null) with its messages, oldest first, soft-deleted ones excluded.",
+        "Guests 401; staff/admin cannot open customer conversations (403).",
+        "Transcript size capped (20 messages, 1000 chars each) -> 400 otherwise."
+      ],
+      "verification": [
+        "e2e/integration/sch-1-4-customer-chat.test.ts (supertest on createApp, auction_test db)",
+        "docs/changes/sch-1.4.md"
+      ],
+      "evidence": [],
+      "status": "not_started"
+    },
+    {
+      "id": "sch-1.5",
+      "priority": 5,
+      "role": "staff",
+      "area": "chat api",
+      "srs_ref": "SRS: panel can handle multiple chat with clients",
+      "title": "Staff conversation API (queue, claim, reply, close)",
+      "user_visible_behavior": "Staff see waiting conversations, take one or many, reply, and close them.",
+      "acceptance": [
+        "New permission chat.handle granted to staff and admin; customers 403.",
+        "GET /api/staff/chats?status=waiting|mine|all lists conversations with customer username, reason, last message, unread count for the assigned staff.",
+        "POST /api/staff/chats/:id/claim: waiting -> assigned to the caller; already assigned to someone else -> 409 (two staff claiming at once: exactly one wins).",
+        "POST /api/staff/chats/:id/messages {text 1-1000}: only the assigned staff; others 403; closed 409.",
+        "POST /api/staff/chats/:id/close: assigned staff or admin; sets closedAt.",
+        "DELETE /api/staff/chats/:id (admin): soft delete, hidden from lists, row kept.",
+        "A staff member can hold many assigned conversations at the same time."
+      ],
+      "verification": [
+        "e2e/integration/sch-1-5-staff-chat.test.ts including a concurrent double-claim test (Promise.all of two claims -> one 200, one 409)",
+        "e2e/unit/sch-1-5-permissions.test.ts: chat.handle in the role/permission table",
+        "docs/changes/sch-1.5.md"
+      ],
+      "evidence": [],
+      "status": "not_started"
+    },
+    {
+      "id": "sch-1.6",
+      "priority": 6,
+      "role": "system",
+      "area": "realtime",
+      "srs_ref": "SRS Req-1: chat panel can handle multiple clients, in realtime",
+      "title": "Realtime chat events (SSE)",
+      "user_visible_behavior": "New handoffs, claims, messages and closes appear for staff and the customer without reloading.",
+      "acceptance": [
+        "Staff stream (existing staff SSE) gets chat-waiting, chat-claimed, chat-message (for conversations assigned to that staff member, or all for admin), chat-closed.",
+        "Customer's own user stream (/api/me/events) gets chat-message (staff replies), chat-claimed (staff name) and chat-closed for their conversation only.",
+        "Events are published only after the db write commits; a rejected request publishes nothing.",
+        "No customer ever receives another customer's conversation events."
+      ],
+      "verification": [
+        "e2e/integration/sch-1-6-chat-events.test.ts: subscribe two customers and two staff to the bus, run a handoff/claim/reply/close sequence, assert who received what",
+        "docs/realtime.md updated with the chat events",
+        "docs/changes/sch-1.6.md"
+      ],
+      "evidence": [],
+      "status": "not_started"
+    },
+    {
+      "id": "sch-1.7",
+      "priority": 7,
+      "role": "customer",
+      "area": "ui",
+      "srs_ref": "SRS: the message will come into chat panel of staff",
+      "title": "Customer ChatBox switches to staff mode",
+      "user_visible_behavior": "After a handoff the ChatBox says 'Connecting you to our staff', then shows the staff member's name and their replies live; after close it returns to the bot.",
+      "acceptance": [
+        "On {handoff: true} the ChatBox posts the transcript to /api/chat/conversations and switches to staff mode; later messages go to Node, not Flask.",
+        "Staff replies appear live (chat-message event); 'X joined the chat' on chat-claimed; 'Chat closed' on chat-closed, then bot mode again.",
+        "On page reload an open conversation is restored from GET /api/chat/conversations/mine.",
+        "Guests see the login note, no staff mode."
+      ],
+      "verification": [
+        "fe vitest for the ChatBox mode switch (stubbed fetch/EventSource)",
+        "Manual check in the browser: handoff, staff reply shows live, reload restores, close returns to bot",
+        "docs/changes/sch-1.7.md"
+      ],
+      "evidence": [],
+      "status": "not_started"
+    },
+    {
+      "id": "sch-1.8",
+      "priority": 8,
+      "role": "staff",
+      "area": "ui",
+      "srs_ref": "SRS: build me a chat panel for staff role, panel can handle multiple chat with clients; Req-1",
+      "title": "Staff chat panel page",
+      "user_visible_behavior": "Staff open Dashboard -> Chats: a list of waiting and own conversations on the left with unread badges, the selected thread on the right; they claim, reply to and close many customers at once, all live.",
+      "acceptance": [
+        "Route /staff/chats, linked in the staff/admin Dashboard dropdown; customers cannot open it.",
+        "Tabs Waiting / Mine; new handoffs appear at the top of Waiting live; unread badge per conversation; switching threads keeps drafts.",
+        "Claim button on waiting conversations; a conversation claimed by another staff member disappears from Waiting live.",
+        "Uses existing ui components (Card, Pill, SegmentedTabs, ConfirmDialog); works at 1440 and 1000 px."
+      ],
+      "verification": [
+        "fe vitest for the panel: list/tabs, unread badge, live updates from a stubbed EventSource, draft kept on switch",
+        "Manual check with two customer browsers and one staff browser; screenshots reviewed at 1440 / 1000 px",
+        "docs/changes/sch-1.8.md"
+      ],
+      "evidence": [],
+      "status": "not_started"
+    },
+    {
+      "id": "sch-1.11",
+      "priority": 11,
+      "role": "system",
+      "area": "verification",
+      "srs_ref": "SRS: whole round",
+      "title": "End-to-end round check",
+      "user_visible_behavior": "The full path works: signed-in customer hits the bot limit -> staff panel -> staff claims and answers live -> customer sees the reply -> staff closes.",
+      "acceptance": [
+        "One integration test (e2e/integration/sch-1-11-full-path.test.ts) runs the full API path with Gemini stubbed; the UI path is checked manually.",
+        "npm run verify and ./init.sh exit 0 with all round 1-12 tests still passing.",
+        "docs/staff-chat.md describes the flow, statuses, events and approval rules."
+      ],
+      "verification": [
+        "e2e/integration/sch-1-11-full-path.test.ts",
+        "Manual walk-through of the full path in the browser",
+        "npm run verify exit 0 (existing Playwright specs included)",
+        "./init.sh exit 0",
+        "docs/changes/sch-1.11.md"
+      ],
+      "evidence": [],
+      "status": "not_started"
+    }
+  ],
+  "deferred": [
+    {
+      "id": "sch-1.2",
+      "priority": 2,
+      "role": "system",
+      "area": "database",
+      "srs_ref": "SRS: chat with clients; All delete mean soft delete",
+      "title": "Conversation and message tables",
+      "user_visible_behavior": "None directly; handed-off conversations and their messages survive restarts.",
+      "acceptance": [
+        "Prisma model ChatConversation (id, customerId -> User, status waiting|assigned|closed, handoffReason limit|unavailable, assignedStaffId -> User nullable, createdAt, assignedAt, closedAt, deletedAt) with an index on (status, createdAt).",
+        "Prisma model ChatMessage (id, conversationId, sender customer|bot|staff, senderId -> User nullable for bot, text max 1000, createdAt, deletedAt) with an index on (conversationId, createdAt).",
+        "One migration; existing be vitest and be/rag Python suites still pass."
+      ],
+      "verification": [
+        "npx prisma migrate reset on auction_test applies all migrations cleanly",
+        "e2e/integration/sch-1-2-tables.test.ts: insert conversation + messages, read back, soft-deleted rows still present",
+        "docs/changes/sch-1.2.md"
+      ],
+      "evidence": [],
+      "status": "deferred",
+      "deferred_reason": "User, 2026-11-15: 'feature 1 - 2 skip for now'. Not started; revive in a later round."
+    },
+    {
+      "id": "sch-1.9",
+      "priority": 9,
+      "role": "staff",
+      "area": "knowledge base",
+      "srs_ref": "SRS: request to save datas to Database; Req-2: any change touching db needs approval from admin",
+      "title": "Staff knowledge requests",
+      "user_visible_behavior": "From a chat thread staff click 'Save to knowledge base', edit a title and text (prefilled from the selected messages) and send it for admin approval; nothing is saved to the knowledge base yet.",
+      "acceptance": [
+        "POST /api/docs/requests (staff/admin cookie, as rag-1.4) {action:'create', title, content <= 2 MB, sourceConversationId?} creates a pending KnowledgeRequest; no KnowledgeDocument/KnowledgeChunk row is written.",
+        "Staff POST /api/docs (round-12 direct upload) now creates a pending request instead of a document; staff DELETE /api/docs/<id> creates a pending {action:'delete'} request; admin keeps direct upload/delete.",
+        "GET /api/docs/requests?mine=1 lists the staff member's requests with status and rejection reason.",
+        "Panel button opens the form; success toast 'Sent for admin approval'."
+      ],
+      "verification": [
+        "e2e/py/sch_1_9_requests_test.py (integration, auction_test db): staff create/delete become pending requests, knowledge tables unchanged; admin direct still works; customer 403",
+        "fe vitest for the 'Save to knowledge base' form",
+        "be/rag/rag_docs_test.py updated where staff behavior changed, with the reason in docs",
+        "docs/changes/sch-1.9.md"
+      ],
+      "evidence": [],
+      "status": "deferred",
+      "deferred_reason": "User, 2026-11-15: 'change in db skip for now' (Req-2 approval, Req-3 chunking). Not started; revive in a later round."
+    },
+    {
+      "id": "sch-1.10",
+      "priority": 10,
+      "role": "admin",
+      "area": "knowledge base",
+      "srs_ref": "SRS Req-2: approve from admin; Req-3: any datas must be chunked before save to db; soft delete",
+      "title": "Admin approves knowledge requests (chunk on approve)",
+      "user_visible_behavior": "Admin opens Dashboard -> Knowledge requests, reads each pending request, approves or rejects with a reason; the requesting staff member sees the result live.",
+      "acceptance": [
+        "GET /api/docs/requests?status=pending (admin only; staff 403 for others' requests).",
+        "POST /api/docs/requests/<id>/approve: create -> rag.chunk_text + rag.embed, then document and chunks inserted in one transaction; delete -> document soft-deleted (deletedAt), chunks no longer retrieved. Request set approved with reviewer and time.",
+        "If embedding fails, nothing is written and the request stays pending (500 with a clear message).",
+        "POST /api/docs/requests/<id>/reject {reason}: status rejected, knowledge tables unchanged.",
+        "Only pending requests can be reviewed (409 otherwise). DELETE request (admin) is a soft delete.",
+        "Approved content is found by /api/chat retrieval (round-12 rag-1.5).",
+        "Every write path into KnowledgeChunk goes through chunk_text (Req-3); a test asserts chunk sizes <= 1000 chars and overlap as rag-1.2."
+      ],
+      "verification": [
+        "e2e/py/sch_1_10_approve_test.py (integration, Gemini embed stubbed): approve create -> chunks present and sized; approve delete -> soft deleted; reject; double review 409; embed failure writes nothing",
+        "fe vitest for the admin Knowledge requests page",
+        "Manual live check: approved content answers a /api/chat question with sources",
+        "docs/changes/sch-1.10.md"
+      ],
+      "evidence": [],
+      "status": "deferred",
+      "deferred_reason": "User, 2026-11-15: 'change in db skip for now' (Req-2 approval, Req-3 chunking). Not started; revive in a later round."
+    }
+  ]
+}
