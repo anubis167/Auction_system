@@ -640,3 +640,12 @@
 - Deferred by the user (kept in the archive under `deferred`, not done): sch-1.2 (folded into sch-1.4), sch-1.9 staff knowledge requests, sch-1.10 admin approval + chunking (SRS Req-2, Req-3); off-topic handoff; new Playwright specs.
 - Still open: worktree shares the main repo's db container (run with COMPOSE_PROJECT_NAME=auction_system; don't test in two checkouts at once); no be/.env here (copy it and run `npx prisma migrate deploy -w be` before using the app from this worktree); ui-2a-1 375px check can flake by 1px; bot limit is one shared 30/min for everyone.
 - Next best step: a new round from the user (e.g. revive sch-1.9/1.10 or off-topic handoff).
+### Session 025: round 13 (Admin Chatbox & RAG Document Management) built and verified (2026-11-15)
+
+- New round from SRS.txt ('system - Chatbox with Gemini API - admin side': admin side RAG document management, upload with < 10 MB limit, notification if bigger, chunking before save, new header navigation link for admin, soft delete, e2e & unit/integration tests).
+- `rag-2.1` passing: `DOC_MAX_BYTES` raised to 10 MB (10 * 1024 * 1024) in `be/rag/chat.py`, `MAX_CONTENT_LENGTH` raised to `DOC_MAX_BYTES + 128 * 1024`, error message on 413 updated to 'The file is larger than 10 MB'. Documents chunked and embedded before saving to `knowledge_documents` and `knowledge_chunks`. `be/rag/rag_docs_test.py` 6/6; `npm run test:py` 37/37 OK.
+- `rag-2.2` passing: Header navigation link 'Chatbot' added in `fe/src/components/Layout.tsx` for admin (`user.manage` permission). Route `/admin/rag` registered in `fe/src/App.tsx` guarded by `<RequireAuth permission="user.manage">`.
+- `rag-2.3` passing: Admin RAG document management page at `fe/src/pages/AdminRag.tsx`. Includes document table (title, filename, size, chunks pill, creation date, delete button), file upload form (.txt, .md), client-side file size validation displaying toast notification and inline alert when file >= 10 MB (`MAX_DOC_SIZE_BYTES`), and soft-delete via DELETE `/api/docs/:id`. Unit tests in `fe/src/adminRag.test.ts` (3/3); `npm test -w fe` 27/27 files passed (165 tests); `npm run build -w fe` passed cleanly.
+- `rag-2.4` passing: Playwright test `e2e/adm-006-chatbox-rag.spec.ts` covering admin login, header navigation to `/admin/rag`, document table rendering, >10 MB rejection notification, valid upload with chunk count, soft delete, and customer access denial.
+- Documentation created: `docs/changes/rag-2.1.md`, `docs/changes/rag-2.2.md`, `docs/changes/rag-2.3.md`, `docs/changes/rag-2.4.md`.
+
