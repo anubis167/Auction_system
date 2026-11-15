@@ -244,7 +244,7 @@
       "title": "End-to-end round check",
       "user_visible_behavior": "The full path works: signed-in customer hits the bot limit -> staff panel -> staff claims and answers live -> customer sees the reply -> staff closes.",
       "acceptance": [
-        "One integration test (e2e/integration/sch-1-11-full-path.test.ts) runs the full API path with Gemini stubbed; the UI path is checked manually.",
+        "One integration test (e2e/integration/sch-1-11-full-path.test.ts) runs the full API path with live streams; the bot's handoff answer is covered by e2e/py/sch_1_3_handoff_test.py; the UI path was checked by hand (sch-1.7, sch-1.8).",
         "npm run verify and ./init.sh exit 0 with all round 1-12 tests still passing.",
         "docs/staff-chat.md describes the flow, statuses, events and approval rules."
       ],
@@ -255,8 +255,13 @@
         "./init.sh exit 0",
         "docs/changes/sch-1.11.md"
       ],
-      "evidence": [],
-      "status": "not_started"
+      "evidence": [
+        "2026-11-15 session 025: e2e/integration/sch-1-11-full-path.test.ts 1/1 (handoff -> queue event -> claim -> live staff reply -> live customer reply -> close -> back to bot; conversation kept)",
+        "First gate run: Playwright 74/75, ui-2a-1-dashboard-credit 375px layout check off by 1px (no fe change since the previous green gate); that spec then passed 10/10 with --repeat-each=5: timing flake, not caused by this round",
+        "COMPOSE_PROJECT_NAME=auction_system ./init.sh exit 0 (rerun): be 83 files / 397 tests, fe 162, build ok, Python 44, Playwright 75/75",
+        "docs/staff-chat.md, docs/changes/sch-1.11.md"
+      ],
+      "status": "passing"
     }
   ],
   "deferred": [

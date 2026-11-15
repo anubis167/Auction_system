@@ -635,3 +635,8 @@
 - sch-1.8 passing: /staff/chats panel (Waiting/Mine, live via its own staff + user streams, unread badges, per-chat drafts, claim/reply/close). Manual 2-customer/2-staff walk-through. ./init.sh exit 0 (be 396, fe 162, Python 44, Playwright 75/75).
 - Gotcha: stop any walk-through server started from this worktree before ./init.sh; the running backend locks the Prisma DLL and npm install fails with EPERM.
 - Next: sch-1.11 (full-path integration test + docs/staff-chat.md).
+- sch-1.11 passing: e2e/integration/sch-1-11-full-path.test.ts; docs/staff-chat.md. First gate had one flaky Playwright check (ui-2a-1 375px, 1px; passed 10/10 on repeat, no fe change involved); clean rerun: ./init.sh exit 0 (be 397, fe 162, Python 44, Playwright 75/75).
+- Round 13: 8/8 active features passing; archived as progress-feature-list/feature_list_13.json. No feature_list.json at the root now.
+- Deferred by the user (kept in the archive under `deferred`, not done): sch-1.2 (folded into sch-1.4), sch-1.9 staff knowledge requests, sch-1.10 admin approval + chunking (SRS Req-2, Req-3); off-topic handoff; new Playwright specs.
+- Still open: worktree shares the main repo's db container (run with COMPOSE_PROJECT_NAME=auction_system; don't test in two checkouts at once); no be/.env here (copy it and run `npx prisma migrate deploy -w be` before using the app from this worktree); ui-2a-1 375px check can flake by 1px; bot limit is one shared 30/min for everyone.
+- Next best step: a new round from the user (e.g. revive sch-1.9/1.10 or off-topic handoff).
