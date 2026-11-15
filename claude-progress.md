@@ -632,3 +632,6 @@
 - Next: sch-1.7 (customer ChatBox switches to staff mode).
 - sch-1.7 passing: ChatBox bot/staff modes (fe/src/supportChat.ts pure rules + ChatBox + useUserEvents forwarding 'support-chat'). Manual browser walk-through on the e2e servers (servers stopped afterwards). ./init.sh exit 0 (be 390, fe 162, Python 44, Playwright 75/75).
 - Next: sch-1.8 (staff chat panel page /staff/chats).
+- sch-1.8 passing: /staff/chats panel (Waiting/Mine, live via its own staff + user streams, unread badges, per-chat drafts, claim/reply/close). Manual 2-customer/2-staff walk-through. ./init.sh exit 0 (be 396, fe 162, Python 44, Playwright 75/75).
+- Gotcha: stop any walk-through server started from this worktree before ./init.sh; the running backend locks the Prisma DLL and npm install fails with EPERM.
+- Next: sch-1.11 (full-path integration test + docs/staff-chat.md).

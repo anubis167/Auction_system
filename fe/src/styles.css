@@ -606,3 +606,17 @@ th { color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: u
 .tx-list .num { text-align: right; white-space: nowrap; }
 .tx-desc { font-weight: 600; overflow-wrap: anywhere; }
 .tx-status { text-transform: capitalize; }
+
+/* sch-1.8: staff chat panel. Conversations left, thread right; stacked on narrow screens. */
+.staff-chats-grid { display: grid; grid-template-columns: minmax(240px, 320px) 1fr; gap: 1rem; align-items: start; }
+.staff-chats-list { display: flex; flex-direction: column; gap: 0.75rem; }
+.chat-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; max-height: 60vh; overflow-y: auto; }
+.chat-list-item { width: 100%; text-align: left; display: flex; flex-direction: column; gap: 0.2rem; padding: 0.6rem 0.75rem; border: 1px solid var(--border); border-radius: 10px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.chat-list-item:hover, .chat-list-item.is-active { border-color: var(--navy); background: var(--steel-light); }
+.chat-list-top { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+.chat-list-preview { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.9rem; }
+.chat-list-reason { font-size: 0.8rem; opacity: 0.8; }
+.staff-chats-thread { display: flex; flex-direction: column; gap: 0.75rem; }
+.chat-thread-head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+.chat-thread-log { height: min(420px, 55vh); overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; }
+@media (max-width: 760px) { .staff-chats-grid { grid-template-columns: 1fr; } }

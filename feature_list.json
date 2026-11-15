@@ -223,12 +223,17 @@
         "Uses existing ui components (Card, Pill, SegmentedTabs, ConfirmDialog); works at 1440 and 1000 px."
       ],
       "verification": [
-        "fe vitest for the panel: list/tabs, unread badge, live updates from a stubbed EventSource, draft kept on switch",
+        "e2e/unit/sch-1-8-staff-chat.test.ts: the panel state rules (fe/src/staffChat.ts) as pure functions; fe has no DOM test setup",
         "Manual check with two customer browsers and one staff browser; screenshots reviewed at 1440 / 1000 px",
         "docs/changes/sch-1.8.md"
       ],
-      "evidence": [],
-      "status": "not_started"
+      "evidence": [
+        "2026-11-15 session 025: e2e/unit/sch-1-8-staff-chat.test.ts 6/6 (waiting list, claim by me/others, messages per thread, unread counts, close/delete, list reload keeps state)",
+        "Manual check: throwaway Playwright script on the e2e servers with 2 customers + 2 staff: 14/14 checks (live handoffs in both panels, claim drops the row for staff2 live, 2 chats held at once, per-chat drafts, each customer only their own reply, unread badge set/cleared, close via dialog -> customer back to bot, customers kept out); screenshots reviewed at 1440 / 1000 / 390 px",
+        "COMPOSE_PROJECT_NAME=auction_system ./init.sh exit 0: be 82 files / 396 tests, fe 162, build ok, Python 44, Playwright 75/75",
+        "docs/changes/sch-1.8.md"
+      ],
+      "status": "passing"
     },
     {
       "id": "sch-1.11",

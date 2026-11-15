@@ -204,6 +204,7 @@ const ROLE_LINKS: { to: string; label: string; permission: string; badge?: 'good
   { to: '/staff/auctions', label: 'Manage auctions', permission: 'auction.manage' },
   { to: '/staff/goods', label: 'Goods', permission: 'goods.manage', badge: 'goods' },
   { to: '/staff/credit', label: 'Credit management', permission: 'credit.manage', badge: 'credit' },
+  { to: '/staff/chats', label: 'Customer chats', permission: 'chat.handle' },
   { to: '/admin/users', label: 'Users', permission: 'user.manage' },
   { to: '/admin/permissions', label: 'Permissions', permission: 'permission.manage' },
 ];
