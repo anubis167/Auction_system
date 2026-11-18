@@ -20,6 +20,7 @@ from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.dirname(__file__))
 
+os.environ.setdefault("DATABASE_URL", os.getenv("RAG_TEST_DATABASE_URL", "postgresql://auction:auction@localhost:5436/auction_test"))
 import auth
 import chat
 import rag
