@@ -36,6 +36,10 @@ export const config = {
   get activationResendMs() {
     return Number(process.env.ACTIVATION_RESEND_INTERVAL_MS ?? 60_000);
   },
+  /** rag2-1.1: shared secret the Python RAG service sends as X-Internal-Token (be/src/routes/rag.ts); unset = routes off. */
+  get ragInternalToken() {
+    return process.env.RAG_INTERNAL_TOKEN ?? '';
+  },
   /** mail-004: a change-password email at most once a minute per user. */
   get passwordLinkIntervalMs() {
     return Number(process.env.PASSWORD_LINK_INTERVAL_MS ?? 60_000);

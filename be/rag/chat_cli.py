@@ -1,5 +1,8 @@
 """Chat with the site's Gemini bot in the terminal: python be/rag/chat_cli.py (type exit or press Ctrl+C to quit)."""
-from chat import GEMINI_MODEL, WEB_PROMPT, client
+from chat import GEMINI_MODEL, client
+from functions.build_prompt import build_prompt
+
+PROMPT = build_prompt(None, [])  # rag2-1.3: same prompt as the chat box, as a guest without excerpts
 
 history = []
 try:
@@ -15,7 +18,7 @@ try:
             reply = client.models.generate_content(
                 model=GEMINI_MODEL,
                 contents=history,
-                config={"system_instruction": WEB_PROMPT},
+                config={"system_instruction": PROMPT},
             ).text
         except Exception as e:
             reply = None

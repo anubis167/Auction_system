@@ -3,11 +3,14 @@ then write me a feature-list.json file, with e2e function, unit and intergration
 Write changed description (files, changed in code) to docs folder
 All delete mean soft delete
 
-system - Chatbox with Gemini API - admin side
+system - Rag architechture - Chatbox
 description and Priority
-for now you handle both be-fe for admin side of chatbox, including RAG documents upload,tonal,business rules, licenses,...
+use ecbot to reference - only in rag system 
+rebuild rag system with api call to each action, prevent most sercurity 
+risks also separate rag function to each files - easy to debug and expand
+system prompt should stay in separate file
 
-Req-1: admin side handle upload RAG, the documents upload with <10mb
-Req-2: If documents bigger, send the small notification
-Req-3: all documents chunked before save to db
-Req-4: put new navigation link into header for admin
+Req-1: all action now go through api call- check api return
+Req-2: rag functions stay on 1 file 1 
+Req-3: do not force to build with framework
+Req-4: system prompt should stay clear, structured
