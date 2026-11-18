@@ -1,8 +1,11 @@
-"""rag-1.2 unit tests for chunk_text. Run: python be/rag/rag_chunk_test.py"""
+"""rag-1.2 unit tests for chunk_text, moved to e2e/py in rag2-1.2 (functions/chunk_text.py). Run: npm run test:py"""
+import os
 import re
+import sys
 import unittest
 
-from rag import CHUNK_OVERLAP, CHUNK_SIZE, chunk_text
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "be", "rag"))
+from functions.chunk_text import CHUNK_OVERLAP, CHUNK_SIZE, chunk_text  # noqa: E402
 
 
 def bodies(chunks):

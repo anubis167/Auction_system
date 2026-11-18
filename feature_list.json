@@ -1,0 +1,150 @@
+{
+  "project": "Online Auction System",
+  "last_updated": "2026-11-18",
+  "scope": "Round 14. SRS.txt 'system - Rag architechture - Chatbox': rebuild the Python RAG chat service (be/rag) so it never touches the database itself. Every action goes through the Node API and every API answer is checked; one RAG function per file; no LLM framework; the system prompt lives in its own structured file. Follows ecbot (be/rag/ecbot, reference only): api_client back-channel with an internal token, prompt loaded from a file, untrusted text neutralised, replies screened for prompt leaks and secrets. Builds on rounds 12-13 (feature_list_12.json, feature_list_13.json); every behaviour of /api/chat, /api/docs and the staff handoff stays.",
+  "source_requirements": {
+    "file": "SRS.txt",
+    "text": "system - Rag architechture - Chatbox. use ecbot to reference - only in rag system. rebuild rag system with api call to each action, prevent most sercurity risks also separate rag function to each files - easy to debug and expand. system prompt should stay in separate file. Req-1: all action now go through api call- check api return. Req-2: rag functions stay on 1 file 1. Req-3: do not force to build with framework. Req-4: system prompt should stay clear, structured. Tests: e2e, unit and integration tests written to the e2e folder. Changed files described in docs. All delete mean soft delete."
+  },
+  "readings_to_confirm": [
+    "Req-1 'all action go through api call': the Python service drops psycopg and its own JWT check. It reads and writes only through new Node routes under /api/rag (be/src/routes/rag.ts). The visitor's session cookie is forwarded so Node alone decides who the user is; service-only routes also need an X-Internal-Token header (RAG_INTERNAL_TOKEN, compared in constant time; unset -> 503), as ecbot's apps/ai does.",
+    "'check api return': one call_api function checks the status, the JSON and the shape the caller expects; any failure is an ApiError, never a silent wrong value. Callers decide: chat answers as a guest / without excerpts, uploads answer 502/503.",
+    "Req-2 'rag functions stay on 1 file 1': one public function per file in be/rag/functions/, the file named after the function. Private helpers used only by that function may sit in the same file.",
+    "Req-3: plain Flask + google-genai + requests stay; no LangChain/LlamaIndex or agent framework.",
+    "Req-4: be/rag/prompts/system.md is the system prompt, in tagged sections (role, rules, security, format); account, guest and excerpt blocks are separate template files in be/rag/prompts/. Text from documents or user names is put inside <untrusted> blocks with < and > neutralised.",
+    "Uploads keep the same Flask URL (/api/docs, Vite already proxies it); Flask chunks and embeds, then hands the rows to Node, which checks staff/admin through a new permission knowledge.manage (staff + admin, migration like chat.handle).",
+    "The Facebook /webhook route is left as it is (it never touched the database)."
+  ],
+  "features": [
+    {
+      "id": "rag2-1.1",
+      "priority": 1,
+      "role": "system",
+      "area": "api",
+      "srs_ref": "Req-1",
+      "title": "Node /api/rag routes for the RAG service",
+      "user_visible_behavior": "None directly; the Python chat service gets its data from these routes instead of the database.",
+      "acceptance": [
+        "GET /api/rag/me: signed-in user (cookie) -> {id, role, username, credit {balance, held, available}, bids (latest 5, own), lots (own open lots, 5)}; guests 401.",
+        "GET /api/rag/documents and DELETE /api/rag/documents/:id (soft delete, 404 when gone) need knowledge.manage (staff, admin); customers 403, guests 401.",
+        "POST /api/rag/documents needs knowledge.manage AND the internal token; body validated (title, filename, mimeType text/plain|text/markdown, content, 1..2000 chunks with text and a numeric embedding); stores document + chunks in one transaction; 201 {id, title, chunks}.",
+        "GET /api/rag/chunks needs only the internal token (no cookie): live chunks {title, text, embedding}; soft-deleted documents left out.",
+        "Wrong/missing internal token 401; RAG_INTERNAL_TOKEN unset 503."
+      ],
+      "verification": [
+        "e2e/integration/rag2-1-1-rag-api.test.ts passes",
+        "be vitest suite still passes",
+        "docs/changes/rag2-1.1.md"
+      ],
+      "evidence": [
+        "2026-11-18 e2e/integration/rag2-1-1-rag-api.test.ts 5/5 (twice, inside npm test -w be)",
+        "2026-11-18 npm test -w be: 83/84 files; the one failure each run was a Postgres deadlock (40P01) in resetDb in an unrelated file (search, commission) while another session ran project-gemini tests on the same db container; those files + sec.permissions + sch-1-5 + rag2 rerun 4/4 files passed",
+        "2026-11-18 docs/changes/rag2-1.1.md"
+      ],
+      "status": "passing"
+    },
+    {
+      "id": "rag2-1.2",
+      "priority": 2,
+      "role": "system",
+      "area": "rag",
+      "srs_ref": "Req-1, Req-2, Req-3",
+      "title": "One function per file, and an API client that checks every answer",
+      "user_visible_behavior": "None; internal layout of be/rag.",
+      "acceptance": [
+        "be/rag/functions/ holds one public function per file: call_api, chunk_text, embed, rank, retrieve, session_user, check_messages, over_limit, handoff_or_error, read_upload, load_prompt, build_prompt, guard_reply.",
+        "call_api(method, path, cookie=None, internal=False, json=None, expect=dict|list) uses requests with a timeout, sends the cookie / X-Internal-Token only when asked, never follows redirects, and raises ApiError(status) on transport errors, non-2xx, non-JSON or a body of the wrong type.",
+        "chunk_text / embed / rank keep round 12's behaviour (same limits, retries and thresholds).",
+        "No psycopg import anywhere in be/rag; be/rag/rag.py removed; requirements.txt without psycopg."
+      ],
+      "verification": [
+        "e2e/py/rag2_1_2_functions_test.py (call_api against a stub HTTP server, chunk/embed/rank unit tests moved from be/rag)",
+        "grep shows no psycopg in be/rag (ecbot excluded)",
+        "docs/changes/rag2-1.2.md"
+      ],
+      "evidence": [],
+      "status": "not_started"
+    },
+    {
+      "id": "rag2-1.3",
+      "priority": 3,
+      "role": "system",
+      "area": "rag",
+      "srs_ref": "Req-4",
+      "title": "System prompt in its own structured file",
+      "user_visible_behavior": "The bot follows the same rules as before (short plain answers, only the visitor's own data, log in hint for guests).",
+      "acceptance": [
+        "be/rag/prompts/system.md: tagged sections <role>, <rules>, <security>, <format>; no Python string building of rules.",
+        "account.md, guest.md, excerpts.md templates; build_prompt fills them, puts document text and usernames inside <untrusted> with < > neutralised, and adds nothing when there is no account data or excerpt.",
+        "chat_cli.py uses the same prompt."
+      ],
+      "verification": [
+        "e2e/py/rag2_1_3_prompt_test.py",
+        "docs/changes/rag2-1.3.md"
+      ],
+      "evidence": [],
+      "status": "not_started"
+    },
+    {
+      "id": "rag2-1.4",
+      "priority": 4,
+      "role": "customer",
+      "area": "chat",
+      "srs_ref": "Req-1, security",
+      "title": "/api/chat rebuilt on the API",
+      "user_visible_behavior": "Same chat box answers: grounded in uploaded documents, signed-in users see their own account, handoff to staff on limit / Gemini down.",
+      "acceptance": [
+        "The visitor comes only from GET /api/rag/me with the forwarded cookie; 401 = guest; any other API failure = guest and logged.",
+        "Excerpts come from GET /api/rag/chunks (internal token) ranked in Python; failure = answer without excerpts.",
+        "Input checks, 30/min limit, handoff (sch-1.3) and sources unchanged; the body can never choose the user.",
+        "guard_reply: a reply that copies the prompt's section tags or contains a token/secret pattern (JWT, API key, internal token) is replaced by a safe fallback line."
+      ],
+      "verification": [
+        "e2e/py/rag2_1_4_chat_test.py (API stubbed): ports chat_test, rag_chat_test, rag_user_test and sch_1_3 behaviour",
+        "docs/changes/rag2-1.4.md"
+      ],
+      "evidence": [],
+      "status": "not_started"
+    },
+    {
+      "id": "rag2-1.5",
+      "priority": 5,
+      "role": "staff",
+      "area": "rag",
+      "srs_ref": "Req-1",
+      "title": "/api/docs upload, list and delete through the API",
+      "user_visible_behavior": "Staff/admin upload .txt/.md, list and soft delete documents at the same URLs as before.",
+      "acceptance": [
+        "POST /api/docs: read_upload checks type, size (2 MB) and UTF-8 before any API call; chunk + embed; POST /api/rag/documents with the cookie and internal token; Node's status passed on (401/403/400), 502 on other API failures, 503 when embedding fails.",
+        "GET /api/docs and DELETE /api/docs/<id> forward to Node with the cookie and pass its answer on.",
+        "Old be/rag/*_test.py suites removed after their cases moved to e2e/py."
+      ],
+      "verification": [
+        "e2e/py/rag2_1_5_docs_test.py (API stubbed)",
+        "docs/changes/rag2-1.5.md"
+      ],
+      "evidence": [],
+      "status": "not_started"
+    },
+    {
+      "id": "rag2-1.6",
+      "priority": 6,
+      "role": "system",
+      "area": "tests",
+      "srs_ref": "Tests, Req-1",
+      "title": "Full-path test: Flask -> real Node API -> Postgres",
+      "user_visible_behavior": "None; proves the whole path.",
+      "acceptance": [
+        "A Python integration test starts the real Node API on auction_test, uploads a document as staff through Flask, asks /api/chat as a customer and gets the excerpt plus the customer's own account in the prompt (Gemini stubbed), then soft deletes it and the excerpt is gone.",
+        "docs/rag.md describes the new layout, the routes, the internal token and how to run it."
+      ],
+      "verification": [
+        "e2e/py/rag2_1_6_full_path_test.py",
+        "./init.sh exit 0",
+        "docs/rag.md"
+      ],
+      "evidence": [],
+      "status": "not_started"
+    }
+  ]
+}

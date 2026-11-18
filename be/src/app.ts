@@ -15,6 +15,7 @@ import { devRouter } from './routes/dev';
 import { goodsRouter } from './routes/goods';
 import { meRouter } from './routes/me';
 import { messagesRouter } from './routes/messages';
+import { ragRouter, requireInternal } from './routes/rag';
 import { staffRouter } from './routes/staff';
 import { staffApprovalsRouter } from './routes/staffApprovals';
 import { staffAuctionsRouter } from './routes/staffAuctions';
@@ -38,6 +39,9 @@ export function createApp() {
   const app = express();
   app.set('json replacer', jsonReplacer);
   app.use(cors({ origin: config.appUrl, credentials: true }));
+  // rag2-1.1: a document arrives with all its chunk embeddings (~15 KB per chunk), far over the 100 KB default.
+  // The internal token is checked before the big body is read; the global parser then skips the parsed body.
+  app.post('/api/rag/documents', requireInternal, express.json({ limit: '40mb' }));
   app.use(express.json());
   app.use(cookieParser());
 
@@ -72,6 +76,7 @@ export function createApp() {
   app.use('/api/staff', staffApprovalsRouter);
   app.use('/api/staff', staffRouter);
   app.use('/api/credit', creditRouter);
+  app.use('/api/rag', ragRouter);
   app.use('/api/support', supportRouter);
   app.use('/api/uploads', uploadsRouter);
   app.use('/api', goodsRouter);

@@ -1,11 +1,14 @@
-"""rag-1.3 unit tests for embed (Gemini stubbed, no sleeping). Run: python be/rag/rag_embed_test.py"""
+"""rag-1.3 unit tests for embed (Gemini stubbed, no sleeping), moved to e2e/py in rag2-1.2. Run: npm run test:py"""
+import os
+import sys
 import unittest
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from google.genai import errors
 
-import rag
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "be", "rag"))
+from functions import embed as rag  # noqa: E402  (module: embed, EmbedError, EMBED_* constants)
 
 
 def reply(contents, **_):
@@ -16,7 +19,7 @@ def api_error(code):
     return errors.APIError(code, {"error": {"code": code, "message": "x", "status": "x"}})
 
 
-@patch("rag.time.sleep")
+@patch("functions.embed.time.sleep")
 class Embed(unittest.TestCase):
     def setUp(self):
         self.client = MagicMock()

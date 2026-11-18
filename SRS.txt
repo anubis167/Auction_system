@@ -3,11 +3,14 @@ then write me a feature-list.json file, with e2e function, unit and intergration
 Write changed description (files, changed in code) to docs folder
 All delete mean soft delete
 
-system - Chatbox with Gemini API
+system - Rag architechture - Chatbox
 description and Priority
-i already built small chatbox with python and gemini, for now update to
-it RAG system, upload documents, chunk datas, retries ,...
+use ecbot to reference - only in rag system 
+rebuild rag system with api call to each action, prevent most sercurity 
+risks also separate rag function to each files - easy to debug and expand
+system prompt should stay in separate file
 
-Req-1: Use gemini api settings i put in ./be/chat.py
-Req-2: Only unit test and intergration test, e2e skip
-Req-3: Database will save documents
+Req-1: all action now go through api call- check api return
+Req-2: rag functions stay on 1 file 1 
+Req-3: do not force to build with framework
+Req-4: system prompt should stay clear, structured
