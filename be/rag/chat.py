@@ -7,20 +7,34 @@ import ngrok
 import time
 from collections import deque
 
+import auth
+import error_handler
 import rag
+import security
+
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 load_dotenv()
 
 app = Flask(__name__)
 # rag-2.1: room for one 10 MB document plus its multipart wrapping; bigger bodies get 413 before they are read
 DOC_MAX_BYTES = 10 * 1024 * 1024
 app.config["MAX_CONTENT_LENGTH"] = DOC_MAX_BYTES + 128 * 1024
-ngrok.set_auth_token(os.getenv("NGROK_AUTHTOKEN"))
+
+# rag-3.1: Global error handlers for standard HTTP codes and unhandled exceptions
+error_handler.register_error_handlers(app)
+
+# rag-3.2: Security middleware blocking prompt ejection/injection across API endpoints
+security.prompt_injection_middleware(app, paths=("/api/chat", "/api/docs", "/api/rag"))
+
+if os.getenv("NGROK_AUTHTOKEN"):
+    ngrok.set_auth_token(os.getenv("NGROK_AUTHTOKEN"))
 # Initialize Gemini Client
 # Gemini often answers 503 "high demand" for a few seconds, so the SDK retries; the timeout stops a hung call blocking the box
+api_key = os.getenv("GEMINI_API_KEY")
 client = genai.Client(
-    api_key=os.getenv("GEMINI_API_KEY"),
+    api_key=api_key,
     http_options={"timeout": 30000, "retry_options": {"attempts": 4}},
-)
+) if api_key else None
 # An alias, because Google retires pinned models (gemini-2.5-flash stopped working for this key)
 GEMINI_MODEL = "gemini-flash-lite-latest"
 
@@ -51,7 +65,7 @@ def over_web_limit():
 
 @app.route("/api/chat", methods=["POST"])
 def web_chat():
-    """Embedded site chat: the browser sends the conversation, Gemini answers the last message"""
+    """Embedded site chat: authenticated user sends conversation, Gemini answers last message"""
     body = request.get_json(silent=True)
     messages = body.get("messages") if isinstance(body, dict) else None
     if not isinstance(messages, list) or not 1 <= len(messages) <= MAX_TURNS:
@@ -71,17 +85,31 @@ def web_chat():
     if over_web_limit():
         return jsonify(error="Too many messages, please wait a minute"), 429
 
-    # rag-1.7: the visitor's own account, only from the verified session cookie (never from the body); guest otherwise.
-    # rag-1.5: the best matching excerpts of uploaded documents. Without either the bot still answers.
+    token = auth.extract_token()
+    if not token or not auth.read_claims(token):
+        return jsonify(error="Authentication required"), 401
+
     account, hits = rag.GUEST_CONTEXT, []
     try:
         with rag.connect() as conn:
-            user = rag.session_user(conn, request.cookies.get(rag.COOKIE))
-            if user:
+            user, denied = auth.check_permission(conn, auth.ALLOWED_CHAT_ROLES)
+            if denied:
+                return denied
+
+            try:
                 account = rag.user_context(conn, user["id"])
-            hits = rag.retrieve(conn, rag.embed(client, [contents[-1]["parts"][0]["text"]], "RETRIEVAL_QUERY")[0])
-    except Exception:
-        app.logger.exception("Account or document lookup failed, answering without it")
+            except Exception:
+                app.logger.exception("Account lookup failed, continuing without it")
+
+            try:
+                hits = rag.retrieve(conn, rag.embed(client, [contents[-1]["parts"][0]["text"]], "RETRIEVAL_QUERY")[0])
+            except Exception:
+                app.logger.exception("Document retrieval failed, answering without it")
+    except Exception as e:
+        claims = auth.read_claims(token)
+        if not claims or claims.get("role") not in auth.ALLOWED_CHAT_ROLES:
+            return jsonify(error="Authentication required"), 401
+        app.logger.exception("Account or document lookup failed, answering without it: %s", e)
 
     try:
         response = client.models.generate_content(
@@ -103,13 +131,8 @@ DOC_TYPES = {".txt": "text/plain", ".md": "text/markdown"}
 
 
 def staff_only(conn):
-    """rag-1.4: (user, None) for staff/admin, else (None, error response)."""
-    user = rag.session_user(conn, request.cookies.get(rag.COOKIE))
-    if not user:
-        return None, (jsonify(error="Authentication required"), 401)
-    if user["role"] not in ("staff", "admin"):
-        return None, (jsonify(error="Forbidden"), 403)
-    return user, None
+    """rag-1.4 / rag-3.3: (user, None) for staff/admin via cookie or Bearer token, else (None, error response)."""
+    return auth.check_permission(conn, auth.ALLOWED_DOCS_ROLES)
 
 
 @app.route("/api/docs", methods=["POST"])
@@ -152,6 +175,21 @@ def list_docs():
         return denied or jsonify(documents=rag.list_documents(conn))
 
 
+@app.route("/api/docs/<int:doc_id>", methods=["GET"])
+def get_doc(doc_id):
+    """Retrieve document details and chunks by ID (404 if deleted/not found)."""
+    with rag.connect() as conn:
+        _, denied = staff_only(conn)
+        if denied:
+            return denied
+        doc = rag.get_document(conn, doc_id)
+        if not doc:
+            return jsonify(error="Document not found"), 404
+        payload = dict(doc)
+        payload["document"] = doc
+        return jsonify(payload)
+
+
 @app.route("/api/docs/<int:doc_id>", methods=["DELETE"])
 def delete_doc(doc_id):
     with rag.connect() as conn:
@@ -161,6 +199,30 @@ def delete_doc(doc_id):
         if not rag.delete_document(conn, doc_id):
             return jsonify(error="Document not found"), 404
     return "", 204
+
+
+@app.route("/api/rag/retrieve", methods=["POST"])
+def retrieve_chunks():
+    """Retrieve top-ranked chunks for a query without calling Gemini."""
+    with rag.connect() as conn:
+        _, denied = auth.check_permission(conn, auth.ALLOWED_RETRIEVE_ROLES)
+        if denied:
+            return denied
+        body = request.get_json(silent=True)
+        query = None
+        if isinstance(body, dict):
+            query = body.get("query") or body.get("q") or body.get("text")
+        if not isinstance(query, str) or not query.strip():
+            return jsonify(error="Query is required"), 400
+        query = query.strip()
+        try:
+            vectors = rag.embed(client, [query], "RETRIEVAL_QUERY")
+        except rag.EmbedError:
+            app.logger.exception("Embedding the query failed")
+            return jsonify(error="The assistant is unavailable right now, try again later"), 503
+        hits = rag.retrieve(conn, vectors[0])
+        results = [{"score": float(score), "title": title, "text": text} for score, title, text in hits]
+        return jsonify(results=results, chunks=results, hits=results)
 
 @app.route("/webhook", methods=["GET"])
 def verify_webhook():
@@ -220,7 +282,11 @@ def send_facebook_message(recipient_id, text):
 def home():
     return("Hello from local server Ngrok")
 if __name__ == "__main__":
-    listener = ngrok.forward(5000)
-    print(f" * Public URL: {listener.url()}")
+    if not os.getenv("NO_NGROK") and os.getenv("NGROK_AUTHTOKEN"):
+        try:
+            listener = ngrok.forward(5000)
+            print(f" * Public URL: {listener.url()}")
+        except Exception as e:
+            print(f" * Ngrok tunnel skipped: {e}")
     app.run(port=5000)
 

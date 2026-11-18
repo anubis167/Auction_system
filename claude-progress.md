@@ -619,3 +619,31 @@
 - `rag-2.4` passing: Playwright test `e2e/adm-006-chatbox-rag.spec.ts` covering admin login, header navigation to `/admin/rag`, document table rendering, >10 MB rejection notification, valid upload with chunk count, soft delete, and customer access denial.
 - Documentation created: `docs/changes/rag-2.1.md`, `docs/changes/rag-2.2.md`, `docs/changes/rag-2.3.md`, `docs/changes/rag-2.4.md`.
 
+### Session 026: round 14 backend features (RAG Chatbox API, Security, Auth, Global Errors, Soft Delete) built and verified (2026-11-18)
+
+- New round from SRS.txt ('System - API for RAG - chatbox': write & retrieve data APIs, expected error handling, auth & authz on all routes, prompt ejection blocking middleware, global error handler, soft delete).
+- `rag-3.1` passing: Global JSON error handling middleware (`be/rag/error_handler.py`, registered in `be/rag/chat.py`) returning structured `{"error": "<msg>"}` for standard HTTP error codes (400, 401, 403, 404, 405, 413, 429) and unhandled generic exceptions (500). Unit tests in `be/rag/error_handler_test.py` (5/5). Change doc in `docs/changes/rag-3.1.md`.
+- `rag-3.2` passing: Prompt ejection and injection security middleware (`be/rag/security.py`, registered in `be/rag/chat.py`) intercepting instruction overrides, jailbreak persona triggers, system prompt exfiltration, and delimiter injection in JSON bodies and queries, returning HTTP 400 `{"error": "Prompt injection detected"}`. Unit tests in `be/rag/security_test.py` (28/28). Change doc in `docs/changes/rag-3.2.md`.
+- `rag-3.3` passing: Authentication & authorization enforcement (`be/rag/auth.py`, `be/rag/chat.py`). Extracts JWT tokens from `auction_token` cookie or `Authorization: Bearer <token>`, verifies HS256 signature, validates user in PostgreSQL `users` table and checks account status is active. Requires customer/staff/admin for `/api/chat` and `/api/rag/retrieve`; requires staff/admin for `/api/docs` and `/api/docs/<id>`. Returns 401 for unauthenticated, 403 for unauthorized. Unit tests in `be/rag/auth_test.py` (13/13); adjusted `be/rag/chat_test.py` (7/7) and `be/rag/rag_user_test.py` (5/5). Change doc in `docs/changes/rag-3.3.md`.
+- `rag-3.4` passing: Complete write and retrieve data APIs with soft delete in `be/rag/chat.py` and `be/rag/rag.py`:
+  - `POST /api/docs`: writes document with automatic chunking and embedding before DB persistence (HTTP 201).
+  - `GET /api/docs`: retrieves active documents list (HTTP 200).
+  - `GET /api/docs/<int:doc_id>`: retrieves single document details with chunk list (HTTP 200) or 404 if deleted/missing.
+  - `POST /api/rag/retrieve`: embeds query and returns matching chunks based on cosine distance (HTTP 200) or 400 on empty query.
+  - `DELETE /api/docs/<int:doc_id>`: soft-deletes document and chunks by setting `deleted_at = now()` (HTTP 204) or 404. Excluded from retrieval and listing.
+  - Unit tests in `be/rag/rag_api_test.py` (8/8). Change doc in `docs/changes/rag-3.4.md`.
+- `rag-3.5` passing: Comprehensive Playwright API integration test suite implemented at `e2e/rag-chat-api.spec.ts`.
+  - Added `/api/rag` proxy route in `fe/vite.config.ts`.
+  - Added `python be/rag/chat.py` webServer entry in `playwright.config.ts`.
+  - Safely guarded ngrok tunneling in `be/rag/chat.py` under `NO_NGROK` flag for reliable automated testing.
+  - Test suite covers:
+    1. Global error handling (structured JSON for 404, 400, 405).
+    2. Prompt ejection/injection security filter (intercepts injection attacks with 400 across `/api/rag/retrieve`, `/api/chat`, and query strings).
+    3. Authentication & authorization enforcement (401 for unauthenticated/forged/expired tokens; 403 for customer on `/api/docs`; 200 for staff/admin on `/api/docs`; 200 for customer/staff on `/api/rag/retrieve`).
+    4. Write & retrieve lifecycle and soft delete: uploads document via POST `/api/docs` (chunked & embedded), retrieves document list via GET `/api/docs`, retrieves document details with chunk list via GET `/api/docs/<id>`, queries top matching chunks via POST `/api/rag/retrieve`, soft-deletes via DELETE `/api/docs/<id>` (204), and verifies exclusion from document list, document detail (404), search retrieval, and duplicate delete (404).
+  - Documentation created in `docs/changes/rag-3.5.md`.
+  - Verification: `npx playwright test e2e/rag-chat-api.spec.ts` 4/4 passed cleanly; `python -m unittest discover -s be/rag -p "*_test.py"` 92/92 passed; `npm test -w fe` 27/27 files (165 tests) passed.
+- Round 14 status: All 5 features (`rag-3.1`, `rag-3.2`, `rag-3.3`, `rag-3.4`, `rag-3.5`) marked `passing` in `feature_list.json` with evidence.
+
+
+

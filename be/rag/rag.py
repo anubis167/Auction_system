@@ -150,6 +150,34 @@ def list_documents(conn):
             for r in rows]
 
 
+def get_document(conn, doc_id):
+    """Document details and chunk list by ID. None if not found or soft-deleted."""
+    row = conn.execute(
+        "SELECT id, title, filename, mime_type, size_bytes, uploaded_by_id, created_at, content "
+        "FROM knowledge_documents WHERE id = %s AND deleted_at IS NULL",
+        (doc_id,),
+    ).fetchone()
+    if not row:
+        return None
+    chunk_rows = conn.execute(
+        "SELECT id, position, text FROM knowledge_chunks WHERE document_id = %s ORDER BY position ASC",
+        (doc_id,),
+    ).fetchall()
+    chunks = [{"id": c[0], "position": c[1], "text": c[2]} for c in chunk_rows]
+    created_at = row[6].isoformat() + "Z" if hasattr(row[6], "isoformat") else str(row[6])
+    return {
+        "id": row[0],
+        "title": row[1],
+        "filename": row[2],
+        "mimeType": row[3],
+        "sizeBytes": row[4],
+        "uploadedById": row[5],
+        "createdAt": created_at,
+        "content": row[7],
+        "chunks": chunks,
+    }
+
+
 def delete_document(conn, doc_id):
     """Soft delete (SRS: all delete means soft delete). False when there is no live document with this id."""
     return conn.execute(

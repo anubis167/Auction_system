@@ -5,8 +5,11 @@ import hmac
 import io
 import json
 import os
+import sys
 import time
 import unittest
+
+sys.path.insert(0, os.path.dirname(__file__))
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 

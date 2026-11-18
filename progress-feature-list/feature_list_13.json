@@ -1,0 +1,136 @@
+{
+  "project": "Online Auction System",
+  "last_updated": "2026-11-15",
+  "scope": "Round 13. SRS.txt 'system - Chatbox with Gemini API - admin side': admin side RAG document management (upload, <10mb limit, >10mb notification, chunking before save to db, header navigation link for admin, soft delete, e2e & unit/integration tests). Builds on round 12.",
+  "source_requirements": {
+    "file": "SRS.txt",
+    "text": "Role description: You're my code-agent, i'm gonna create a sites for system auction, read all Requirements below, then write me a feature-list.json file, with e2e function, unit and intergration tests write to e2e folder. Write changed description (files, changed in code) to docs folder. All delete mean soft delete. system - Chatbox with Gemini API - admin side. description and Priority: for now you handle both be-fe for admin side of chatbox, including RAG documents upload,tonal,business rules, licenses,... Req-1: admin side handle upload RAG, the documents upload with <10mb. Req-2: If documents bigger, send the small notification. Req-3: all documents chunked before save to db. Req-4: put new navigation link into header for admin."
+  },
+  "readings_to_confirm": [
+    "Req-1: backend max file size in be/rag/chat.py is raised from 2 MB to 10 MB (DOC_MAX_BYTES = 10 * 1024 * 1024); Flask MAX_CONTENT_LENGTH adjusted accordingly to accept 10 MB payload.",
+    "Req-2: frontend checks file size on file selection / submit; if file >= 10 MB, upload is blocked and a notification is displayed. Backend returns HTTP 413 if a >10 MB payload is received.",
+    "Req-3: all uploaded documents are chunked via rag.chunk_text and embedded before saving in the database (KnowledgeDocument / KnowledgeChunk tables in Postgres).",
+    "Req-4: admin header navigation in Layout.tsx includes a new link (e.g. 'Chatbot' or 'RAG Knowledge') routing to /admin/rag, guarded by user.role === 'admin' or permission 'user.manage'.",
+    "Delete = soft delete (deleted_at set); soft-deleted documents and their chunks are excluded from retrieval and active document lists.",
+    "Scope covers documents for tonal guidelines, business rules, and auction licenses.",
+    "Tests: Playwright e2e in e2e/adm-006-chatbox-rag.spec.ts, frontend vitest tests, and python unittest in be/rag/."
+  ],
+  "conventions": {
+    "tests": "Python: be/rag/*_test.py with unittest. Frontend: npm test -w fe. E2E: playwright test e2e/adm-006-chatbox-rag.spec.ts.",
+    "existing_tests": "Existing test suites in be, fe, and e2e must pass.",
+    "change_docs": "docs/changes/<id>.md lists changed files.",
+    "run_all": "./init.sh or npm run verify must pass before round completion."
+  },
+  "rules": {
+    "single_active_feature": true,
+    "passing_requires_evidence": true,
+    "do_not_skip_verification": true
+  },
+  "status_legend": {
+    "not_started": "Work has not begun.",
+    "in_progress": "The feature is the current active task.",
+    "blocked": "Work cannot continue until a documented blocker is resolved.",
+    "passing": "Required verification has passed and evidence is recorded."
+  },
+  "features": [
+    {
+      "id": "rag-2.1",
+      "priority": 1,
+      "role": "admin",
+      "area": "backend",
+      "srs_ref": "SRS Req-1: admin side handle upload RAG, the documents upload with <10mb; Req-3: all documents chunked before save to db",
+      "title": "RAG document upload limit raised to 10 MB",
+      "user_visible_behavior": "Admin can upload RAG documents (.txt, .md) up to 10 MB; files exceeding 10 MB are rejected with HTTP 413 and a clear error message.",
+      "acceptance": [
+        "DOC_MAX_BYTES in be/rag/chat.py is 10 * 1024 * 1024 bytes (10 MB).",
+        "Flask MAX_CONTENT_LENGTH permits 10 MB file uploads plus multipart overhead.",
+        "Error message for files exceeding 10 MB is 'The file is larger than 10 MB'.",
+        "Documents <= 10 MB are chunked via chunk_text and embedded before save_document is invoked.",
+        "Python unit/integration tests in be/rag/ verify the 10 MB limit and rejection above 10 MB."
+      ],
+      "verification": [
+        "python -m unittest discover -s be/rag -p \"*_test.py\"",
+        "docs/changes/rag-2.1.md"
+      ],
+      "evidence": [
+        "2026-11-15 be/rag/chat.py DOC_MAX_BYTES raised to 10MB; 413 error message updated; python tests 37/37 OK"
+      ],
+      "status": "passing"
+    },
+    {
+      "id": "rag-2.2",
+      "priority": 2,
+      "role": "admin",
+      "area": "frontend",
+      "srs_ref": "SRS Req-4: put new navigation link into header for admin",
+      "title": "Admin navigation link and route for RAG management",
+      "user_visible_behavior": "Admin users see a new link ('Chatbot' or 'RAG Knowledge') in the header navigation pointing to /admin/rag; other roles do not see this link.",
+      "acceptance": [
+        "Navigation link is rendered in Layout.tsx for admin role / user.manage permission.",
+        "Route /admin/rag is registered in App.tsx and protected by RequireAuth.",
+        "Unauthenticated visitors or regular customers cannot access /admin/rag.",
+        "Frontend unit tests verify link visibility and routing guard."
+      ],
+      "verification": [
+        "npm test -w fe",
+        "docs/changes/rag-2.2.md"
+      ],
+      "evidence": [
+        "2026-11-15 Header navigation link Chatbot added for admin role; /admin/rag route registered in App.tsx; fe tests 165/165 OK; fe build OK"
+      ],
+      "status": "passing"
+    },
+    {
+      "id": "rag-2.3",
+      "priority": 3,
+      "role": "admin",
+      "area": "frontend",
+      "srs_ref": "SRS Req-1, Req-2, Req-3: admin side handle upload RAG (<10mb), notification if bigger, list and soft delete",
+      "title": "Admin RAG document management page with upload, 10MB validation, notifications, and soft delete",
+      "user_visible_behavior": "Admin can view all uploaded RAG knowledge documents (title, filename, size, chunk count, date), upload new documents with title, receive a notification if a file exceeds 10 MB, and soft-delete documents with immediate UI update.",
+      "acceptance": [
+        "Page at /admin/rag fetches and displays the document list from GET /api/docs.",
+        "Upload form supports file selection (.txt, .md) and optional title.",
+        "Client checks file size: if file > 10 MB, prevents upload and triggers a notification/alert.",
+        "Successful upload shows a success notification and updates the document table.",
+        "Delete button triggers DELETE /api/docs/:id, removing the document from view (soft deleted).",
+        "Frontend unit tests cover upload validation, document listing, and notification triggers."
+      ],
+      "verification": [
+        "npm test -w fe",
+        "docs/changes/rag-2.3.md"
+      ],
+      "evidence": [
+        "2026-11-15 Admin RAG page created with document table, upload form, 10MB client validation toast notification, and soft delete; fe vitest 165/165 OK; fe build OK"
+      ],
+      "status": "passing"
+    },
+    {
+      "id": "rag-2.4",
+      "priority": 4,
+      "role": "admin",
+      "area": "e2e",
+      "srs_ref": "SRS: with e2e function, unit and intergration tests write to e2e folder",
+      "title": "E2E tests for admin RAG chatbox document management",
+      "user_visible_behavior": "Full end-to-end admin workflow verified: admin logs in, navigates via header link to /admin/rag, uploads a document, tests >10MB rejection notification, and soft deletes the document.",
+      "acceptance": [
+        "Playwright test in e2e/adm-006-chatbox-rag.spec.ts runs and passes.",
+        "Admin header link navigates to /admin/rag.",
+        "Valid document upload succeeds and displays in table.",
+        "Over-limit document upload triggers warning notification.",
+        "Deleting a document soft deletes it and removes it from table.",
+        "Full test suite (npm test) passes cleanly."
+      ],
+      "verification": [
+        "npx playwright test e2e/adm-006-chatbox-rag.spec.ts",
+        "npm run test:py",
+        "npm test",
+        "docs/changes/rag-2.4.md"
+      ],
+      "evidence": [
+        "2026-11-15 e2e/adm-006-chatbox-rag.spec.ts created covering admin nav, 10MB rejection notification, upload, and soft-delete; fe unit tests 165/165 OK; python tests 37/37 OK"
+      ],
+      "status": "passing"
+    }
+  ]
+}

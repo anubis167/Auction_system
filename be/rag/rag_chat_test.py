@@ -2,7 +2,10 @@
 Run: python be/rag/rag_chat_test.py"""
 import io
 import os
+import sys
 import unittest
+
+sys.path.insert(0, os.path.dirname(__file__))
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -11,8 +14,9 @@ import psycopg
 os.environ["DATABASE_URL"] = os.getenv("RAG_TEST_DATABASE_URL", "postgresql://auction:auction@localhost:5436/auction_test")
 import chat  # noqa: E402
 import rag  # noqa: E402
-from rag_docs_test import PREFIX, token  # noqa: E402
+from rag_docs_test import token  # noqa: E402
 
+PREFIX = "ragchat_"
 EXCERPTS = "Excerpts from Beat'em's own documents"
 
 
@@ -60,7 +64,7 @@ class GroundedChat(unittest.TestCase):
 
     @classmethod
     def cleanup(cls):
-        users = "SELECT id FROM users WHERE username LIKE 'ragdocs\\_%'"
+        users = "SELECT id FROM users WHERE username LIKE 'ragchat\\_%'"
         docs = f"SELECT id FROM knowledge_documents WHERE uploaded_by_id IN ({users})"
         cls.db.execute(f"DELETE FROM knowledge_chunks WHERE document_id IN ({docs})")  # test data only
         cls.db.execute(f"DELETE FROM knowledge_documents WHERE uploaded_by_id IN ({users})")

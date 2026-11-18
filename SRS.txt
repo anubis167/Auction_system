@@ -1,13 +1,13 @@
-Role description: You're my code-agent, i'm gonna create a sites for system auction, read all Requirements below,
-then write me a feature-list.json file, with e2e function, unit and intergration tests write to e2e folder.
-Write changed description (files, changed in code) to docs folder
-All delete mean soft delete
+    Role description: You're my code-agent, i'm gonna create a sites for system auction, read all Requirements below,
+    then write me a feature-list.json file, with e2e function, unit and intergration tests write to e2e folder.
+    Write changed description (files, changed in code) to docs folder
+    All delete mean soft delete
 
-system - Chatbox with Gemini API - admin side
-description and Priority
-for now you handle both be-fe for admin side of chatbox, including RAG documents upload,tonal,business rules, licenses,...
-
-Req-1: admin side handle upload RAG, the documents upload with <10mb
-Req-2: If documents bigger, send the small notification
-Req-3: all documents chunked before save to db
-Req-4: put new navigation link into header for admin
+    System - API for RAG - chatbox
+    description and priority
+    Priority high
+    write me all api for write, retrieve datas for RAG chatbox system
+    api error should return expected error
+    Req-1: all routes have both authenticated and authorized
+    Req-2: Sercurity by block prompt ejection - middleware
+    Req-3: Api error handle global - catch all unexpected errors

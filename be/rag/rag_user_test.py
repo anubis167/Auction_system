@@ -94,18 +94,27 @@ class SignedInChat(unittest.TestCase):
         prompt = self.ask(token(self.ann), user={"id": str(self.bob)}, userId=str(self.bob), username="raguser_bob")
         self.assertIn("logged in as raguser_ann", prompt)
         self.assertNotIn("999.00", prompt)
-        self.assert_guest(self.ask("", userId=str(self.ann), username="raguser_ann"))
+        self.http.set_cookie(rag.COOKIE, "")
+        res = self.http.post("/api/chat", json={"messages": [{"role": "user", "text": "What is my balance?"}],
+                                                "userId": str(self.ann), "username": "raguser_ann"})
+        self.assertEqual(res.status_code, 401)
+        self.assertEqual(res.json, {"error": "Authentication required"})
 
     def test_guests(self):
-        self.assert_guest(self.ask())  # no cookie
-        self.assert_guest(self.ask(token(self.ann, secret="forged")))
-        self.assert_guest(self.ask(token(self.ann, exp_in=-5)))
-        self.assert_guest(self.ask(token(self.locked)))
+        # Under rag-3.3: unauthenticated, forged, expired, and locked users are refused with 401
+        self.http.set_cookie(rag.COOKIE, "")
+        res = self.http.post("/api/chat", json={"messages": [{"role": "user", "text": "What is my balance?"}]})
+        self.assertEqual(res.status_code, 401)
+        self.assertEqual(res.json, {"error": "Authentication required"})
+
+        for bad in (token(self.ann, secret="forged"), token(self.ann, exp_in=-5), token(self.locked)):
+            self.http.set_cookie(rag.COOKIE, bad)
+            res = self.http.post("/api/chat", json={"messages": [{"role": "user", "text": "What is my balance?"}]})
+            self.assertEqual(res.status_code, 401)
+            self.assertEqual(res.json, {"error": "Authentication required"})
 
     def test_lookup_failure_answers_as_guest(self):
         with patch.object(rag, "user_context", side_effect=psycopg.OperationalError("db down")):
-            self.assert_guest(self.ask(token(self.ann)))
-        with patch.object(rag, "connect", side_effect=psycopg.OperationalError("db down")):
             self.assert_guest(self.ask(token(self.ann)))
 
     def test_prompt_no_longer_claims_unseen_data(self):

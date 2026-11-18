@@ -1,17 +1,26 @@
 """chat-1.2 self-check for POST /api/chat. Run: python be/rag/chat_test.py (Gemini is stubbed, no network)."""
+import os
+import sys
 import unittest
 from types import SimpleNamespace
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
+sys.path.insert(0, os.path.dirname(__file__))
 import chat
+from rag_docs_test import token
 
 
 class WebChat(unittest.TestCase):
     def setUp(self):
         chat.web_calls.clear()
-        chat.client = MagicMock()
-        chat.client.models.generate_content.return_value = SimpleNamespace(text="hello")
+        self.client_mock = patch.object(chat, "client", MagicMock()).start()
+        self.client_mock.models.generate_content.return_value = SimpleNamespace(text="hello")
         self.http = chat.app.test_client()
+        self.http.set_cookie(chat.rag.COOKIE, token(1))
+        self.conn_mock = MagicMock()
+        patch.object(chat.rag, "connect", return_value=MagicMock(__enter__=MagicMock(return_value=self.conn_mock), __exit__=MagicMock())).start()
+        patch.object(chat.auth, "check_permission", return_value=({"id": 1, "role": "customer"}, None)).start()
+        self.addCleanup(patch.stopall)
 
     def post(self, messages):
         return self.http.post("/api/chat", json={"messages": messages})
@@ -19,7 +28,7 @@ class WebChat(unittest.TestCase):
     def test_reply_and_history_reach_gemini(self):
         res = self.post([{"role": "user", "text": "a"}, {"role": "model", "text": "b"}, {"role": "user", "text": "c"}])
         self.assertEqual((res.status_code, res.json), (200, {"reply": "hello"}))
-        contents = chat.client.models.generate_content.call_args.kwargs["contents"]
+        contents = self.client_mock.models.generate_content.call_args.kwargs["contents"]
         self.assertEqual([c["role"] for c in contents], ["user", "model", "user"])
         self.assertEqual(contents[2]["parts"], [{"text": "c"}])
 
@@ -30,13 +39,13 @@ class WebChat(unittest.TestCase):
                     [{"role": "model", "text": "a"}], ["a"]):
             self.assertEqual(self.post(bad).status_code, 400, bad)
         self.assertEqual(self.http.post("/api/chat", data="not json").status_code, 400)
-        chat.client.models.generate_content.assert_not_called()
+        self.client_mock.models.generate_content.assert_not_called()
 
     def test_long_bot_reply_does_not_end_the_conversation(self):
         long_reply = "b" * (chat.MAX_TEXT + 1)
         res = self.post([{"role": "user", "text": "a"}, {"role": "model", "text": long_reply}, {"role": "user", "text": "c"}])
         self.assertEqual(res.status_code, 200)
-        contents = chat.client.models.generate_content.call_args.kwargs["contents"]
+        contents = self.client_mock.models.generate_content.call_args.kwargs["contents"]
         self.assertEqual(len(contents[1]["parts"][0]["text"]), chat.MAX_TEXT)
 
     def test_rate_limit(self):
@@ -47,10 +56,16 @@ class WebChat(unittest.TestCase):
 
     def test_gemini_failure_and_empty_reply(self):
         ok = [{"role": "user", "text": "a"}]
-        chat.client.models.generate_content.return_value = SimpleNamespace(text=None)
+        self.client_mock.models.generate_content.return_value = SimpleNamespace(text=None)
         self.assertEqual(self.post(ok).status_code, 503)
-        chat.client.models.generate_content.side_effect = RuntimeError("down")
+        self.client_mock.models.generate_content.side_effect = RuntimeError("down")
         self.assertEqual(self.post(ok).status_code, 503)
+
+    def test_unauthenticated_request_is_rejected(self):
+        self.http.set_cookie(chat.rag.COOKIE, "")
+        res = self.http.post("/api/chat", json={"messages": [{"role": "user", "text": "hello"}]})
+        self.assertEqual(res.status_code, 401)
+        self.assertEqual(res.json, {"error": "Authentication required"})
 
     def test_messenger_echo_gets_no_reply(self):
         chat.send_facebook_message = MagicMock()
