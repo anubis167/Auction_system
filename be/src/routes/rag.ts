@@ -135,6 +135,30 @@ ragRouter.get(
   }),
 );
 
+// rag-3.4: one live document with its chunks, for GET /api/docs/<id> in be/rag
+ragRouter.get(
+  '/documents/:id',
+  requirePermission('knowledge.manage'),
+  asyncHandler(async (req, res) => {
+    const d = await prisma.knowledgeDocument.findFirst({
+      where: { id: parseId(req.params.id), deletedAt: null },
+      include: { chunks: { orderBy: { position: 'asc' }, select: { id: true, position: true, text: true } } },
+    });
+    if (!d) throw new HttpError(404, 'Document not found');
+    res.json({
+      id: Number(d.id),
+      title: d.title,
+      filename: d.filename,
+      mimeType: d.mimeType,
+      sizeBytes: d.sizeBytes,
+      uploadedById: Number(d.uploadedById),
+      createdAt: d.createdAt.toISOString(),
+      content: d.content,
+      chunks: d.chunks.map((c) => ({ id: Number(c.id), position: c.position, text: c.text })),
+    });
+  }),
+);
+
 ragRouter.delete(
   '/documents/:id',
   requirePermission('knowledge.manage'),

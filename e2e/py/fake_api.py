@@ -76,6 +76,14 @@ class FakeApi:
                 self.documents.append(doc)
                 return Response(201, {"id": doc["id"], "title": doc["title"], "chunks": len(doc["chunks"])})
             live = [d for d in self.documents if not d["deleted"]]
+            if method == "GET" and path != "/api/rag/documents":
+                doc_id = int(path.rsplit("/", 1)[1])
+                for d in live:
+                    if d["id"] == doc_id:
+                        return Response(200, {"id": d["id"], "title": d["title"], "filename": d["filename"],
+                                              "chunks": [{"id": i + 1, "position": i, "text": c["text"]}
+                                                         for i, c in enumerate(d["chunks"])]})
+                return Response(404, {"error": "Document not found"})
             if method == "GET":
                 return Response(200, {"documents": [{"id": d["id"], "title": d["title"], "filename": d["filename"],
                                                      "chunks": len(d["chunks"])} for d in reversed(live)]})

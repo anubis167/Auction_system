@@ -39,6 +39,8 @@ export default defineConfig({
         GMAIL_CLIENT_SECRET: '',
         GMAIL_REFRESH_TOKEN: '',
         SMTP_HOST: '',
+        // rag2-1.1: the RAG service below uses this token for the internal /api/rag routes
+        RAG_INTERNAL_TOKEN: 'e2e-internal-token',
       },
     },
     {
@@ -46,6 +48,17 @@ export default defineConfig({
       url: 'http://localhost:5180',
       reuseExistingServer: false,
       env: { FE_PORT: '5180', API_URL: 'http://localhost:4100' },
+    },
+    {
+      command: 'python be/rag/chat.py',
+      url: 'http://127.0.0.1:5000/',
+      reuseExistingServer: true,
+      env: {
+        // rag2: the service reads and writes only through the e2e Node API, never the database
+        RAG_API_URL: 'http://localhost:4100',
+        RAG_INTERNAL_TOKEN: 'e2e-internal-token',
+        NO_NGROK: '1',
+      },
     },
   ],
 });

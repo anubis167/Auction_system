@@ -9,6 +9,9 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 from google import genai
 
+import error_handler
+import security
+
 from functions.build_prompt import build_prompt
 from functions.call_api import COOKIE, ApiError, call_api
 from functions.check_messages import check_messages
@@ -21,23 +24,38 @@ from functions.read_upload import DOC_MAX_BYTES, UploadError, read_upload
 from functions.retrieve import retrieve
 from functions.session_user import session_user
 
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 load_dotenv()
 
 app = Flask(__name__)
 # rag-2.1: room for one 10 MB document plus its multipart wrapping; bigger bodies get 413 before they are read
 app.config["MAX_CONTENT_LENGTH"] = DOC_MAX_BYTES + 128 * 1024
-ngrok.set_auth_token(os.getenv("NGROK_AUTHTOKEN"))
+
+# rag-3.1: every error, expected or not, answers JSON {"error": ...}
+error_handler.register_error_handlers(app)
+# rag-3.2: prompt injection in a query, JSON body or form is refused with 400 before any route runs
+security.prompt_injection_middleware(app, paths=("/api/chat", "/api/docs", "/api/rag"))
+
+if os.getenv("NGROK_AUTHTOKEN"):
+    ngrok.set_auth_token(os.getenv("NGROK_AUTHTOKEN"))
 # Gemini often answers 503 "high demand" for a few seconds, so the SDK retries; the timeout stops a hung call blocking the box
+api_key = os.getenv("GEMINI_API_KEY")
 client = genai.Client(
-    api_key=os.getenv("GEMINI_API_KEY"),
+    api_key=api_key,
     http_options={"timeout": 30000, "retry_options": {"attempts": 4}},
-)
+) if api_key else None
 # An alias, because Google retires pinned models (gemini-2.5-flash stopped working for this key)
 GEMINI_MODEL = "gemini-flash-lite-latest"
 
 # Credentials from Facebook Developer Console
 PAGE_ACCESS_TOKEN = os.getenv("FACEBOOK_PAGE_ACCESS_TOKEN")
 VERIFY_TOKEN = os.getenv("FACEBOOK_VERIFY_TOKEN", "my_secure_verify_token")
+
+
+def visitor_token():
+    """rag-3.3: the visitor's session JWT from the cookie, or from "Authorization: Bearer"; Node verifies either one."""
+    auth = request.headers.get("Authorization", "")
+    return request.cookies.get(COOKIE) or (auth[7:].strip() if auth.startswith("Bearer ") else None)
 
 
 def api_failure(e, passed_on=(400, 401, 403, 404, 413)):
@@ -58,7 +76,7 @@ def web_chat():
     limited = over_limit()
     # rag-1.7: the visitor only ever comes from their own session cookie, checked by Node; never from the body
     try:
-        user = session_user(request.cookies.get(COOKIE))
+        user = session_user(visitor_token())
     except ApiError:
         app.logger.exception("Visitor lookup failed, answering as a guest")
         user = None
@@ -90,7 +108,7 @@ def web_chat():
 @app.route("/api/docs", methods=["POST"])
 def upload_doc():
     """rag-1.4: store a .txt/.md document, its chunks and their embeddings for the chat box (through the API)"""
-    cookie = request.cookies.get(COOKIE)
+    cookie = visitor_token()
     try:
         # Cheap check before spending Gemini calls; Node checks knowledge.manage again when the document is saved
         user = session_user(cookie)
@@ -131,7 +149,7 @@ def upload_doc():
 @app.route("/api/docs", methods=["GET"])
 def list_docs():
     try:
-        body = call_api("GET", "/api/rag/documents", cookie=request.cookies.get(COOKIE))
+        body = call_api("GET", "/api/rag/documents", cookie=visitor_token())
     except ApiError as e:
         return api_failure(e)
     if not isinstance(body.get("documents"), list):
@@ -142,10 +160,45 @@ def list_docs():
 @app.route("/api/docs/<int:doc_id>", methods=["DELETE"])
 def delete_doc(doc_id):
     try:
-        call_api("DELETE", f"/api/rag/documents/{doc_id}", cookie=request.cookies.get(COOKIE), expect=None)
+        call_api("DELETE", f"/api/rag/documents/{doc_id}", cookie=visitor_token(), expect=None)
     except ApiError as e:
         return api_failure(e)
     return "", 204
+
+
+@app.route("/api/docs/<int:doc_id>", methods=["GET"])
+def get_doc(doc_id):
+    """rag-3.4: one live document with its chunks (404 once soft-deleted)."""
+    try:
+        doc = call_api("GET", f"/api/rag/documents/{doc_id}", cookie=visitor_token())
+    except ApiError as e:
+        return api_failure(e)
+    if not isinstance(doc.get("id"), int) or not isinstance(doc.get("chunks"), list):
+        return api_failure(ApiError(f"GET /api/rag/documents/{doc_id}: malformed document"))
+    return jsonify(doc)
+
+
+@app.route("/api/rag/retrieve", methods=["POST"])
+def retrieve_chunks():
+    """rag-3.4: the best matching excerpts for a query, without asking Gemini for an answer. Signed-in users only."""
+    try:
+        user = session_user(visitor_token())
+    except ApiError as e:
+        return api_failure(e)
+    if not user:
+        return jsonify(error="Authentication required"), 401
+    body = request.get_json(silent=True)
+    query = body.get("query") if isinstance(body, dict) else None
+    if not isinstance(query, str) or not query.strip():
+        return jsonify(error="Query is required"), 400
+    try:
+        hits = retrieve(client, query.strip())
+    except EmbedError:
+        app.logger.exception("Embedding the query failed")
+        return jsonify(error="The assistant is unavailable right now, try again later"), 503
+    except ApiError as e:
+        return api_failure(e)
+    return jsonify(results=[{"score": float(score), "title": title, "text": text} for score, title, text in hits])
 
 
 @app.route("/webhook", methods=["GET"])
@@ -211,6 +264,10 @@ def home():
 
 
 if __name__ == "__main__":
-    listener = ngrok.forward(5000)
-    print(f" * Public URL: {listener.url()}")
+    if not os.getenv("NO_NGROK") and os.getenv("NGROK_AUTHTOKEN"):
+        try:
+            listener = ngrok.forward(5000)
+            print(f" * Public URL: {listener.url()}")
+        except Exception as e:
+            print(f" * Ngrok tunnel skipped: {e}")
     app.run(port=5000)

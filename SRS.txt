@@ -14,3 +14,12 @@ Req-1: all action now go through api call- check api return
 Req-2: rag functions stay on 1 file 1 
 Req-3: do not force to build with framework
 Req-4: system prompt should stay clear, structured
+
+System - API for RAG - chatbox (merged from feature/gemini, round 14)
+description and priority
+Priority high
+write me all api for write, retrieve datas for RAG chatbox system
+api error should return expected error
+Req-1: all routes have both authenticated and authorized
+Req-2: Sercurity by block prompt ejection - middleware
+Req-3: Api error handle global - catch all unexpected errors
