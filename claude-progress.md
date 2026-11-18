@@ -640,3 +640,18 @@
 - Deferred by the user (kept in the archive under `deferred`, not done): sch-1.2 (folded into sch-1.4), sch-1.9 staff knowledge requests, sch-1.10 admin approval + chunking (SRS Req-2, Req-3); off-topic handoff; new Playwright specs.
 - Still open: worktree shares the main repo's db container (run with COMPOSE_PROJECT_NAME=auction_system; don't test in two checkouts at once); no be/.env here (copy it and run `npx prisma migrate deploy -w be` before using the app from this worktree); ui-2a-1 375px check can flake by 1px; bot limit is one shared 30/min for everyone.
 - Next best step: a new round from the user (e.g. revive sch-1.9/1.10 or off-topic handoff).
+
+### Session 026: round 14 (RAG rebuild on the API) built, verified and archived (2026-11-18)
+
+- New round from SRS.txt 'system - Rag architechture - Chatbox' (ecbot as reference). feature_list.json: rag2-1.1 .. rag2-1.6.
+- Startup: no containers running; round 13 committed. ./init.sh baseline: one Postgres deadlock (40P01) in staff.export resetDb; the file passed alone. Cause found later: another Claude session ran project-gemini's tests on the same db container at the same time.
+- rag2-1.1 passing: Node /api/rag (me, chunks, documents CRUD with soft delete), X-Internal-Token (RAG_INTERNAL_TOKEN, timing-safe, unset = 503), permission knowledge.manage (staff + admin, migration), 40 MB JSON limit only on POST /api/rag/documents after the token check. e2e/integration/rag2-1-1-rag-api.test.ts 6/6.
+- rag2-1.2 .. 1.5 passing: be/rag/rag.py and psycopg gone; one function per file in be/rag/functions (call_api checks every answer); prompts in be/rag/prompts/*.md (system.md tagged sections; untrusted text neutralised); /api/chat and /api/docs on the API; guard_reply blocks prompt leaks and secrets. Old be/rag tests moved/ported to e2e/py (fake_api.py helper). test:py now discovers only e2e/py.
+- rag2-1.6 passing: e2e/py/rag2_1_6_full_path_test.py starts the real Node API on :4210 (auction_test, seeded) and drives Flask upload -> ask -> delete. docs/rag.md.
+- First full gate: be/fe/Python green, but Playwright 10 passed / 65 failed because the e2e Vite server (5180) was killed mid-run (exit -1, ECONNRESET); not caused by this round (no fe change). Session was interrupted there.
+- Resumed: Docker Desktop restarted. Clean gate: COMPOSE_PROJECT_NAME=auction_system ./init.sh exit 0 (be 403, fe 162, build, Python 63, Playwright 75/75). The gate ran with the user's uncommitted chat.py /api/chat/health + ChatBox offline edits in the tree.
+- be/.env got a random RAG_INTERNAL_TOKEN (gitignored); be/.env.example documents RAG_INTERNAL_TOKEN and RAG_API_URL.
+- Round 14: 6/6 passing; archived as progress-feature-list/feature_list_14.json. No feature_list.json at the root now.
+- Left uncommitted (user's): be/rag/chat.py (/api/chat/health), fe/src/components/ChatBox.tsx (offline state, greeting removed), LOT-POP-Brand-Guidelines.md, Pop Art Auction UI.html.
+- Still open: retrieval loads every chunk per question (shortcut, pgvector later); one shared 30/min bot limit; /webhook unchanged (no signature check); tests from two checkouts on one db container deadlock each other.
+- Next best step: a new round from the user.
