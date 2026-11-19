@@ -207,10 +207,10 @@ th { color: var(--ink-muted); font-weight: 600; font-size: 0.8rem; text-transfor
 
 /* Charts (stf-003). Categorical slots 1-4 of the validated reference palette; theme-1.1: grid, axis and ticks for the dark surface. */
 :root {
-  --series-1: #2a78d6;
-  --series-2: #eb6834;
-  --series-3: #1baf7a;
-  --series-4: #eda100;
+  --series-1: #1D4ED8; /* pop-5.2: bam-blue */
+  --series-2: #D62828; /* pow-red */
+  --series-3: #111111; /* ink */
+  --series-4: #FF4F9A; /* pop-pink-dot: 3.07:1 on panel, the chart ground */
   --chart-grid: #e6dcc4;
   --chart-axis: #111111;
   --chart-muted: #444444;
@@ -1063,3 +1063,13 @@ form label input[type='checkbox'], form label input[type='radio'] { width: 20px;
 .quick-amounts .btn { min-height: 44px; }
 .more-filters summary { color: var(--ink); }
 .tx-range select { border-radius: var(--radius-0); background: var(--panel); border: var(--stroke-base) solid var(--ink); }
+
+/* pop-5.2 staff and admin pages: business tools, no sound words; panels, ink-ruled tables, brand chart hues. */
+.chart { box-shadow: var(--shadow-sm); border-width: var(--stroke-base); }
+.chart-title { font-weight: 800; }
+.swatch { border-radius: var(--radius-0); border: 1px solid var(--ink); }
+.chart-tooltip { border: var(--stroke-base) solid var(--ink); border-radius: var(--radius-0); box-shadow: var(--shadow-sm); }
+.table-wrap thead th { background: var(--paper); border-bottom: var(--stroke-base) solid var(--ink); }
+.table-wrap tbody tr:hover { background: var(--paper); }
+.filters, .trx-search { gap: var(--space-3); }
+.staff-chats-grid .ui-card { box-shadow: var(--shadow-sm); }
