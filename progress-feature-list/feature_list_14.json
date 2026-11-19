@@ -1,0 +1,176 @@
+{
+  "project": "Online Auction System",
+  "last_updated": "2026-11-18",
+  "scope": "Round 14. SRS.txt 'System - API for RAG - chatbox': write & retrieve data APIs, expected error handling, auth & authz on all routes, prompt ejection blocking middleware, global error handler, soft delete.",
+  "source_requirements": {
+    "file": "SRS.txt",
+    "text": "Role description: You're my code-agent, i'm gonna create a sites for system auction, read all Requirements below, then write me a feature-list.json file, with e2e function, unit and intergration tests write to e2e folder. Write changed description (files, changed in code) to docs folder. All delete mean soft delete. System - API for RAG - chatbox. description and priority: Priority high. write me all api for write, retrieve datas for RAG chatbox system. api error should return expected error. Req-1: all routes have both authenticated and authorized. Req-2: Sercurity by block prompt ejection - middleware. Req-3: Api error handle global - catch all unexpected errors"
+  },
+  "readings_to_confirm": [
+    "Req-1: all routes have both authenticated (valid token via cookie or Authorization header) and authorized (role checks: customer/staff/admin for chat & retrieve; staff/admin for docs management). 401 for unauthenticated, 403 for unauthorized.",
+    "Req-2: security middleware blocks prompt ejection/injection attempts across request bodies and queries before processing, returning HTTP 400 with expected JSON error.",
+    "Req-3: global error handler catches all unexpected exceptions and standard HTTP errors (400, 401, 403, 404, 405, 413, 429, 500) and returns structured JSON { 'error': '<message>' }.",
+    "Write and retrieve APIs: POST /api/docs (write doc + auto-chunks + embeddings), GET /api/docs (retrieve list), GET /api/docs/<id> (retrieve doc & chunks), POST /api/rag/retrieve (retrieve relevant chunks for query), DELETE /api/docs/<id> (soft delete with deleted_at).",
+    "All delete operations are soft delete (setting deleted_at timestamp); deleted items are excluded from retrieval.",
+    "Tests: unit tests in be/rag/*_test.py, integration/e2e tests in e2e/rag-chat-api.spec.ts.",
+    "Change documentation in docs/changes/rag-3.*.md."
+  ],
+  "conventions": {
+    "tests": "Python: be/rag/*_test.py with unittest. Frontend: npm test -w fe. E2E: playwright test e2e/rag-chat-api.spec.ts.",
+    "existing_tests": "Existing test suites in be, fe, and e2e must pass.",
+    "change_docs": "docs/changes/<id>.md lists changed files.",
+    "run_all": "./init.sh or npm run verify must pass before round completion."
+  },
+  "rules": {
+    "single_active_feature": true,
+    "passing_requires_evidence": true,
+    "do_not_skip_verification": true
+  },
+  "status_legend": {
+    "not_started": "Work has not begun.",
+    "in_progress": "The feature is the current active task.",
+    "blocked": "Work cannot continue until a documented blocker is resolved.",
+    "passing": "Required verification has passed and evidence is recorded."
+  },
+  "features": [
+    {
+      "id": "rag-3.1",
+      "priority": 1,
+      "role": "backend",
+      "area": "backend",
+      "srs_ref": "SRS Req-3: Api error handle global - catch all unexpected errors; api error should return expected error",
+      "title": "Global API error handling middleware with structured JSON responses",
+      "user_visible_behavior": "All unexpected exceptions and standard HTTP error codes (400, 401, 403, 404, 405, 413, 429, 500) return a consistent JSON response format `{'error': '<message>'}` without HTML tracebacks.",
+      "acceptance": [
+        "Flask global error handlers registered for standard HTTP errors and generic Exception.",
+        "Responses have Content-Type application/json with JSON body containing `error` key.",
+        "404 returns `{'error': 'Not Found'}`.",
+        "405 returns `{'error': 'Method Not Allowed'}`.",
+        "Unhandled exceptions return HTTP 500 `{'error': 'Internal server error'}`.",
+        "Python unit tests verify global error handling across error statuses."
+      ],
+      "verification": [
+        "python -m unittest discover -s be/rag -p \"*_test.py\"",
+        "docs/changes/rag-3.1.md"
+      ],
+      "evidence": [
+        "python -m unittest be/rag/error_handler_test.py: 5/5 passed",
+        "python -m unittest discover -s be/rag -p \"*_test.py\": 92/92 passed",
+        "docs/changes/rag-3.1.md created"
+      ],
+      "status": "passing"
+    },
+    {
+      "id": "rag-3.2",
+      "priority": 2,
+      "role": "backend",
+      "area": "backend",
+      "srs_ref": "SRS Req-2: Sercurity by block prompt ejection - middleware",
+      "title": "Security middleware blocking prompt ejection and injection attacks",
+      "user_visible_behavior": "Requests containing prompt ejection or jailbreak patterns (e.g. 'ignore previous instructions', system prompt leaks, roleplay overrides) are intercepted and rejected with HTTP 400 and an expected error message.",
+      "acceptance": [
+        "Middleware inspects incoming JSON request bodies and query parameters before route execution.",
+        "Identifies prompt ejection signatures (instruction bypass, system prompt exfiltration, roleplay jailbreaks).",
+        "Rejects matching requests immediately with HTTP 400 `{'error': 'Prompt injection detected'}`.",
+        "Legitimate requests pass through without alteration or blockage.",
+        "Python unit tests verify blocking of various injection payloads and pass-through of valid prompts."
+      ],
+      "verification": [
+        "python -m unittest discover -s be/rag -p \"*_test.py\"",
+        "docs/changes/rag-3.2.md"
+      ],
+      "evidence": [
+        "python -m unittest be/rag/security_test.py: 28/28 passed",
+        "python -m unittest discover -s be/rag -p \"*_test.py\": 92/92 passed",
+        "docs/changes/rag-3.2.md created"
+      ],
+      "status": "passing"
+    },
+    {
+      "id": "rag-3.3",
+      "priority": 3,
+      "role": "backend",
+      "area": "backend",
+      "srs_ref": "SRS Req-1: all routes have both authenticated and authorized",
+      "title": "Authentication and authorization enforcement on all RAG and Chat routes",
+      "user_visible_behavior": "Every API route requires valid authentication (via cookie or Authorization Bearer header) and validates the user's role/permission before allowing access. Missing auth returns 401; insufficient role returns 403.",
+      "acceptance": [
+        "Authentication helper supports both cookie `auction_token` and `Authorization: Bearer <jwt>`.",
+        "POST /api/chat and POST /api/rag/retrieve require authenticated user (customer, staff, admin); unauthenticated receives 401.",
+        "POST /api/docs, GET /api/docs, GET /api/docs/<id>, DELETE /api/docs/<id> require staff or admin role; non-staff/admin receives 403.",
+        "Invalid, expired, or locked/disabled user tokens return 401 `{'error': 'Authentication required'}`.",
+        "Python unit tests verify 401 unauthenticated and 403 forbidden scenarios across all routes."
+      ],
+      "verification": [
+        "python -m unittest discover -s be/rag -p \"*_test.py\"",
+        "docs/changes/rag-3.3.md"
+      ],
+      "evidence": [
+        "python -m unittest be/rag/auth_test.py: 13/13 passed",
+        "python -m unittest be/rag/chat_test.py: 7/7 passed",
+        "python -m unittest be/rag/rag_user_test.py: 5/5 passed",
+        "python -m unittest discover -s be/rag -p \"*_test.py\": 92/92 passed",
+        "docs/changes/rag-3.3.md created"
+      ],
+      "status": "passing"
+    },
+    {
+      "id": "rag-3.4",
+      "priority": 4,
+      "role": "backend",
+      "area": "backend",
+      "srs_ref": "SRS: write me all api for write, retrieve datas for RAG chatbox system; All delete mean soft delete",
+      "title": "Complete Write and Retrieve Data APIs for RAG System with Soft Delete",
+      "user_visible_behavior": "Authorized users can write documents (auto-chunked and embedded before saving), retrieve document lists, retrieve single document details with chunks, retrieve relevant chunks for a search query, and soft-delete documents.",
+      "acceptance": [
+        "POST /api/docs writes document, auto-chunked via `rag.chunk_text` and embedded before saving; returns HTTP 201.",
+        "GET /api/docs retrieves all active (non-soft-deleted) documents.",
+        "GET /api/docs/<int:doc_id> retrieves a single document with its metadata and chunk details; returns 404 if deleted or not found.",
+        "POST /api/rag/retrieve embeds the query and retrieves top matching chunks from active documents.",
+        "DELETE /api/docs/<int:doc_id> soft-deletes the document and its chunks by setting `deleted_at = now()`; returns 204.",
+        "Soft-deleted documents and chunks are excluded from retrieval and chat context.",
+        "Python unit/integration tests verify write, retrieve, search, and soft-delete operations."
+      ],
+      "verification": [
+        "python -m unittest discover -s be/rag -p \"*_test.py\"",
+        "docs/changes/rag-3.4.md"
+      ],
+      "evidence": [
+        "python -m unittest be/rag/rag_api_test.py: 8/8 passed",
+        "python -m unittest discover -s be/rag -p \"*_test.py\": 92/92 passed",
+        "docs/changes/rag-3.4.md created"
+      ],
+      "status": "passing"
+    },
+    {
+      "id": "rag-3.5",
+      "priority": 5,
+      "role": "qa",
+      "area": "e2e",
+      "srs_ref": "SRS: with e2e function, unit and intergration tests write to e2e folder; Write changed description (files, changed in code) to docs folder",
+      "title": "E2E integration test suite for RAG Chatbox APIs",
+      "user_visible_behavior": "Full end-to-end integration test suite in e2e/ verifying global error handling, prompt injection security filter, auth/authz enforcement, write/chunk/retrieve API, and soft delete.",
+      "acceptance": [
+        "Playwright integration spec created at e2e/rag-chat-api.spec.ts.",
+        "Covers global error handling (expected error formats for 404, 400).",
+        "Covers prompt injection blocking (middleware intercepts attack payloads).",
+        "Covers auth and authz checks (401 for guest, 403 for unauthorized role, 200/201 for authorized).",
+        "Covers full lifecycle: write document -> chunk verification -> retrieve query -> soft delete -> verify excluded.",
+        "All test suites pass cleanly; change docs created in docs/changes/."
+      ],
+      "verification": [
+        "npx playwright test e2e/rag-chat-api.spec.ts",
+        "npm run test:py",
+        "npm test -w fe",
+        "docs/changes/rag-3.5.md"
+      ],
+      "evidence": [
+        "npx playwright test e2e/rag-chat-api.spec.ts: 4/4 passed",
+        "npm run test:py (python -m unittest discover -s be/rag -p \"*_test.py\"): 92/92 passed",
+        "npm test -w fe: 27/27 test files passed (165 tests)",
+        "docs/changes/rag-3.5.md created"
+      ],
+      "status": "passing"
+    }
+  ]
+}

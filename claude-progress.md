@@ -647,3 +647,27 @@
 
 
 
+
+### Session 027: round 15 (Chat Widget History UI) built and verified (2026-11-20)
+
+- User request: "checkout to project-gemini, update for me UI for history chat to chat widget".
+- Round 14 archived as `progress-feature-list/feature_list_14.json`. Fresh `feature_list.json` created with 3 features: `chat-ui-1.1`, `chat-ui-1.2`, `chat-ui-1.3`.
+- `chat-ui-1.1` passing: Chat history session management and persistence module in `fe/src/chatHistory.ts`.
+  - Defined `ChatMessage` with timestamp tracking and `ChatSession` data models.
+  - Implemented automatic title derivation (`deriveTitle`) from first user message, truncated gracefully with ellipsis, or defaulting to "New Conversation".
+  - Implemented multi-session storage management (`loadSessions`, `saveSessions`, `loadActiveSessionId`, `saveActiveSessionId`, `createSession`, `addMessageToSession`, `deleteSession`, `clearAllSessions`) with safe cross-environment storage access.
+  - Added human-readable time formatters: `formatRelativeTime` (e.g. "Just now", "5m ago", "2h ago", "Yesterday", "3d ago", or date) and `formatMessageTime` (clock time).
+  - Unit tests in `fe/src/chatHistory.test.ts` (21/21 passed). Change doc in `docs/changes/chat-ui-1.1.md`.
+- `chat-ui-1.2` passing: Chat Widget UI updates in `fe/src/components/ChatBox.tsx` and `fe/src/styles.css`.
+  - Added header controls: "New conversation" button (`chat-new-btn`), "Chat history" view toggle (`chat-history-toggle`), and close button (`chat-close`).
+  - Added full History view panel: lists previous conversation sessions with derived titles, relative timestamps, message count badges, active session badge ("Current"), single-session deletion with trash icon (`chat-delete-session`), and "Clear all" button (`chat-history-clear`).
+  - Added empty state for history (`chat-history-empty`) with icon and "Start a conversation" button.
+  - Added message clock timestamps on chat bubbles for both user and model messages.
+  - Added quick prompt suggestion chips (`chat-chips`) when starting new conversations.
+  - Added responsive dark-theme styles in `fe/src/styles.css`.
+  - Unit tests: `npm test -w fe` 28/28 test files passed (186 tests). Build: `npm run build -w fe` passed cleanly in 1.95s. Change doc in `docs/changes/chat-ui-1.2.md`.
+- `chat-ui-1.3` passing: E2E Playwright test suite in `e2e/chat-history-widget.spec.ts`.
+  - Comprehensive spec verifying opening widget, chatting with quick chips, receiving reply with timestamp, creating new conversation via header button, opening history view, verifying listed sessions with title and "Current" badge, switching sessions, restoring message log, deleting single session, clearing all history, empty state, and persistence across page reload.
+  - Configured `reuseExistingServer: !process.env.CI` in `playwright.config.ts`.
+  - Verification: `npx playwright test e2e/chat-history-widget.spec.ts` passed cleanly (1/1 test in 3.0s). Change doc in `docs/changes/chat-ui-1.3.md`.
+- Round 15 status: All 3 features (`chat-ui-1.1`, `chat-ui-1.2`, `chat-ui-1.3`) marked `passing` in `feature_list.json` with evidence.

@@ -18,7 +18,7 @@ export default defineConfig({
     {
       command: 'npx tsx be/src/server.ts',
       url: 'http://localhost:4100/api/health',
-      reuseExistingServer: false,
+      reuseExistingServer: !process.env.CI,
       env: {
         DATABASE_URL: E2E_DB,
         PORT: '4100',
@@ -42,13 +42,13 @@ export default defineConfig({
     {
       command: 'npm run dev -w fe',
       url: 'http://localhost:5180',
-      reuseExistingServer: false,
+      reuseExistingServer: !process.env.CI,
       env: { FE_PORT: '5180', API_URL: 'http://localhost:4100' },
     },
     {
       command: 'python be/rag/chat.py',
       url: 'http://127.0.0.1:5000/',
-      reuseExistingServer: true,
+      reuseExistingServer: !process.env.CI,
       env: {
         DATABASE_URL: E2E_DB,
         JWT_SECRET: 'e2e-secret',
