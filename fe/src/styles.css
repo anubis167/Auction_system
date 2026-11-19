@@ -976,3 +976,4 @@ th, td { border-bottom: var(--stroke-thin) dashed var(--ink); }
 .messages li { position: relative; border: var(--stroke-base) solid var(--ink); border-radius: var(--radius-0); background: var(--panel); box-shadow: var(--shadow-sm); margin-bottom: var(--space-3); }
 .messages li::after { content: ""; position: absolute; left: 18px; bottom: -13px; width: 16px; height: 12px; background: var(--ink); clip-path: polygon(0 0, 100% 0, 0 100%); }
 @media (max-width: 560px) { .pop-tab { flex: 1 1 auto; padding: var(--space-3); font-size: 20px; } }
+.lot-seller { margin: 0; font-size: 14px; }

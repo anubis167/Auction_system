@@ -72,6 +72,9 @@ export function AuctionDetailPage() {
             {category && ` · ${category.name}`} · {auction.seller.username}
           </div>
           <h1 className="lot-name">{auction.name}</h1>
+          <p className="lot-seller">
+            Sold by <strong>{auction.seller.username}</strong>
+          </p>
           {!auction.hasReserve && <Pill tone="muted">No reserve</Pill>}
           {excerpt && <p className="lot-excerpt">{excerpt}</p>}
           {description && (
@@ -156,7 +159,7 @@ function LotTabs({ auction, tab, onTab }: { auction: Auction; tab: LotTab; onTab
         {tab === 'seller' && (
           <>
             <p>
-              Sold by <strong data-testid="seller-name">{auction.seller.username}</strong>
+              Seller: <strong data-testid="seller-name">{auction.seller.username}</strong>
             </p>
             {/* ui-1a.2 search can filter by seller name. */}
             <Link to={`/?q=${encodeURIComponent(auction.seller.username)}&field=seller`}>See more lots from this seller</Link>
