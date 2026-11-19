@@ -78,8 +78,10 @@
         "fe vitest suite still passes (existing ui tests unchanged)",
         "docs/changes/pop-0.2.md"
       ],
-      "evidence": [],
-      "status": "not_started"
+      "evidence": [
+        "2026-11-19 e2e/unit/pop-0-2-brand-rules.test.ts 7/7; fe vitest 162/162; fe build ok (awaiting group gate after pop-0.4)"
+      ],
+      "status": "in_progress"
     },
     {
       "id": "pop-0.3",
