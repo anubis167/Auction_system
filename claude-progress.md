@@ -677,3 +677,15 @@
 - Round 15: 17/17 passing; archived as progress-feature-list/feature_list_15.json. No feature_list.json at the root now.
 - Still open / not verified: no real screen-reader pass (aria roles and live regions are checked by specs only); Google Fonts load from the network (offline falls back to Impact/system-ui); the customer header search gets narrow (~150 px) at 1280 px next to six links and the bid limit; staff/admin see the customer footer links (they redirect by role, as before); the deferred mockup items are listed in feature_list_15.json `deferred` and docs/brand-ui.md.
 - Next best step: a new round from the user (e.g. one of the deferred items such as the watchlist or the newsletter band).
+
+### Session 029: round 18 (RAG training log) planned; rag-train-1 passing (2026-11-20)
+
+- Worked only in the project-claude worktree (branch feature/claude-staff), then merged to main on the user's request.
+- New round from the user: save RAG chat conversations for later training. feature_list.json: rag-train-1 .. rag-train-9 (tables, turn logging via the Node API, retrievals/citations, thumbs feedback, notice + opt-out, staff review queue, JSONL export, retention job, docs).
+- Startup: auction_db was running (stopped it); round 15 committed. The new list was first written to progress-feature-list/feature_list.json by mistake; moved to the root and the template restored.
+- Baseline: ./init.sh 108/109 Playwright; stf-003-charts failed because the run crossed midnight (auction bucketed Nov 19, 'today' Nov 20). Rerun alone: 1/1 passed.
+- rag-train-1 passing: rag_sessions, rag_turns, rag_retrievals, rag_examples (migration 20261120090000_rag_training_log via prisma migrate diff, dev db untouched). Changed from the proposal: rag_turns.deleted_at added, no ON DELETE CASCADE (soft delete). e2e/integration/rag-train-1-tables.test.ts 4/4; no drift between migrations and schema. docs/changes/rag-train-1.md.
+- Gate: be 420, fe 162, build, Python 63, Playwright 109/109.
+- Gotchas met again: the main repo (E:/Auction_system) ran `npm run verify` on the same db container mid-gate (deadlocks 40P01, users vanishing: 79 be failures); and the VS Code Playwright test-server grabbed ports 4100/5180 mid-run (97 ECONNREFUSED). Both cleared by rerunning when they were idle. Do not test from two checkouts or from the IDE while a gate runs.
+- Left uncommitted (user's): be/rag/prompts/system.md (one 'Tonal friendly' line), fe/tsconfig.tsbuildinfo.
+- Next: rag-train-2 (record each chat turn through POST /api/rag/turns).

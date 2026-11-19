@@ -38,6 +38,8 @@ model User {
   chatConversations  ChatConversation[]       @relation("CustomerChats")
   assignedChats      ChatConversation[]       @relation("StaffChats")
   chatMessages       ChatMessage[]
+  ragSessions        RagSession[]
+  ragReviews         RagExample[]
 
   @@map("users")
 }
@@ -300,13 +302,14 @@ model KnowledgeDocument {
 }
 
 model KnowledgeChunk {
-  id         BigInt            @id @default(autoincrement())
-  documentId BigInt            @map("document_id")
-  position   Int
-  text       String
-  embedding  Float[]
-  createdAt  DateTime          @default(now()) @map("created_at")
-  document   KnowledgeDocument @relation(fields: [documentId], references: [id])
+  id            BigInt            @id @default(autoincrement())
+  documentId    BigInt            @map("document_id")
+  position      Int
+  text          String
+  embedding     Float[]
+  createdAt     DateTime          @default(now()) @map("created_at")
+  document      KnowledgeDocument @relation(fields: [documentId], references: [id])
+  ragRetrievals RagRetrieval[]
 
   @@unique([documentId, position])
   @@index([documentId])
@@ -350,4 +353,86 @@ model ChatMessage {
 
   @@index([conversationId, createdAt])
   @@map("chat_messages")
+}
+
+// rag-train-1: the RAG bot's conversations, kept to review and export as training data. Delete = soft delete.
+model RagSession {
+  id          BigInt    @id @default(autoincrement())
+  /// null = guest
+  userId      BigInt?   @map("user_id")
+  /// sha256 of the visitor token, never the raw token
+  visitorHash String    @map("visitor_hash") @db.VarChar(64)
+  locale      String?   @db.VarChar(10)
+  startedAt   DateTime  @default(now()) @map("started_at")
+  deletedAt   DateTime? @map("deleted_at")
+  user        User?     @relation(fields: [userId], references: [id])
+  turns       RagTurn[]
+
+  @@index([userId])
+  @@index([startedAt])
+  @@map("rag_sessions")
+}
+
+model RagTurn {
+  id               BigInt         @id @default(autoincrement())
+  sessionId        BigInt         @map("session_id")
+  turnIndex        Int            @map("turn_index")
+  userText         String         @map("user_text")
+  botText          String?        @map("bot_text")
+  /// answered | refused | handed_off | error
+  outcome          String         @db.VarChar(20)
+  /// null when no guard fired; e.g. prompt_injection | secrets | prompt_leak
+  guardTriggered   String?        @map("guard_triggered") @db.VarChar(40)
+  /// up | down, from the visitor's thumbs
+  feedback         String?        @db.VarChar(10)
+  model            String         @db.VarChar(60)
+  /// hash of the system prompt, so each answer is tied to the prompt that produced it
+  promptVersion    String         @map("prompt_version") @db.VarChar(64)
+  promptTokens     Int?           @map("prompt_tokens")
+  completionTokens Int?           @map("completion_tokens")
+  latencyMs        Int?           @map("latency_ms")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  deletedAt        DateTime?      @map("deleted_at")
+  session          RagSession     @relation(fields: [sessionId], references: [id])
+  retrievals       RagRetrieval[]
+  example          RagExample?
+
+  @@unique([sessionId, turnIndex])
+  @@index([createdAt])
+  @@map("rag_turns")
+}
+
+/// Chunks the retriever returned for a turn, and whether the bot cited them.
+model RagRetrieval {
+  id      BigInt         @id @default(autoincrement())
+  turnId  BigInt         @map("turn_id")
+  chunkId BigInt         @map("chunk_id")
+  rank    Int
+  score   Float
+  cited   Boolean        @default(false)
+  turn    RagTurn        @relation(fields: [turnId], references: [id])
+  chunk   KnowledgeChunk @relation(fields: [chunkId], references: [id])
+
+  @@unique([turnId, chunkId])
+  @@map("rag_retrievals")
+}
+
+/// A reviewed turn, ready to export as training data.
+model RagExample {
+  id         BigInt    @id @default(autoincrement())
+  turnId     BigInt    @unique @map("turn_id")
+  /// raw | approved | rejected | exported
+  status     String    @default("raw") @db.VarChar(20)
+  /// good | bad | needs_fix
+  label      String?   @db.VarChar(20)
+  /// the reviewer's better answer, when the bot's needed fixing
+  idealReply String?   @map("ideal_reply")
+  reviewerId BigInt?   @map("reviewer_id")
+  reviewedAt DateTime? @map("reviewed_at")
+  exportedAt DateTime? @map("exported_at")
+  turn       RagTurn   @relation(fields: [turnId], references: [id])
+  reviewer   User?     @relation(fields: [reviewerId], references: [id])
+
+  @@index([status])
+  @@map("rag_examples")
 }
