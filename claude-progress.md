@@ -655,3 +655,11 @@
 - Left uncommitted (user's): be/rag/chat.py (/api/chat/health), fe/src/components/ChatBox.tsx (offline state, greeting removed), LOT-POP-Brand-Guidelines.md, Pop Art Auction UI.html.
 - Still open: retrieval loads every chunk per question (shortcut, pgvector later); one shared 30/min bot limit; /webhook unchanged (no signature check); tests from two checkouts on one db container deadlock each other.
 - Next best step: a new round from the user.
+
+### Session 027: round 15 feature list (LOT POP! rebrand) (2026-11-19)
+
+- Startup: no containers running; round 14 committed (9a34853), tree clean.
+- New round from LOT-POP-Brand-Guidelines.md + 'Pop Art Auction UI.html' (5 mockup screens: Homepage, Lot page, Chat widget, Footer, Mobile quick bid). feature_list.json: pop-0.1 .. pop-6.1 (17 features), all not_started.
+- Mockup items with no data/API today (watchlist, auto-bid, newsletter, seller stats, condition grade/specs/shipping, buyer's premium, missing footer pages) are listed under `deferred`, not faked. Open readings are in `readings_to_confirm` (rename Beat'em -> LOT POP!, light theme only, lot card link vs quick-bid row, chat chips).
+- ./init.sh not run this session (no code changed).
+- Next: user confirms the readings, then pop-0.1 (tokens, fonts, base styles).
