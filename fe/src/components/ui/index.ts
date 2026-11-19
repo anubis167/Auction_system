@@ -5,4 +5,4 @@ export { Pill, type PillTone } from './Pill';
 export { SearchInput } from './SearchInput';
 export { SegmentedTabs, type SegmentedTab } from './SegmentedTabs';
 export { ConfirmDialog } from './ConfirmDialog';
-export { Badge, Burst, Button, Halftone, SpeechBubble } from './Brand';
+export { Badge, Burst, Button, Halftone, LotGlyph, SpeechBubble } from './Brand';

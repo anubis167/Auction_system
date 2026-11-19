@@ -75,3 +75,18 @@ export function Halftone({ tone = 'yellow', className = '', children, testId }: 
     </div>
   );
 }
+
+/** Flat object glyph (a gavel on its block) for lots without a photo: 4.5px ink outline, two brand fills. */
+export function LotGlyph({ className = 'lot-glyph' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 120 100" aria-hidden="true" focusable="false">
+      <g stroke="#111111" strokeWidth="4.5" strokeLinejoin="round" strokeLinecap="round">
+        <rect x="22" y="78" width="70" height="14" fill="#FFFFFF" />
+        <g transform="rotate(-35 62 42)">
+          <rect x="58" y="34" width="9" height="50" fill="#FFFFFF" />
+          <rect x="38" y="12" width="48" height="24" fill="#D62828" />
+        </g>
+      </g>
+    </svg>
+  );
+}
