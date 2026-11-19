@@ -663,3 +663,17 @@
 - Mockup items with no data/API today (watchlist, auto-bid, newsletter, seller stats, condition grade/specs/shipping, buyer's premium, missing footer pages) are listed under `deferred`, not faked. Open readings are in `readings_to_confirm` (brand name stays Beat'em - user decision, light theme only, lot card link vs quick-bid row, chat chips).
 - ./init.sh not run this session (no code changed).
 - Next: user confirms the readings, then pop-0.1 (tokens, fonts, base styles).
+
+### Session 028: round 15 'Beat it! Look' restyle built and verified (2026-11-19)
+
+- Startup: Docker Desktop was not running (no containers to stop); round 15 list committed (2c8ae0b), tree clean. User: "work only in project-claude, finish feature_list" - the open readings_to_confirm were taken as accepted.
+- Baseline: COMPOSE_PROJECT_NAME=auction_system ./init.sh exit 0 (be 403, fe 162, build, Python 63, Playwright 75/75).
+- pop-0.1 passing: guideline tokens only in :root, old dark tokens rewritten onto them, Bangers/Archivo, base styles, focus ring, reduced motion, logo recoloured. Gate exit 0 (be 406, Playwright 77/77).
+- pop-0.2..0.4 passing: fe/src/brand.ts rules + ui/Brand.tsx components; header (wordmark, guest nav Live now/Ending soon/Categories/Sell with us, Sign in); footer (columns of existing routes, trust row). Group gate: 81/82 - guest-001 hit two 'Register' links (header + new footer); footer link renamed 'Create an account', rerun green.
+- pop-1.1..1.3 and pop-2.1..2.5 passing: home hero + hot lot, ticker, brand LotCards, How it works; lot page breadcrumb/gallery/head, comic countdown (role=timer, polite 5/1-minute marks), bid panel with POW! via one useBidAction hook, history restyle, Description/Condition/Seller tabs. Group gate: 94/95 - sell-001 needs a visible 'Sold by alice'; restored under the title, rerun green. ui-1b-2 and rt-001 expected copy updated for the rebrand only.
+- pop-3.1, 4.1, 5.1, 5.2, 6.1 implemented with their specs green individually (chat launcher/unread/chips; sticky phone bid band; overline labels, KAPOW!/BAM!; brand chart hues; 44 px targets, focus-ring walk, full buy path). docs/brand-ui.md written. Final gate: see below.
+- Gotchas: Bash heredocs containing some quote patterns failed in this shell; patch scripts were written to files instead. The e2e servers log 'job ... failed PrismaClientKnownRequestError' at start (seed reset while the scheduler runs) and ECONNREFUSED :5000 (chat health proxy, no Python bot in e2e); both pre-existing noise.
+- Final gate: COMPOSE_PROJECT_NAME=auction_system ./init.sh exit 0 (be 416, fe 162, build, Python 63, Playwright 109/109). pop-3.1, 4.1, 5.1, 5.2, 6.1 marked passing.
+- Round 15: 17/17 passing; archived as progress-feature-list/feature_list_15.json. No feature_list.json at the root now.
+- Still open / not verified: no real screen-reader pass (aria roles and live regions are checked by specs only); Google Fonts load from the network (offline falls back to Impact/system-ui); the customer header search gets narrow (~150 px) at 1280 px next to six links and the bid limit; staff/admin see the customer footer links (they redirect by role, as before); the deferred mockup items are listed in feature_list_15.json `deferred` and docs/brand-ui.md.
+- Next best step: a new round from the user (e.g. one of the deferred items such as the watchlist or the newsletter band).

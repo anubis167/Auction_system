@@ -359,8 +359,13 @@
         "e2e/py chat tests and sch-1.x integration tests still pass",
         "docs/changes/pop-3.1.md"
       ],
-      "evidence": [],
-      "status": "in_progress"
+      "evidence": [
+        "2026-11-19 e2e/pop-3-1-chat-widget.spec.ts 2/2 (keyboard open/close + focus return, header/status, chips send text with stubbed bot; real staff claim + reply while closed -> unread 1, cleared on open)",
+        "2026-11-19 e2e/py 63 and sch-1.x integration tests pass",
+        "2026-11-19 final gate COMPOSE_PROJECT_NAME=auction_system ./init.sh exit 0: be 416, fe 162, build, Python 63, Playwright 109/109",
+        "2026-11-19 docs/changes/pop-3.1.md"
+      ],
+      "status": "passing"
     },
     {
       "id": "pop-4.1",
@@ -379,8 +384,12 @@
         "e2e/pop-4-1-mobile-bid.spec.ts at 375x812: band visible, chip changes 'You'll bid', tapping Bid places the bid (current price updates), over-credit bid shows the error, desktop 1280px has no band",
         "docs/changes/pop-4.1.md"
       ],
-      "evidence": [],
-      "status": "in_progress"
+      "evidence": [
+        "2026-11-19 e2e/pop-4-1-mobile-bid.spec.ts 2/2 at 375x812 (sticky yellow band flush with the screen bottom, ladder chips, You'll bid, Bid places it, POW!, stops above the footer's last link, hidden at 1280; no-credit account gets the plain error)",
+        "2026-11-19 final gate COMPOSE_PROJECT_NAME=auction_system ./init.sh exit 0: be 416, fe 162, build, Python 63, Playwright 109/109",
+        "2026-11-19 docs/changes/pop-4.1.md"
+      ],
+      "status": "passing"
     },
     {
       "id": "pop-5.1",
@@ -399,8 +408,13 @@
         "all existing cust/guest/gds/sell/crd/mail specs still pass",
         "docs/changes/pop-5.1.md"
       ],
-      "evidence": [],
-      "status": "in_progress"
+      "evidence": [
+        "2026-11-19 e2e/pop-5-1-customer-pages.spec.ts 4/4 (3 auth + 9 customer pages at 1280/375 on paper, no h-scroll; overline labels; trust Log in; no sound words on credit/password/profile; KAPOW! after register; BAM! on a won lot)",
+        "2026-11-19 existing cust/guest/gds/sell/crd/mail specs pass",
+        "2026-11-19 final gate COMPOSE_PROJECT_NAME=auction_system ./init.sh exit 0: be 416, fe 162, build, Python 63, Playwright 109/109",
+        "2026-11-19 docs/changes/pop-5.1.md"
+      ],
+      "status": "passing"
     },
     {
       "id": "pop-5.2",
@@ -418,8 +432,13 @@
         "all existing stf/adm/sec specs still pass",
         "docs/changes/pop-5.2.md"
       ],
-      "evidence": [],
-      "status": "in_progress"
+      "evidence": [
+        "2026-11-19 e2e/pop-5-2-staff-pages.spec.ts 2/2 (5 staff + 3 admin pages on paper at 1280, no h-scroll, no sound words; brand chart hues >= 3:1 on the panel; dashed table dividers)",
+        "2026-11-19 existing stf/adm/sec specs pass",
+        "2026-11-19 final gate COMPOSE_PROJECT_NAME=auction_system ./init.sh exit 0: be 416, fe 162, build, Python 63, Playwright 109/109",
+        "2026-11-19 docs/changes/pop-5.2.md"
+      ],
+      "status": "passing"
     },
     {
       "id": "pop-6.1",
@@ -440,8 +459,13 @@
         "./init.sh exit 0 with every Playwright spec green",
         "docs/brand-ui.md"
       ],
-      "evidence": [],
-      "status": "in_progress"
+      "evidence": [
+        "2026-11-19 e2e/pop-6-1-a11y.spec.ts 3/3 (focus ring on every Tab stop of home/lot/login/register/forgot-password + chat; >= 44x44 targets at 375 incl. chat and signed-in lot page; Live = dot + word, ending soon word)",
+        "2026-11-19 e2e/pop-6-1-full-path.spec.ts 1/1 (home -> register KAPOW! -> activation -> staff-approved top-up -> bid POW! -> win BAM! -> lot GONE!)",
+        "2026-11-19 final gate COMPOSE_PROJECT_NAME=auction_system ./init.sh exit 0: be 416, fe 162, build, Python 63, Playwright 109/109",
+        "2026-11-19 docs/brand-ui.md"
+      ],
+      "status": "passing"
     }
   ],
   "deferred": [
