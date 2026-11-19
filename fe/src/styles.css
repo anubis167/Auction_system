@@ -886,3 +886,93 @@ th, td { border-bottom: var(--stroke-thin) dashed var(--ink); }
 .step p { margin: 0; }
 .step-no { width: 64px; height: 64px; border: var(--stroke-base) solid var(--ink); display: grid; place-items: center; }
 .step-no span { font: 400 40px/1 var(--font-display); color: var(--ink); }
+
+/* pop-2.1 lot page: breadcrumb, halftone gallery frame, lot head */
+.lot-detail { gap: var(--space-6) var(--space-7); }
+@media (min-width: 1100px) { .lot-detail { grid-template-columns: minmax(0, 1fr) 460px; } }
+.breadcrumb { font-weight: 800; font-size: 14px; color: var(--ink); }
+.breadcrumb a { color: var(--bam-blue); }
+.breadcrumb [aria-current] { color: var(--ink); }
+.gallery-frame { position: relative; border: var(--stroke-heavy) solid var(--ink); box-shadow: var(--shadow-lg); padding: var(--space-4); }
+.gallery-frame.gallery-empty { aspect-ratio: 4 / 3; display: grid; place-items: center; }
+.gallery-glyph { width: 42%; height: auto; }
+.gallery-hero-button { border-radius: var(--radius-0); }
+.gallery-hero { border: var(--stroke-base) solid var(--ink); border-radius: var(--radius-0); background: var(--panel); }
+.gallery-badges { position: absolute; top: var(--space-5); left: var(--space-5); display: flex; gap: var(--space-2); align-items: center; pointer-events: none; }
+.gallery-thumbs { gap: var(--space-3); margin-top: var(--space-5); }
+.gallery-thumb { border: var(--stroke-base) solid var(--ink); border-radius: var(--radius-0); box-shadow: var(--shadow-sm); min-height: 44px; }
+.gallery-thumb.is-selected { border-color: var(--ink); outline: var(--stroke-base) solid var(--pow-red); outline-offset: 0; }
+.gallery-more span { font-family: var(--font-display); font-weight: 400; font-size: 28px; letter-spacing: 1px; }
+.lightbox-panel img { border-radius: var(--radius-0); }
+.lot-head { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); }
+.lot-name { font-size: clamp(40px, 5vw, 56px); line-height: 1; letter-spacing: 1.5px; margin: 0; overflow-wrap: anywhere; }
+.lot-excerpt { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.link-button { background: none; border: none; padding: 0; min-height: 32px; font: inherit; font-weight: 800; color: var(--bam-blue); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; cursor: pointer; }
+.link-button:hover { color: var(--ink); }
+
+/* pop-2.2 comic countdown panel: ink, shadow-red (once per page), yellow H/M boxes, white seconds box */
+.countdown-panel { background: var(--ink); color: #fff; border: var(--stroke-heavy) solid var(--ink); box-shadow: var(--shadow-red); padding: var(--space-3) var(--space-4) var(--space-4); }
+.countdown-panel.is-idle { box-shadow: var(--shadow-md); }
+.countdown-caption { font: 800 13px/1.2 var(--font-body); letter-spacing: 1px; text-transform: uppercase; color: var(--zap-yellow); }
+.countdown-caption .muted { color: #fff; }
+.countdown-boxes { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-2); }
+.cd-box { display: inline-flex; flex-direction: column; align-items: center; min-width: 76px; background: var(--zap-yellow); color: var(--ink); border: var(--stroke-base) solid var(--ink); outline: var(--stroke-thin) solid #fff; font: 400 44px/1 var(--font-display); letter-spacing: 1px; padding: var(--space-1) var(--space-2) 2px; font-variant-numeric: tabular-nums; }
+.cd-box small { font: 800 11px/1.2 var(--font-body); letter-spacing: 1px; text-transform: uppercase; }
+.cd-box.is-seconds { background: var(--panel); color: var(--pow-red); }
+.cd-box.is-seconds small { color: var(--ink); }
+.cd-sep { font: 400 36px/1 var(--font-display); color: var(--zap-yellow); }
+
+/* pop-2.3 bid panel */
+.lot-bid-card { position: relative; box-shadow: var(--shadow-lg); }
+.bid-panel { gap: var(--space-4); }
+.bid-panel-price .lot-price-label { font-size: 13px; }
+.bid-panel-price .ui-money-xl { font-size: 56px; line-height: 1; }
+.bid-count-line { font-weight: 800; font-size: 14px; }
+.bid-change { background: var(--sky-cyan); color: var(--ink); border: var(--stroke-thin) solid var(--ink); border-radius: var(--radius-0); }
+.money-input { border: var(--stroke-base) solid var(--ink); border-radius: var(--radius-0); background: var(--panel); min-height: 56px; }
+.money-input:focus-within { outline: 3px solid var(--bam-blue); outline-offset: 3px; }
+.money-input span { color: var(--ink); font-family: var(--font-display); font-weight: 400; font-size: 32px; }
+.money-input input { font-family: var(--font-display); font-weight: 400; font-size: 32px; letter-spacing: 1px; min-height: 0; border: none; }
+.money-input input[aria-invalid="true"] { color: var(--pow-red); }
+.quick-bids { gap: var(--space-3); }
+.quick-bids .btn { padding: 0.5rem 0.3rem; font-size: 14px; }
+.bid-error { background: var(--paper); color: var(--pow-red); border: var(--stroke-base) solid var(--pow-red); border-radius: var(--radius-0); }
+.bid-submit { width: 100%; }
+.bid-standing { border-radius: var(--radius-0); padding: 0; background: none; font-size: 15px; }
+.bid-standing.is-leading { background: none; }
+.bid-standing.is-leading .pop-badge { font-size: 14px; padding: var(--space-1) var(--space-3); }
+.bid-standing.is-outbid { background: var(--paper); color: var(--ink); border: var(--stroke-base) solid var(--ink); padding: var(--space-2) var(--space-3); }
+.bid-pow { position: absolute; top: -40px; right: -26px; z-index: 3; pointer-events: none; }
+@media (max-width: 560px) { .bid-pow { right: -8px; width: 96px; height: 86px; } .cd-box { min-width: 64px; font-size: 36px; } }
+
+/* pop-2.4 bid history panel and price chart */
+.bid-history-card { padding: 0; overflow: hidden; }
+.bid-history-card > .ui-card-head { background: var(--sky-cyan); border-bottom: var(--stroke-heavy) solid var(--ink); padding: var(--space-3) var(--space-4); margin: 0; }
+.bid-history-card > .ui-card-head .muted { color: var(--ink); font-weight: 800; }
+.bid-history-card > p, .bid-history-card > .bid-history { padding: var(--space-3) var(--space-4); margin: 0; }
+.live-dot { color: var(--pow-red); }
+.bid-row { border-radius: var(--radius-0); border-bottom: var(--stroke-thin) dashed var(--ink); }
+.bid-row:last-child { border-bottom: none; }
+.bid-row.is-mine { background: var(--paper); box-shadow: inset 4px 0 0 var(--bam-blue); }
+.bid-amount { font-family: var(--font-display); font-weight: 400; font-size: 22px; letter-spacing: 1px; color: var(--pow-red); }
+.bid-status { color: var(--ink-muted); }
+.bid-status.is-leading { color: var(--bam-blue); }
+.bid-who .pop-badge { margin-left: var(--space-2); font-size: 11px; padding: 0 var(--space-1); }
+.price-chart-area { fill: var(--zap-yellow); fill-opacity: 0.35; }
+.price-chart-line { stroke: var(--ink); stroke-width: 3; }
+
+/* pop-2.5 lot tabs, facts table, messages as speech-bubble rows */
+.lot-tabs { background: var(--panel); border: var(--stroke-heavy) solid var(--ink); box-shadow: var(--shadow-md); margin-bottom: var(--space-6); }
+.pop-tabs { display: flex; flex-wrap: wrap; border-bottom: var(--stroke-heavy) solid var(--ink); }
+.pop-tab { font: 400 24px/1 var(--font-display); letter-spacing: 1px; padding: var(--space-3) var(--space-5); min-height: 48px; border: none; border-right: var(--stroke-heavy) solid var(--ink); background: var(--paper); color: var(--ink-muted); cursor: pointer; }
+.pop-tab[aria-selected="true"] { color: var(--ink); }
+.pop-tab-description[aria-selected="true"] { background: var(--zap-yellow); }
+.pop-tab-condition[aria-selected="true"] { background: var(--sky-cyan); }
+.pop-tab-seller[aria-selected="true"] { background: var(--panel); }
+.pop-tabpanel { padding: var(--space-5); }
+.pop-tabpanel p { margin: 0 0 var(--space-3); }
+.lot-tabs .lot-facts { margin: 0; padding: var(--space-4) var(--space-5) var(--space-5); border-top: var(--stroke-thin) dashed var(--ink); }
+.lot-facts dt { color: var(--ink-muted); font-weight: 800; letter-spacing: 1px; }
+.messages li { position: relative; border: var(--stroke-base) solid var(--ink); border-radius: var(--radius-0); background: var(--panel); box-shadow: var(--shadow-sm); margin-bottom: var(--space-3); }
+.messages li::after { content: ""; position: absolute; left: 18px; bottom: -13px; width: 16px; height: 12px; background: var(--ink); clip-path: polygon(0 0, 100% 0, 0 100%); }
+@media (max-width: 560px) { .pop-tab { flex: 1 1 auto; padding: var(--space-3); font-size: 20px; } }

@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ApiError, api, money, type Auction, type Bid, type BidEvent } from '../api';
 import { useAuth } from '../auth';
@@ -8,9 +8,9 @@ import { bidPlaced } from '../store/creditSlice';
 import { useCredit } from '../store/useCredit';
 import { QUICK_STEPS, bidAmount, changeSinceStart, formatTyping, precheck, quickAmounts } from '../bidMath';
 import { useToast } from '../toast';
+import { marksCrossed, splitCountdown } from '../brand';
 import { Countdown, useNow } from './AuctionBits';
-import { isEndingSoon } from './auctionCardState';
-import { initials, Pill } from './ui';
+import { Badge, Burst, initials } from './ui';
 import { chartLabel, priceChart } from '../priceChart';
 import { relativeTime } from '../relativeTime';
 
@@ -21,21 +21,17 @@ export type { Bid };
  * change since the start) shows in every state; the form only while the auction is live.
  */
 export function BidPanel({ auction, bids, onReload }: { auction: Auction; bids: Bid[]; onReload: () => void }) {
-  const now = useNow();
-  const soon = isEndingSoon(auction, now);
   const change = changeSinceStart(auction.currentPrice, auction.initialPrice);
   return (
     <div className="bid-panel">
-      <div className="row spread">
-        <Pill tone={soon ? 'dark-red' : auction.status === 'active' || auction.status === 'upcoming' ? 'steel' : 'muted'} dot={soon}>
-          <Countdown status={auction.status} startTime={auction.startTime} endTime={auction.endTime} onElapsed={onReload} format="ends-in" />
-        </Pill>
-        <span className="muted small">
-          <span data-testid="bid-count">{auction.bidCount}</span> bid{auction.bidCount === 1 ? '' : 's'}
-        </span>
-      </div>
+      <CountdownPanel auction={auction} onElapsed={onReload} />
       <div className="bid-panel-price">
-        <div className="lot-price-label">{auction.currentPrice ? 'Highest bid' : 'Starting price'}</div>
+        <div className="row spread">
+          <div className="lot-price-label">{auction.currentPrice ? 'Current bid' : 'Starting price'}</div>
+          <span className="bid-count-line">
+            <span data-testid="bid-count">{auction.bidCount}</span> bid{auction.bidCount === 1 ? '' : 's'}
+          </span>
+        </div>
         <div className="row">
           <span className="ui-money ui-money-xl" data-testid="current-price">
             {money(auction.currentPrice ?? auction.initialPrice)}
@@ -54,15 +50,62 @@ export function BidPanel({ auction, bids, onReload }: { auction: Auction; bids: 
   );
 }
 
-function BidForm({ auction, bids, onReload }: { auction: Auction; bids: Bid[]; onReload: () => void }) {
+/**
+ * The one bid call (BidPanel form and the pop-4.1 phone band): client pre-check with the server's wording, POST,
+ * then the same reducers as pushed events. `pow` counts successful bids (drives the POW! burst).
+ */
+export function useBidAction(auction: Auction, bids: Bid[], onReload: () => void) {
   const { user } = useAuth();
   const { credit, locked } = useCredit();
   const dispatch = useAppDispatch();
   const toast = useToast();
-  const location = useLocation();
-  const [amount, setAmount] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [pow, setPow] = useState(0);
+  const min = auction.nextMinBid ?? auction.initialPrice;
+  const leading = bids.find((b) => b.status === 'active');
+
+  const place = async (value: number) => {
+    // Same messages as the server; the server still checks everything and its answer wins. A leader raising
+    // their own bid gets the old hold back first (be/src/routes/bids.ts), so it counts as available here.
+    const ownHold = user && leading?.bidder.id === user.id ? leading.amount : 0;
+    const problem = precheck(value, min, credit - locked + ownHold);
+    setError(problem ?? '');
+    if (problem) return;
+    setBusy(true);
+    try {
+      const res = await api<{ event: BidEvent; released: number }>(`/auctions/${auction.id}/bids`, { body: { amount: value } });
+      // Same reducer as pushed events; the pushed copy of this bid is then ignored as a duplicate.
+      dispatch(bidReceived(res.event));
+      // crd-003: only locked credit changes on a bid; no refetch of the user or credit.
+      dispatch(bidPlaced({ amount: res.event.bid.amount, released: res.released }));
+      toast(`Bid of ${money(value)} placed`, 'success');
+      setPow((n) => n + 1);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.fields.amount ?? err.message);
+        // Someone may have bid first: reload so the panel shows the new minimum.
+        onReload();
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+  return { place, error, busy, pow, min, leading };
+}
+
+/** pop-2.3: POW! pops once per successful bid and is announced; errors never get a sound word. */
+export function PowBurst({ count, error, className = '' }: { count: number; error: string; className?: string }) {
+  if (!count || error) return null;
+  return <Burst key={count} word="POW!" animate announce className={className} testId="pow-burst" />;
+}
+
+function BidForm({ auction, bids, onReload }: { auction: Auction; bids: Bid[]; onReload: () => void }) {
+  const { user } = useAuth();
+  const { credit, locked } = useCredit();
+  const location = useLocation();
+  const [amount, setAmount] = useState('');
+  const { place, error, busy, pow, min, leading } = useBidAction(auction, bids, onReload);
 
   useEffect(() => {
     if (auction.nextMinBid != null) setAmount(formatTyping(String(auction.nextMinBid)));
@@ -79,54 +122,37 @@ function BidForm({ auction, bids, onReload }: { auction: Auction; bids: Bid[]; o
     );
   if (auction.isOwner) return <p className="muted">You can't bid on your own auction.</p>;
 
-  const min = auction.nextMinBid ?? auction.initialPrice;
   const value = bidAmount(amount, min);
   const quick = quickAmounts(auction.currentPrice, auction.initialPrice);
 
   // rt-001: where the viewer stands, kept current by pushed bid events.
-  const leading = bids.find((b) => b.status === 'active');
   const hasBid = bids.some((b) => b.bidder.id === user.id);
   const standing = !hasBid ? null : leading?.bidder.id === user.id ? 'leading' : 'outbid';
 
-  const submit = async (e: FormEvent) => {
+  const submit = (e: FormEvent) => {
     e.preventDefault();
-    // Same messages as the server; the server still checks everything and its answer wins. A leader raising
-    // their own bid gets the old hold back first (be/src/routes/bids.ts), so it counts as available here.
-    const ownHold = leading?.bidder.id === user.id ? leading.amount : 0;
-    const problem = precheck(value, min, credit - locked + ownHold);
-    setError(problem ?? '');
-    if (problem) return;
-    setBusy(true);
-    try {
-      const res = await api<{ event: BidEvent; released: number }>(`/auctions/${auction.id}/bids`, { body: { amount: value } });
-      // Same reducer as pushed events; the pushed copy of this bid is then ignored as a duplicate.
-      dispatch(bidReceived(res.event));
-      // crd-003: only locked credit changes on a bid; no refetch of the user or credit.
-      dispatch(bidPlaced({ amount: res.event.bid.amount, released: res.released }));
-      toast(`Bid of ${money(value)} placed`, 'success');
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.fields.amount ?? err.message);
-        // Someone may have bid first: reload so the panel shows the new minimum.
-        onReload();
-      }
-    } finally {
-      setBusy(false);
-    }
+    void place(value);
   };
 
   return (
     <form onSubmit={submit} noValidate className="bid-form">
+      <PowBurst count={pow} error={error} className="bid-pow" />
       {standing && (
         <p className={`bid-standing is-${standing}`} data-testid="my-standing" role="status">
-          {standing === 'leading' ? <span data-testid="bid-ok">You're the highest bidder.</span> : <span data-testid="outbid-notice">You've been outbid.</span>}
+          {standing === 'leading' ? (
+            <Badge kind="you" testId="bid-ok">
+              You're the top bidder!
+            </Badge>
+          ) : (
+            <span data-testid="outbid-notice">You've been outbid — jump back in?</span>
+          )}
         </p>
       )}
       <div className="field">
         <div className="row spread">
           <label htmlFor="bid-amount">Your bid</label>
-          <span className="muted small">
-            Min. <span data-testid="next-min-bid">{money(min)}</span>
+          <span className="small">
+            Minimum next bid <span data-testid="next-min-bid">{money(min)}</span>
           </span>
         </div>
         <div className="money-input">
@@ -147,7 +173,7 @@ function BidForm({ auction, bids, onReload }: { auction: Auction; bids: Bid[]; o
       </div>
       <div className="quick-bids">
         {quick.map((q, i) => (
-          <button key={i} type="button" className="btn btn-steel" onClick={() => setAmount(formatTyping(String(q)))} data-testid={`quick-bid-${QUICK_STEPS[i]}`}>
+          <button key={i} type="button" className="btn btn-secondary btn-sm" onClick={() => setAmount(formatTyping(String(q)))} data-testid={`quick-bid-${QUICK_STEPS[i]}`}>
             {money(q)}
           </button>
         ))}
@@ -157,8 +183,8 @@ function BidForm({ auction, bids, onReload }: { auction: Auction; bids: Bid[]; o
           {error}
         </p>
       )}
-      <button className="btn btn-primary bid-submit" type="submit" disabled={busy} data-testid="place-bid">
-        {busy ? 'Placing...' : `Place bid ${money(value)}`}
+      <button className="btn btn-primary btn-lg bid-submit" type="submit" disabled={busy} data-testid="place-bid">
+        {busy ? 'Placing...' : `Place bid! ${money(value)}`}
       </button>
       <p className="muted small bid-footnote">
         Credit: {money(credit)} · Locked credit: {money(locked)}
@@ -207,9 +233,9 @@ export function BidHistory({ bids }: { bids: Bid[] }) {
                   <span>
                     {b.bidder.username}
                     {mine && (
-                      <span className="ui-pill ui-pill-cream you-pill" data-testid="you">
+                      <Badge kind="you" testId="you">
                         You
-                      </span>
+                      </Badge>
                     )}
                   </span>
                 </span>
@@ -251,5 +277,53 @@ function PriceChart({ auction, bids }: { auction: Auction; bids: Bid[] }) {
       <polygon points={g.area} className="price-chart-area" />
       <polyline points={g.line} className="price-chart-line" vectorEffect="non-scaling-stroke" />
     </svg>
+  );
+}
+
+/**
+ * pop-2.2: comic countdown on ink with the page's one red shadow. The text line ('Ends in 1h 2m 3s', ui-1b.2) is
+ * the role=timer with aria-live=off; the HRS:MIN:SEC boxes are visual only. The 5-minute and 1-minute marks are
+ * announced once each in a separate polite region (a lot opened inside a mark announces it once).
+ */
+export function CountdownPanel({ auction, onElapsed }: { auction: Auction; onElapsed: () => void }) {
+  const now = useNow();
+  const left = new Date(auction.endTime).getTime() - now;
+  const live = auction.status === 'active' && left > 0;
+  const prev = useRef(Number.POSITIVE_INFINITY);
+  const [announce, setAnnounce] = useState('');
+  useEffect(() => {
+    if (!live) return;
+    const crossed = marksCrossed(prev.current, left);
+    prev.current = left;
+    if (crossed.length) setAnnounce(crossed[crossed.length - 1]);
+  }, [left, live]);
+  const { hours, minutes, seconds } = splitCountdown(left);
+  return (
+    <div className={`countdown-panel ${live ? '' : 'is-idle'}`} data-testid="countdown-panel">
+      <div className="countdown-caption" role="timer" aria-live="off" aria-atomic="true">
+        <Countdown status={auction.status} startTime={auction.startTime} endTime={auction.endTime} onElapsed={onElapsed} format="ends-in" />
+      </div>
+      {live && (
+        <div className="countdown-boxes" aria-hidden="true">
+          <span className="cd-box" data-testid="cd-hours">
+            {hours}
+            <small>Hrs</small>
+          </span>
+          <span className="cd-sep">:</span>
+          <span className="cd-box" data-testid="cd-minutes">
+            {minutes}
+            <small>Min</small>
+          </span>
+          <span className="cd-sep">:</span>
+          <span className="cd-box is-seconds" data-testid="cd-seconds">
+            {seconds}
+            <small>Sec</small>
+          </span>
+        </div>
+      )}
+      <p className="sr-only" aria-live="polite" data-testid="countdown-announce">
+        {announce}
+      </p>
+    </div>
   );
 }

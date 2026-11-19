@@ -39,7 +39,7 @@ test('ui-1b.2: bid panel countdown, quick buttons, Enter to bid, inline errors, 
   await expect(page.getByTestId('quick-bid-5')).toHaveText('$140.00');
   await page.getByTestId('quick-bid-2').click();
   await expect(page.getByTestId('bid-input')).toHaveValue('110');
-  await expect(page.getByTestId('place-bid')).toHaveText('Place bid $110.00');
+  await expect(page.getByTestId('place-bid')).toHaveText('Place bid! $110.00');
 
   // Client pre-checks with the server wording: below minimum, over available credit
   await page.getByTestId('bid-input').fill('99');
@@ -53,7 +53,7 @@ test('ui-1b.2: bid panel countdown, quick buttons, Enter to bid, inline errors, 
   // Enter places the bid; success message while leading; % change appears
   await page.getByTestId('bid-input').fill('120');
   await page.getByTestId('bid-input').press('Enter');
-  await expect(page.getByTestId('bid-ok')).toHaveText("You're the highest bidder.");
+  await expect(page.getByTestId('bid-ok')).toHaveText("You're the top bidder!");
   await expect(page.getByTestId('bid-error')).toHaveCount(0);
   await expect(page.getByTestId('current-price')).toHaveText('$120.00');
   await expect(page.getByTestId('price-change')).toHaveText('+20%');
@@ -71,7 +71,7 @@ test('ui-1b.2: bid panel countdown, quick buttons, Enter to bid, inline errors, 
   await carol.getByTestId('quick-bid-1').click();
   await carol.getByTestId('place-bid').click();
   await expect(carol.getByTestId('bid-ok')).toBeVisible();
-  await expect(page.getByTestId('outbid-notice')).toHaveText("You've been outbid.");
+  await expect(page.getByTestId('outbid-notice')).toHaveText("You've been outbid — jump back in?");
   await expect(page.getByTestId('bid-ok')).toHaveCount(0);
   await expect(page.getByTestId('current-price')).toHaveText('$130.00');
   expect(await page.evaluate(() => (window as unknown as { __ui1b2?: boolean }).__ui1b2)).toBe(true);

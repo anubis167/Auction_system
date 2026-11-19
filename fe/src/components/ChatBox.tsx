@@ -68,6 +68,12 @@ export function ChatBox() {
       () => setDown(true),
     );
   }, [open, state.mode]);
+  // pop-2.5: other parts of the page (the lot's Condition tab) can open the box.
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener('open-chat', onOpen);
+    return () => window.removeEventListener('open-chat', onOpen);
+  }, []);
   useEffect(() => {
     const onEvent = (e: Event) => setState((s) => applyEvent(s, (e as CustomEvent<SupportEvent>).detail));
     window.addEventListener('support-chat', onEvent);
