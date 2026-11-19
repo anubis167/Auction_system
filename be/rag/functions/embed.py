@@ -21,6 +21,8 @@ def _retryable(error):
 def embed(client, texts, task):
     """One vector per text, in order. task: RETRIEVAL_DOCUMENT (indexing) or RETRIEVAL_QUERY (questions).
     Retries on top of the SDK's own retries in chat.py, which only cover a single HTTP call."""
+    if client is None:
+        raise EmbedError("GEMINI_API_KEY is not set")
     vectors = []
     for start in range(0, len(texts), EMBED_BATCH):
         batch = texts[start:start + EMBED_BATCH]

@@ -1,7 +1,7 @@
 """rag-1.4 / rag2-1.5: check an uploaded document before anything is sent anywhere."""
 import os
 
-DOC_MAX_BYTES = 2 * 1024 * 1024
+DOC_MAX_BYTES = 10 * 1024 * 1024
 DOC_TYPES = {".txt": "text/plain", ".md": "text/markdown"}
 
 
@@ -12,14 +12,14 @@ class UploadError(Exception):
 
 
 def read_upload(file):
-    """(filename, mime_type, text) of a Flask upload: .txt/.md, at most 2 MB, UTF-8. Raises UploadError."""
+    """(filename, mime_type, text) of a Flask upload: .txt/.md, at most 10 MB, UTF-8. Raises UploadError."""
     filename = os.path.basename(file.filename or "") if file else ""
     ext = os.path.splitext(filename)[1].lower()
     if ext not in DOC_TYPES:
         raise UploadError("Choose a .txt or .md file")
     data = file.read(DOC_MAX_BYTES + 1)
     if len(data) > DOC_MAX_BYTES:
-        raise UploadError("The file is larger than 2 MB", 413)
+        raise UploadError("The file is larger than 10 MB", 413)
     try:
         text = data.decode("utf-8-sig")
     except UnicodeDecodeError:

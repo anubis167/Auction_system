@@ -1,0 +1,479 @@
+{
+  "project": "Online Auction System",
+  "last_updated": "2026-11-19",
+  "scope": "Round 15. 'Beat it! Look' restyle: the site keeps its name Beat'em (user, 2026-11-19); only the look changes, from the current dark navy style to the 'Beat it! Look' visual system (LOT-POP-Brand-Guidelines.md) following the 5 mockup screens in 'Pop Art Auction UI.html' (Homepage, Lot page, Chat widget, Footer, Mobile quick bid). This is a UI round: it restyles and rearranges pages that already exist and shows only data the API already has. Every business rule and API from rounds 1-14 (archived in progress-feature-list/) stays: bids checked against available credit and the increment ladder, realtime SSE, idle logout, roles/permissions, staff chat handoff, RAG chat. All 75 existing Playwright specs must keep passing (selectors/text updated only where the rebrand changes visible copy, never to weaken a check). One feature per function, like round 8 (ui-<page>.<n>), here pop-<area>.<n>.",
+  "source_requirements": {
+    "files": [
+      "LOT-POP-Brand-Guidelines.md",
+      "Pop Art Auction UI.html"
+    ],
+    "text": "User, 2026-11-19: read the UI file and the brand guideline, then generate the feature list. Standing SRS rules (SRS.txt header): e2e, unit and integration tests written to the e2e folder; changed files described in the docs folder; all delete means soft delete.",
+    "mockup_screens": {
+      "Homepage": "Header (wordmark + mark, Live now / Ending soon / Categories / Sell with us, Search lots, Sign in); hero 'Going, going... GONE!' with a 'Hot lot!' LIVE lot card; category ticker; 'Live lots' grid with Zap! filter chips and LotCards (LOT no, Ending soon!, category, title, current bid, bid count, time left); 'How it works' 1. Spot it! 2. Bid it! 3. Win it!",
+      "Lot page": "Breadcrumb; halftone gallery with thumbnails, LIVE badge and a speech bubble; 'Lot 001 . Category . Seller'; title; description; countdown HRS:MIN:SEC; POW! burst on bid; current bid + bid count; 'You're the top bidder!'; quick bid step x1/x2/x5; Your bid + Place bid!; minimum next bid line; Bid history; tabs Description / Condition / Shipping & pickup / Seller; specs table.",
+      "Chat widget": "Round launcher with 'Questions? Holler!' bubble and unread count; panel 'Auction desk . Online . usually replies in minutes'; message log; typing dots; suggestion chips; message input.",
+      "Footer": "Newsletter band (KAPOW!, 'Sign me up!'); wordmark + 'Auctions with a bang.'; link columns Buy / Sell / Help / Company; trust row (Buyer protection, Authenticity checked, Secure payments); copyright + legal links.",
+      "Mobile quick bid": "Phone lot view: LIVE . LOT badge, BAM!/POW! burst, category, title, current bid, 'Ends in' clock, amount chips, 'N bids . You'll bid $X', sticky yellow bottom band with 'Bid $X!'."
+    }
+  },
+  "readings_to_confirm": [
+    "Brand name (decided by the user 2026-11-19): the site stays 'Beat'em'. The guideline's look (colours, type, halftone, outlines, sound words) is applied, but the name 'LOT POP!', its tagline 'Auctions with a bang.' and the lotpop-mark files are NOT used. The wordmark is live text \"Beat'em\" in Bangers styled like the guideline's wordmark (ink + pow-red accent on the last word part); the existing fe/public/logo.svg stays as the mark and favicon, recoloured to the brand palette. The guideline's components/bundle.js (window.LotPop) is not in the repo, so the components are rebuilt as small React components in fe/src/components/ui.",
+    "Light theme only: the brand page ground is paper #FFF8E7; the current dark tokens are replaced, not kept as a dark mode. Staff/admin charts keep their own series colours, re-checked for contrast on paper.",
+    "Mockup items with no data or API today are left out of this round, not faked: watchlist ('My watchlist', 'Save the ones you love'), auto-bid / max bid, newsletter signup (footer band), seller stats ('Verified seller', 'N lots sold'), condition grade / inspected by, specs (maker, model, serial, size, estimate), shipping & pickup details, buyer's premium %, 'Ships from', footer pages that do not exist (Careers, Press, Blog, Seller handbook...). Placeholders like [SELLER NAME] in the mockup map to real fields where one exists (seller username, goods.condition, category, start price, start/end time) and are hidden otherwise. Each left-out item is listed under 'deferred'.",
+    "Lot page tabs: Description (auction/goods description), Condition (goods.condition text, plus 'Ask the auction desk in the chat' link), Seller (username + 'See more lots from this seller' -> existing search filtered by seller if supported, else hidden). 'Shipping & pickup' tab is deferred (no data).",
+    "Lot cards: the guideline says the whole card is one link with no nested buttons, but round 8 (ui-1a.3) put quick bid / Custom bid buttons on cards. Reading: the card's art + text block is the link; the quick-bid row sits below it inside the same outlined frame as a sibling, not inside the link. Existing ui-1a.3 behaviour and its spec stay.",
+    "Quick bid amounts: lot page keeps QUICK_STEPS [1, 2, 5] x increment (matches the mockup). The mobile band's chips use the same quickAmounts from bidMath.ts instead of the mockup's fixed +25/+50/+100, so the increment ladder still rules.",
+    "Sound words follow the bank only: POW! after a successful bid, BAM! on a won lot (My biddings / win toast), KAPOW! after registering, ZAP! on live/new, GONE! on sold/ended. Never on errors, outbids, credit/payments, password or legal copy. Outbid copy: 'You've been outbid - jump back in?'.",
+    "Chat widget suggestion chips: the mockup's 'How does auto-bid work?' and 'Shipping costs?' ask about things the site does not have; chips become 'How do I bid?', 'How does credit work?', 'Condition report'. Bot/staff modes, offline state and handoff from rounds 13-14 stay.",
+    "Header nav 'Live now' / 'Ending soon' / 'Categories' link to the existing browse page with the matching sort/filter (ui-1a.2); 'Sell with us' goes to the existing create-auction / My goods flow for signed-in customers and to Sign in for guests. Role-based nav for staff/admin stays.",
+    "Countdown uses the server end time already sent by the API; the 5-minute and 1-minute marks are announced once each through an aria-live=polite region, the timer itself is aria-live=off."
+  ],
+  "features": [
+    {
+      "id": "pop-0.1",
+      "priority": 1,
+      "role": "all",
+      "area": "design-system",
+      "title": "'Beat it! Look' design tokens, fonts and base styles",
+      "user_visible_behavior": "Every page sits on warm comic paper with ink text, Bangers headlines and Archivo body text; buttons, inputs and cards have square ink outlines and hard shadows; keyboard focus shows a blue outline.",
+      "acceptance": [
+        "fe/index.html loads Bangers and Archivo:wght@400;600;800 from Google Fonts (Mulish removed); <title> stays Beat'em; favicon stays logo.svg recoloured to the brand palette.",
+        "fe/src/styles.css :root holds exactly the guideline tokens (colour, -dot partners, font, space-1..8, radius, stroke, shadow); old navy/dark tokens removed; existing class names keep working by pointing at the new tokens.",
+        "body: background paper, colour ink, font body 17px/1.6 weight 600; h1-h3 Bangers with 1-2px tracking and no text-transform.",
+        "Controls: radius 0, stroke-base 3px ink outline; cards/panels stroke-heavy 4px; hover translate(-2px,-2px) + bigger shadow in 120-150ms; press translate(3px,3px) + smaller shadow.",
+        "Every focusable control: 3px bam-blue outline, offset 3px.",
+        "prefers-reduced-motion: no transitions/animations, final state shown.",
+        "White text only on pow-red, bam-blue, ink; ink text on yellow/pink/cyan."
+      ],
+      "verification": [
+        "e2e/unit/pop-0-1-tokens.test.ts: parses fe/src/styles.css :root and checks every guideline token value; checks the text-on-colour pairs used by the token map reach 4.5:1 (body) / 3:1 (display) with a WCAG contrast function",
+        "e2e/pop-0-1-base-styles.spec.ts: computed body background rgb(255,248,231), body font-family starts with Archivo, h1 font-family Bangers, Tab to a button shows a 3px solid rgb(29,78,216) outline, reduced-motion emulation has transition-duration 0s",
+        "./init.sh exit 0 (be, fe, build, Python, all Playwright specs)",
+        "docs/changes/pop-0.1.md"
+      ],
+      "evidence": [
+        "2026-11-19 e2e/unit/pop-0-1-tokens.test.ts 3/3 (guideline token values, old tokens/fonts gone, WCAG pairs)",
+        "2026-11-19 e2e/pop-0-1-base-styles.spec.ts 2/2 (paper/ink/Archivo/Bangers, 3px bam-blue focus ring, square 3px ink buttons, reduced motion 0s)",
+        "2026-11-19 COMPOSE_PROJECT_NAME=auction_system ./init.sh exit 0: be 406, fe 162, build, Python 63, Playwright 77/77",
+        "2026-11-19 Visual check at 1280 and 375 (home, lot, dashboard): no horizontal scroll",
+        "2026-11-19 docs/changes/pop-0.1.md"
+      ],
+      "status": "passing"
+    },
+    {
+      "id": "pop-0.2",
+      "priority": 2,
+      "role": "all",
+      "area": "design-system",
+      "title": "Brand components: Button, Badge, Burst, SpeechBubble, Halftone panel, LotCard, Countdown",
+      "user_visible_behavior": "Buttons, state badges, POW!/BAM! bursts, speech bubbles and halftone image panels look and behave the same on every page.",
+      "acceptance": [
+        "fe/src/components/ui: Button (primary pow-red / secondary zap-yellow / quiet panel / trust bam-blue; sizes sm Archivo 800 uppercase, md/lg Bangers; href renders a link), Badge (live with dot + word, ending tilted ink sticker, lot, time, you), Burst (word from the sound-word bank only, tones yellow/pink/cyan, animate = 400ms POW pop skipped under reduced motion, announce = aria-live polite), SpeechBubble (box/oval, tilt 1-6deg), Halftone (field colour + its -dot partner, 12-14px pitch).",
+        "Pure rules in fe/src/brand.ts: badgesFor(lot, now) returns at most 2 badges, 'ending' only when under 1 hour left, 'live' replaces the lot badge; isSoundWord(word); toneFor(index) never gives neighbours the same tone; priceLabel(price, bids) returns 'No bids yet' instead of $0.",
+        "Existing ui components (Card, Pill, MoneyText, SegmentedTabs, SearchInput, ConfirmDialog) restyled to the brand, same props.",
+        "Icons are inline stroke SVGs (2.5-3px, round caps); no emoji in the UI."
+      ],
+      "verification": [
+        "e2e/unit/pop-0-2-brand-rules.test.ts: badgesFor (59m vs 61m, live vs lot, max 2), isSoundWord, toneFor neighbours, priceLabel",
+        "fe vitest suite still passes (existing ui tests unchanged)",
+        "docs/changes/pop-0.2.md"
+      ],
+      "evidence": [
+        "2026-11-19 e2e/unit/pop-0-2-brand-rules.test.ts 7/7; fe vitest 162/162; fe build ok (awaiting group gate after pop-0.4)",
+        "2026-11-19 group gate ./init.sh: be 413, fe 162, build, Python 63, Playwright 81/82 - the 1 failure was guest-001 (footer 'Register' duplicated the header link, strict mode); footer link renamed 'Create an account', guest-001 + pop-0-3 + pop-0-4 rerun 6/6",
+        "2026-11-19 docs/changes/pop-0.2.md"
+      ],
+      "status": "passing"
+    },
+    {
+      "id": "pop-0.3",
+      "priority": 3,
+      "role": "all",
+      "area": "layout",
+      "title": "Header: Beat'em wordmark, nav, search and Sign in",
+      "user_visible_behavior": "The top bar shows the Beat'em mark and wordmark in the Beat it! Look, nav links Live now / Ending soon / Categories / Sell with us, a 'Search lots' box and a blue Sign in button; signed-in users still see their own menu.",
+      "acceptance": [
+        "Header has a 4px ink bottom rule; wordmark 'Beat'em' in Bangers, ink with a pow-red accent; mark >= 24px with clear space.",
+        "Live now / Ending soon / Categories link to the existing browse with the matching sort/filter; Sell with us -> sell flow (customer) or /login (guest).",
+        "Search lots uses the existing TopSearch behaviour.",
+        "Sign in is a trust Button for guests; customer/staff/admin nav, credit bar and idle logout from earlier rounds unchanged.",
+        "Phone width (375px): nav collapses into the existing menu toggle, toolbar wraps, no horizontal scroll, touch targets >= 44px."
+      ],
+      "verification": [
+        "e2e/pop-0-3-header.spec.ts: guest sees wordmark + 4 nav links + Sign in; Ending soon link lands on browse sorted by ending soon; customer sees own menu; 375px no horizontal scroll and menu toggle works",
+        "existing guest/cust/sec specs still pass",
+        "docs/changes/pop-0.3.md"
+      ],
+      "evidence": [
+        "2026-11-19 e2e/pop-0-3-header.spec.ts 3/3 (wordmark/rule/accent, 4 guest nav links, trust Sign in, Ending soon -> sorted browse, Categories anchor, Sell with us -> sign in -> create auction, customer menu kept, 375px fold-out 44px, no h-scroll)",
+        "2026-11-19 existing guest-001, cust-001, sec-001 pass",
+        "2026-11-19 group gate ./init.sh: be 413, fe 162, build, Python 63, Playwright 81/82 - the 1 failure was guest-001 (footer 'Register' duplicated the header link, strict mode); footer link renamed 'Create an account', guest-001 + pop-0-3 + pop-0-4 rerun 6/6",
+        "2026-11-19 docs/changes/pop-0.3.md"
+      ],
+      "status": "passing"
+    },
+    {
+      "id": "pop-0.4",
+      "priority": 4,
+      "role": "all",
+      "area": "layout",
+      "title": "Footer: brand block, link columns and trust row",
+      "user_visible_behavior": "Every page ends with the Beat'em footer in the Beat it! Look: wordmark and the existing blurb, link columns to pages that exist, a trust row and the copyright line.",
+      "acceptance": [
+        "Restyles the Beat'em footer in Layout.tsx (name and blurb kept); 4px ink top rule; ink ground with zap-yellow accent.",
+        "Link columns contain only routes that exist (Live auctions, Ending soon, Categories, Sell / My goods, Credit, Sign in / Register); no dead links.",
+        "Trust row text only (Buyer protection, Secure payments) with inline SVG icons, no sound words.",
+        "Copyright '(c) <current year> Beat'em'; columns stack on phones.",
+        "Newsletter band is deferred (no backend)."
+      ],
+      "verification": [
+        "e2e/pop-0-4-footer.spec.ts: footer visible on home and lot page, every footer link returns a page that renders (no 404 route), current year shown, 375px stacked",
+        "docs/changes/pop-0.4.md"
+      ],
+      "evidence": [
+        "2026-11-19 e2e/pop-0-4-footer.spec.ts 2/2 (home + lot page, year, trust row, every footer href renders a page, 375px stacked)",
+        "2026-11-19 group gate ./init.sh: be 413, fe 162, build, Python 63, Playwright 81/82 - the 1 failure was guest-001 (footer 'Register' duplicated the header link, strict mode); footer link renamed 'Create an account', guest-001 + pop-0-3 + pop-0-4 rerun 6/6",
+        "2026-11-19 docs/changes/pop-0.4.md"
+      ],
+      "status": "passing"
+    },
+    {
+      "id": "pop-1.1",
+      "priority": 5,
+      "role": "guest",
+      "area": "home",
+      "title": "Home: hero 'Going, going... GONE!' with the hot live lot",
+      "user_visible_behavior": "The home page opens with a big comic hero, a short intro, Browse live lots / How it works buttons and a 'Hot lot!' card showing a real live lot with its current bid.",
+      "acceptance": [
+        "Hero headline display-xl (one per page) on a halftone band; intro body-l; Browse live lots (secondary) scrolls/links to the live grid, How it works (quiet) to the steps section.",
+        "Hot lot card = the top trending live auction from the existing trending API (home-1.1); shows LIVE badge, 'Lot <id> . <category>', name, current bid in pow-red Bangers, links to the lot page; SpeechBubble 'Hot lot!'.",
+        "No live auction -> hot lot card hidden, hero still renders.",
+        "Phone: hero stacks, headline scales down, no horizontal scroll."
+      ],
+      "verification": [
+        "e2e/pop-1-1-home-hero.spec.ts: seeded live auction appears in the hot lot card with its current price and links to /auctions/:id; with no live auctions the card is absent",
+        "existing guest-002-homepage and home-1-1 specs still pass",
+        "docs/changes/pop-1.1.md"
+      ],
+      "evidence": [
+        "2026-11-19 e2e/pop-1-1-home-hero.spec.ts 3/3 (hot lot with seeded live lot + price in pow-red, opens lot; no live lots -> card absent, 375 fits; Browse live lots anchor)",
+        "2026-11-19 existing guest-002, home-1-1 pass",
+        "2026-11-19 group gate ./init.sh (home + lot page): be 416, fe 162, build, Python 63, Playwright 94/95 - the 1 failure was sell-001 ('Sold by alice' line dropped from the lot head); restored, sell-001 + pop-2-1 + pop-2-5 rerun 3/3",
+        "2026-11-19 docs/changes/pop-1.1.md"
+      ],
+      "status": "passing"
+    },
+    {
+      "id": "pop-1.2",
+      "priority": 6,
+      "role": "guest",
+      "area": "home",
+      "title": "Home: category ticker, Live lots grid with LotCards and Zap! filter chips",
+      "user_visible_behavior": "Under the hero a ticker lists categories, then 'Live lots' shows comic lot cards (halftone picture, lot number, category, title, current bid, bid count, time left) with filter chips.",
+      "acceptance": [
+        "Category ticker built from the existing categories list (links to browse filtered by category); static, no looping animation.",
+        "Grid repeat(auto-fill, minmax(280px, 1fr)) gap space-6; LotCard uses badgesFor, toneFor (neighbours differ), priceLabel; photo in the halftone frame, else a flat glyph.",
+        "Filter chips are the existing category chips and sort (ui-1a.2) restyled as sm buttons.",
+        "Card art + text is one link; the quick-bid row (ui-1a.3) is a sibling below it inside the frame; viewer's bid status from ui-1a.1 shown with the 'you' badge.",
+        "Trending and Just completed sections (home-1.x, home-2.x) restyled with the same cards; ended lots show GONE!."
+      ],
+      "verification": [
+        "e2e/pop-1-2-lot-grid.spec.ts: card shows lot no, category, title, price; lot ending in 30 min has 'Ending soon!', lot ending in 2 h has a time badge instead; lot with no bids shows 'No bids yet'; card link has no nested button; chip filters the grid",
+        "existing guest-002, guest-003, home-1-1, home-2-1, ui-1a specs still pass",
+        "docs/changes/pop-1.2.md"
+      ],
+      "evidence": [
+        "2026-11-19 e2e/pop-1-2-lot-grid.spec.ts 3/3 (lot no/category/title/price/Live, <1h Ending soon! vs 2h time chip, No bids yet, no button in card link, neighbour tones differ, ticker + chips filter, GONE! on ended)",
+        "2026-11-19 existing guest-002, guest-003, home-1-1, home-2-1 pass",
+        "2026-11-19 group gate ./init.sh (home + lot page): be 416, fe 162, build, Python 63, Playwright 94/95 - the 1 failure was sell-001 ('Sold by alice' line dropped from the lot head); restored, sell-001 + pop-2-1 + pop-2-5 rerun 3/3",
+        "2026-11-19 docs/changes/pop-1.2.md"
+      ],
+      "status": "passing"
+    },
+    {
+      "id": "pop-1.3",
+      "priority": 7,
+      "role": "guest",
+      "area": "home",
+      "title": "Home: How it works (Spot it! Bid it! Win it!)",
+      "user_visible_behavior": "A three-panel 'How it works' band explains browsing, bidding with credit and winning.",
+      "acceptance": [
+        "Three numbered panels; copy matches the site's real rules (no watchlist, no auto-bid): Spot it! browse by category; Bid it! bid from your available credit, bids update live; Win it! when the hammer drops the lot is yours and credit settles.",
+        "Anchor target for the hero's How it works button."
+      ],
+      "verification": [
+        "e2e/pop-1-3-how-it-works.spec.ts: hero button scrolls to the section; three steps visible; text contains no 'watchlist' or 'auto-bid'",
+        "docs/changes/pop-1.3.md"
+      ],
+      "evidence": [
+        "2026-11-19 e2e/pop-1-3-how-it-works.spec.ts 1/1",
+        "2026-11-19 group gate ./init.sh (home + lot page): be 416, fe 162, build, Python 63, Playwright 94/95 - the 1 failure was sell-001 ('Sold by alice' line dropped from the lot head); restored, sell-001 + pop-2-1 + pop-2-5 rerun 3/3",
+        "2026-11-19 docs/changes/pop-1.3.md"
+      ],
+      "status": "passing"
+    },
+    {
+      "id": "pop-2.1",
+      "priority": 8,
+      "role": "guest",
+      "area": "lot-page",
+      "title": "Lot page: breadcrumb, halftone gallery and lot header",
+      "user_visible_behavior": "A lot page shows Home / Category / Lot N, a big outlined photo panel with thumbnails and a LIVE badge, then 'Lot N . Category . Seller', the title and the description.",
+      "acceptance": [
+        "Breadcrumb links Home and the category browse.",
+        "Gallery (existing Gallery.tsx) in a halftone frame with shadow-lg; thumbnails are buttons with focus ring; no image -> category glyph.",
+        "LIVE / ending / GONE! badge from badgesFor; title display-m; meta line overline with lot id, category, seller username.",
+        "Description body text, 'Read the full description' jumps to the Description tab (pop-2.5)."
+      ],
+      "verification": [
+        "e2e/pop-2-1-lot-header.spec.ts: breadcrumb category link works, thumbnails switch the main image by keyboard, meta line shows seller username",
+        "existing ui-1b and bid specs still pass",
+        "docs/changes/pop-2.1.md"
+      ],
+      "evidence": [
+        "2026-11-19 e2e/pop-2-1-lot-header.spec.ts 1/1 (breadcrumb + category link, keyboard thumbnails, meta line with seller, Read the full description)",
+        "2026-11-19 existing ui-1b-2/1b-3, bid-001..004 pass",
+        "2026-11-19 group gate ./init.sh (home + lot page): be 416, fe 162, build, Python 63, Playwright 94/95 - the 1 failure was sell-001 ('Sold by alice' line dropped from the lot head); restored, sell-001 + pop-2-1 + pop-2-5 rerun 3/3",
+        "2026-11-19 docs/changes/pop-2.1.md"
+      ],
+      "status": "passing"
+    },
+    {
+      "id": "pop-2.2",
+      "priority": 9,
+      "role": "guest",
+      "area": "lot-page",
+      "title": "Lot page: comic Countdown panel",
+      "user_visible_behavior": "Next to the current bid a black panel counts down HRS : MIN : SEC in comic boxes with a red shadow; screen readers hear the 5-minute and 1-minute marks.",
+      "acceptance": [
+        "Countdown component: ink panel with the page's single shadow-red; hours/minutes in zap-yellow boxes, seconds in a white box with pow-red digits.",
+        "role=timer aria-live=off; separate aria-live=polite region announces '5 minutes left' and '1 minute left' once each.",
+        "Driven by the API end time; ticks locally; at 0 shows the existing ended state.",
+        "Pure helper splitCountdown(ms) and marksCrossed(prevMs, nextMs) in fe/src/brand.ts."
+      ],
+      "verification": [
+        "e2e/unit/pop-2-2-countdown.test.ts: splitCountdown (0, 59s, 1h1m1s, >24h), marksCrossed fires 5m and 1m exactly once",
+        "e2e/pop-2-2-countdown.spec.ts: timer role present, digits decrease, lot ending in under 5 min shows the announcement text in the polite region",
+        "docs/changes/pop-2.2.md"
+      ],
+      "evidence": [
+        "2026-11-19 e2e/unit/pop-2-2-countdown.test.ts 3/3",
+        "2026-11-19 e2e/pop-2-2-countdown.spec.ts 2/2 (timer role aria-live=off, ticking seconds, shadow-red; clock 4 min before end -> '5 minutes left', fast-forward -> '1 minute left')",
+        "2026-11-19 group gate ./init.sh (home + lot page): be 416, fe 162, build, Python 63, Playwright 94/95 - the 1 failure was sell-001 ('Sold by alice' line dropped from the lot head); restored, sell-001 + pop-2-1 + pop-2-5 rerun 3/3",
+        "2026-11-19 docs/changes/pop-2.2.md"
+      ],
+      "status": "passing"
+    },
+    {
+      "id": "pop-2.3",
+      "priority": 10,
+      "role": "customer",
+      "area": "lot-page",
+      "title": "Lot page: bid panel with quick bid, Place bid! and POW! burst",
+      "user_visible_behavior": "The bid panel shows the current bid and bid count, 'You're the top bidder!' when winning, quick bid buttons, a Your bid field and a big red 'Place bid!' button; a successful bid pops a POW! sticker.",
+      "acceptance": [
+        "BidPanel.tsx restyled: current bid display-m pow-red; standing uses the 'you' badge (bam-blue) for top bidder and plain text 'You've been outbid - jump back in?' when outbid.",
+        "Quick bid = existing quickAmounts / QUICK_STEPS [1,2,5] as secondary buttons; Place bid! = primary lg (once per view).",
+        "'Minimum next bid $X' line from the increment ladder; buyer's premium / ships-from omitted.",
+        "Successful bid: Burst 'POW!' animate + announce; errors (credit, ladder, ended) plain text in the existing role=alert, no sound word.",
+        "All existing checks (precheck, credit lock, realtime update) unchanged."
+      ],
+      "verification": [
+        "e2e/pop-2-3-bid-panel.spec.ts: customer places a valid bid -> POW! visible and polite region announces it; bid over available credit -> error text, no POW!; second customer outbids -> first sees outbid text",
+        "existing bid-001..004, crd-001..003, rt-001 specs still pass",
+        "docs/changes/pop-2.3.md"
+      ],
+      "evidence": [
+        "2026-11-19 e2e/pop-2-3-bid-panel.spec.ts 1/1 (POW! in polite status region on success; over-credit error with no POW!; outbid copy)",
+        "2026-11-19 ui-1b-2 and rt-001 expected copy updated for the rebrand only; bid-001..004, crd-001..003, rt-001 pass",
+        "2026-11-19 group gate ./init.sh (home + lot page): be 416, fe 162, build, Python 63, Playwright 94/95 - the 1 failure was sell-001 ('Sold by alice' line dropped from the lot head); restored, sell-001 + pop-2-1 + pop-2-5 rerun 3/3",
+        "2026-11-19 docs/changes/pop-2.3.md"
+      ],
+      "status": "passing"
+    },
+    {
+      "id": "pop-2.4",
+      "priority": 11,
+      "role": "guest",
+      "area": "lot-page",
+      "title": "Lot page: bid history and price chart restyle",
+      "user_visible_behavior": "Bid history sits in a panel with a cyan header listing bidder, time and amount; the price chart uses brand colours.",
+      "acceptance": [
+        "Existing BidHistory list and price chart (ui-1b.3) in a stroke-heavy panel with sky-cyan header; own bids marked with the 'you' style; amounts pow-red Bangers.",
+        "Live updates over SSE unchanged; masked bidder names unchanged."
+      ],
+      "verification": [
+        "existing ui-1b.3 / rt-001 specs pass with updated selectors only",
+        "e2e/pop-2-4-history.spec.ts: new bid appears at the top of the history in another browser without reload",
+        "docs/changes/pop-2.4.md"
+      ],
+      "evidence": [
+        "2026-11-19 e2e/pop-2-4-history.spec.ts 1/1 (bid from a second browser appears on top without reload; cyan header; pow-red Bangers amount)",
+        "2026-11-19 existing ui-1b-3, rt-001 pass",
+        "2026-11-19 group gate ./init.sh (home + lot page): be 416, fe 162, build, Python 63, Playwright 94/95 - the 1 failure was sell-001 ('Sold by alice' line dropped from the lot head); restored, sell-001 + pop-2-1 + pop-2-5 rerun 3/3",
+        "2026-11-19 docs/changes/pop-2.4.md"
+      ],
+      "status": "passing"
+    },
+    {
+      "id": "pop-2.5",
+      "priority": 12,
+      "role": "guest",
+      "area": "lot-page",
+      "title": "Lot page: Description / Condition / Seller tabs and facts table",
+      "user_visible_behavior": "Below the bid area, coloured comic tabs switch between the full description, the condition note and the seller; a facts table lists what the lot data has.",
+      "acceptance": [
+        "WAI-ARIA tablist: arrow keys move between tabs, Enter/Space selects, tab colours yellow / cyan / panel.",
+        "Description = auction/goods description; Condition = goods.condition + 'Have a question about condition? Ask the auction desk in the chat' (opens chat widget); Seller = seller username (+ link to their other lots only if browse supports a seller filter).",
+        "Facts table = existing lot facts (category, condition, start price, start/end time, status); fields with no value hidden; no placeholder brackets shown.",
+        "Comments/Messages (existing Messages.tsx) restyled as speech-bubble rows below, same rules (closed when ended/cancelled)."
+      ],
+      "verification": [
+        "e2e/pop-2-5-lot-tabs.spec.ts: keyboard tab switching, condition text shown, chat opens from the condition link, no '[' placeholder text on the page",
+        "existing bid-002-messages and cmt-001 specs still pass",
+        "docs/changes/pop-2.5.md"
+      ],
+      "evidence": [
+        "2026-11-19 e2e/pop-2-5-lot-tabs.spec.ts 1/1 (arrow focus + Enter/Space select, condition text, chat opens from condition link, no '[' text)",
+        "2026-11-19 existing bid-002, cmt-001 pass",
+        "2026-11-19 group gate ./init.sh (home + lot page): be 416, fe 162, build, Python 63, Playwright 94/95 - the 1 failure was sell-001 ('Sold by alice' line dropped from the lot head); restored, sell-001 + pop-2-1 + pop-2-5 rerun 3/3",
+        "2026-11-19 docs/changes/pop-2.5.md"
+      ],
+      "status": "passing"
+    },
+    {
+      "id": "pop-3.1",
+      "priority": 13,
+      "role": "all",
+      "area": "chat",
+      "title": "Chat widget: Holler! launcher and Auction desk panel",
+      "user_visible_behavior": "A round launcher with a 'Questions? Holler!' bubble and an unread count opens the 'Auction desk' chat panel with a message log, typing dots, suggestion chips and a message box.",
+      "acceptance": [
+        "ChatBox.tsx restyled: round launcher (radius-round) with pill unread count; panel shadow-lg, header 'Auction desk' + online/offline line from /api/chat/health.",
+        "Message log role=log aria-live=polite; typing dots static under reduced motion.",
+        "Chips 'How do I bid?', 'How does credit work?', 'Condition report' send that text.",
+        "Bot/staff modes, handoff, offline state and limits from rounds 13-14 unchanged; staff panel /staff/chats restyled with the same tokens."
+      ],
+      "verification": [
+        "e2e/pop-3-1-chat-widget.spec.ts: launcher opens/closes with keyboard, chip click sends its text (bot reply stubbed), unread count shows for a staff reply while closed",
+        "e2e/py chat tests and sch-1.x integration tests still pass",
+        "docs/changes/pop-3.1.md"
+      ],
+      "evidence": [
+        "2026-11-19 e2e/pop-3-1-chat-widget.spec.ts 2/2 (keyboard open/close + focus return, header/status, chips send text with stubbed bot; real staff claim + reply while closed -> unread 1, cleared on open)",
+        "2026-11-19 e2e/py 63 and sch-1.x integration tests pass",
+        "2026-11-19 final gate COMPOSE_PROJECT_NAME=auction_system ./init.sh exit 0: be 416, fe 162, build, Python 63, Playwright 109/109",
+        "2026-11-19 docs/changes/pop-3.1.md"
+      ],
+      "status": "passing"
+    },
+    {
+      "id": "pop-4.1",
+      "priority": 14,
+      "role": "customer",
+      "area": "mobile",
+      "title": "Mobile quick bid: sticky yellow bid band on phones",
+      "user_visible_behavior": "On a phone the lot page keeps a yellow band at the bottom with the current bid, time left, amount chips, 'N bids . You'll bid $X' and a one-tap 'Bid $X!' button.",
+      "acceptance": [
+        "<= 640px: band position sticky/fixed bottom, zap-yellow, 4px ink top rule; does not cover the footer's last link (page gets bottom padding).",
+        "Chips = quickAmounts (increment ladder); selected chip sets 'You'll bid $X'; button 'Bid $X!' uses the same bid call and checks as BidPanel (no second code path).",
+        "Clock reuses Countdown helpers; ended lot hides the band.",
+        "Touch targets >= 44px; POW! burst on success; errors plain."
+      ],
+      "verification": [
+        "e2e/pop-4-1-mobile-bid.spec.ts at 375x812: band visible, chip changes 'You'll bid', tapping Bid places the bid (current price updates), over-credit bid shows the error, desktop 1280px has no band",
+        "docs/changes/pop-4.1.md"
+      ],
+      "evidence": [
+        "2026-11-19 e2e/pop-4-1-mobile-bid.spec.ts 2/2 at 375x812 (sticky yellow band flush with the screen bottom, ladder chips, You'll bid, Bid places it, POW!, stops above the footer's last link, hidden at 1280; no-credit account gets the plain error)",
+        "2026-11-19 final gate COMPOSE_PROJECT_NAME=auction_system ./init.sh exit 0: be 416, fe 162, build, Python 63, Playwright 109/109",
+        "2026-11-19 docs/changes/pop-4.1.md"
+      ],
+      "status": "passing"
+    },
+    {
+      "id": "pop-5.1",
+      "priority": 15,
+      "role": "customer",
+      "area": "pages",
+      "title": "Restyle customer and auth pages to the brand",
+      "user_visible_behavior": "Sign in, Register, password pages, Dashboard, My auctions, My biddings, My goods, Create auction, Credit and Profile all use the Beat it! Look.",
+      "acceptance": [
+        "Forms: Archivo labels (overline), panel inputs with 3px outlines, no tilt; Sign in = trust button; Register success shows KAPOW! burst; won lots in My biddings show BAM!.",
+        "No sound words in password, credit/payment or error copy.",
+        "Every page passes at 375px with no horizontal scroll."
+      ],
+      "verification": [
+        "e2e/pop-5-1-customer-pages.spec.ts: visits each customer page at 1280 and 375, asserts paper background and no horizontal scroll; register shows KAPOW!; credit page contains no sound word",
+        "all existing cust/guest/gds/sell/crd/mail specs still pass",
+        "docs/changes/pop-5.1.md"
+      ],
+      "evidence": [
+        "2026-11-19 e2e/pop-5-1-customer-pages.spec.ts 4/4 (3 auth + 9 customer pages at 1280/375 on paper, no h-scroll; overline labels; trust Log in; no sound words on credit/password/profile; KAPOW! after register; BAM! on a won lot)",
+        "2026-11-19 existing cust/guest/gds/sell/crd/mail specs pass",
+        "2026-11-19 final gate COMPOSE_PROJECT_NAME=auction_system ./init.sh exit 0: be 416, fe 162, build, Python 63, Playwright 109/109",
+        "2026-11-19 docs/changes/pop-5.1.md"
+      ],
+      "status": "passing"
+    },
+    {
+      "id": "pop-5.2",
+      "priority": 16,
+      "role": "staff",
+      "area": "pages",
+      "title": "Restyle staff and admin pages to the brand",
+      "user_visible_behavior": "Staff goods/auctions/credit/statistics/chats and admin users/permissions pages use the brand tokens with readable tables and charts.",
+      "acceptance": [
+        "Tables: ink rules, panel rows, stroke-thin dashed dividers; charts re-coloured to brand hues with >= 3:1 against paper; status badges use word + colour.",
+        "No sound words on staff/admin pages (business tools)."
+      ],
+      "verification": [
+        "e2e/pop-5-2-staff-pages.spec.ts: staff and admin pages render on paper with no horizontal scroll at 1280",
+        "all existing stf/adm/sec specs still pass",
+        "docs/changes/pop-5.2.md"
+      ],
+      "evidence": [
+        "2026-11-19 e2e/pop-5-2-staff-pages.spec.ts 2/2 (5 staff + 3 admin pages on paper at 1280, no h-scroll, no sound words; brand chart hues >= 3:1 on the panel; dashed table dividers)",
+        "2026-11-19 existing stf/adm/sec specs pass",
+        "2026-11-19 final gate COMPOSE_PROJECT_NAME=auction_system ./init.sh exit 0: be 416, fe 162, build, Python 63, Playwright 109/109",
+        "2026-11-19 docs/changes/pop-5.2.md"
+      ],
+      "status": "passing"
+    },
+    {
+      "id": "pop-6.1",
+      "priority": 17,
+      "role": "all",
+      "area": "quality",
+      "title": "Accessibility gate and full-path walk-through",
+      "user_visible_behavior": "The rebranded site is keyboard- and screen-reader-friendly and the whole buy path works end to end.",
+      "acceptance": [
+        "Every interactive control on home, lot, chat, auth pages: visible 3px bam-blue focus ring, touch target >= 44px at 375px.",
+        "No colour-only meaning (LIVE has dot + word, ending soon has the word).",
+        "Full path: guest home -> register (KAPOW!) -> top up credit (staff approves) -> bid from lot page (POW!) -> win after settlement (BAM!) -> lot shows GONE!.",
+        "docs/brand-ui.md: how the tokens/components map to the guideline and what was deferred."
+      ],
+      "verification": [
+        "e2e/pop-6-1-a11y.spec.ts: focus ring + 44px checks over the listed pages",
+        "e2e/pop-6-1-full-path.spec.ts passes",
+        "./init.sh exit 0 with every Playwright spec green",
+        "docs/brand-ui.md"
+      ],
+      "evidence": [
+        "2026-11-19 e2e/pop-6-1-a11y.spec.ts 3/3 (focus ring on every Tab stop of home/lot/login/register/forgot-password + chat; >= 44x44 targets at 375 incl. chat and signed-in lot page; Live = dot + word, ending soon word)",
+        "2026-11-19 e2e/pop-6-1-full-path.spec.ts 1/1 (home -> register KAPOW! -> activation -> staff-approved top-up -> bid POW! -> win BAM! -> lot GONE!)",
+        "2026-11-19 final gate COMPOSE_PROJECT_NAME=auction_system ./init.sh exit 0: be 416, fe 162, build, Python 63, Playwright 109/109",
+        "2026-11-19 docs/brand-ui.md"
+      ],
+      "status": "passing"
+    }
+  ],
+  "deferred": [
+    "Watchlist (save lots) - needs a table and API.",
+    "Auto-bid / max bid - needs bid engine work.",
+    "Newsletter signup band in the footer - needs storage + mail.",
+    "Seller profile stats (verified, lots sold, member since, bio).",
+    "Condition grade / inspector, specs (maker, model, serial, size, estimate), shipping & pickup, returns window, buyer's premium, ships-from - need new goods fields.",
+    "Footer pages that do not exist (About, Careers, Press, Blog, Seller handbook, Terms, Privacy, Cookies)."
+  ]
+}

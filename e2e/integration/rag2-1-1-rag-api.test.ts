@@ -2,6 +2,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { prisma } from '../../be/src/db';
 import { app, createAuction, loginAs, resetDb } from '../../be/tests/helpers';
+import { MAX_CHUNKS } from '../../be/src/routes/rag';
 
 // rag2-1.1: the Node routes the Python RAG service uses instead of reading the database itself.
 const TOKEN = 'test-internal-token-rag2';
@@ -74,7 +75,8 @@ describe('rag2-1.1 /api/rag routes', () => {
   });
 
   it('validates the document body', async () => {
-    const big = Array(2001).fill({ text: 'a', embedding: [1] });
+    // One chunk over the route's limit (raised with the 10 MB upload limit, docs/changes/merge-rag2-rag3.md).
+    const big = Array(MAX_CHUNKS + 1).fill({ text: 'a', embedding: [1] });
     for (const body of [
       doc({ title: ' ' }),
       doc({ mimeType: 'text/html' }),

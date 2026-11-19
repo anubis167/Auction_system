@@ -640,6 +640,49 @@
 - Deferred by the user (kept in the archive under `deferred`, not done): sch-1.2 (folded into sch-1.4), sch-1.9 staff knowledge requests, sch-1.10 admin approval + chunking (SRS Req-2, Req-3); off-topic handoff; new Playwright specs.
 - Still open: worktree shares the main repo's db container (run with COMPOSE_PROJECT_NAME=auction_system; don't test in two checkouts at once); no be/.env here (copy it and run `npx prisma migrate deploy -w be` before using the app from this worktree); ui-2a-1 375px check can flake by 1px; bot limit is one shared 30/min for everyone.
 - Next best step: a new round from the user (e.g. revive sch-1.9/1.10 or off-topic handoff).
+### Session 025: round 13 (Admin Chatbox & RAG Document Management) built and verified (2026-11-15)
+
+- New round from SRS.txt ('system - Chatbox with Gemini API - admin side': admin side RAG document management, upload with < 10 MB limit, notification if bigger, chunking before save, new header navigation link for admin, soft delete, e2e & unit/integration tests).
+- `rag-2.1` passing: `DOC_MAX_BYTES` raised to 10 MB (10 * 1024 * 1024) in `be/rag/chat.py`, `MAX_CONTENT_LENGTH` raised to `DOC_MAX_BYTES + 128 * 1024`, error message on 413 updated to 'The file is larger than 10 MB'. Documents chunked and embedded before saving to `knowledge_documents` and `knowledge_chunks`. `be/rag/rag_docs_test.py` 6/6; `npm run test:py` 37/37 OK.
+- `rag-2.2` passing: Header navigation link 'Chatbot' added in `fe/src/components/Layout.tsx` for admin (`user.manage` permission). Route `/admin/rag` registered in `fe/src/App.tsx` guarded by `<RequireAuth permission="user.manage">`.
+- `rag-2.3` passing: Admin RAG document management page at `fe/src/pages/AdminRag.tsx`. Includes document table (title, filename, size, chunks pill, creation date, delete button), file upload form (.txt, .md), client-side file size validation displaying toast notification and inline alert when file >= 10 MB (`MAX_DOC_SIZE_BYTES`), and soft-delete via DELETE `/api/docs/:id`. Unit tests in `fe/src/adminRag.test.ts` (3/3); `npm test -w fe` 27/27 files passed (165 tests); `npm run build -w fe` passed cleanly.
+- `rag-2.4` passing: Playwright test `e2e/adm-006-chatbox-rag.spec.ts` covering admin login, header navigation to `/admin/rag`, document table rendering, >10 MB rejection notification, valid upload with chunk count, soft delete, and customer access denial.
+- Documentation created: `docs/changes/rag-2.1.md`, `docs/changes/rag-2.2.md`, `docs/changes/rag-2.3.md`, `docs/changes/rag-2.4.md`.
+
+### Session 026: round 14 backend features (RAG Chatbox API, Security, Auth, Global Errors, Soft Delete) built and verified (2026-11-18)
+
+- New round from SRS.txt ('System - API for RAG - chatbox': write & retrieve data APIs, expected error handling, auth & authz on all routes, prompt ejection blocking middleware, global error handler, soft delete).
+- `rag-3.1` passing: Global JSON error handling middleware (`be/rag/error_handler.py`, registered in `be/rag/chat.py`) returning structured `{"error": "<msg>"}` for standard HTTP error codes (400, 401, 403, 404, 405, 413, 429) and unhandled generic exceptions (500). Unit tests in `be/rag/error_handler_test.py` (5/5). Change doc in `docs/changes/rag-3.1.md`.
+- `rag-3.2` passing: Prompt ejection and injection security middleware (`be/rag/security.py`, registered in `be/rag/chat.py`) intercepting instruction overrides, jailbreak persona triggers, system prompt exfiltration, and delimiter injection in JSON bodies and queries, returning HTTP 400 `{"error": "Prompt injection detected"}`. Unit tests in `be/rag/security_test.py` (28/28). Change doc in `docs/changes/rag-3.2.md`.
+- `rag-3.3` passing: Authentication & authorization enforcement (`be/rag/auth.py`, `be/rag/chat.py`). Extracts JWT tokens from `auction_token` cookie or `Authorization: Bearer <token>`, verifies HS256 signature, validates user in PostgreSQL `users` table and checks account status is active. Requires customer/staff/admin for `/api/chat` and `/api/rag/retrieve`; requires staff/admin for `/api/docs` and `/api/docs/<id>`. Returns 401 for unauthenticated, 403 for unauthorized. Unit tests in `be/rag/auth_test.py` (13/13); adjusted `be/rag/chat_test.py` (7/7) and `be/rag/rag_user_test.py` (5/5). Change doc in `docs/changes/rag-3.3.md`.
+- `rag-3.4` passing: Complete write and retrieve data APIs with soft delete in `be/rag/chat.py` and `be/rag/rag.py`:
+  - `POST /api/docs`: writes document with automatic chunking and embedding before DB persistence (HTTP 201).
+  - `GET /api/docs`: retrieves active documents list (HTTP 200).
+  - `GET /api/docs/<int:doc_id>`: retrieves single document details with chunk list (HTTP 200) or 404 if deleted/missing.
+  - `POST /api/rag/retrieve`: embeds query and returns matching chunks based on cosine distance (HTTP 200) or 400 on empty query.
+  - `DELETE /api/docs/<int:doc_id>`: soft-deletes document and chunks by setting `deleted_at = now()` (HTTP 204) or 404. Excluded from retrieval and listing.
+  - Unit tests in `be/rag/rag_api_test.py` (8/8). Change doc in `docs/changes/rag-3.4.md`.
+- `rag-3.5` passing: Comprehensive Playwright API integration test suite implemented at `e2e/rag-chat-api.spec.ts`.
+  - Added `/api/rag` proxy route in `fe/vite.config.ts`.
+  - Added `python be/rag/chat.py` webServer entry in `playwright.config.ts`.
+  - Safely guarded ngrok tunneling in `be/rag/chat.py` under `NO_NGROK` flag for reliable automated testing.
+  - Test suite covers:
+    1. Global error handling (structured JSON for 404, 400, 405).
+    2. Prompt ejection/injection security filter (intercepts injection attacks with 400 across `/api/rag/retrieve`, `/api/chat`, and query strings).
+    3. Authentication & authorization enforcement (401 for unauthenticated/forged/expired tokens; 403 for customer on `/api/docs`; 200 for staff/admin on `/api/docs`; 200 for customer/staff on `/api/rag/retrieve`).
+    4. Write & retrieve lifecycle and soft delete: uploads document via POST `/api/docs` (chunked & embedded), retrieves document list via GET `/api/docs`, retrieves document details with chunk list via GET `/api/docs/<id>`, queries top matching chunks via POST `/api/rag/retrieve`, soft-deletes via DELETE `/api/docs/<id>` (204), and verifies exclusion from document list, document detail (404), search retrieval, and duplicate delete (404).
+  - Documentation created in `docs/changes/rag-3.5.md`.
+  - Verification: `npx playwright test e2e/rag-chat-api.spec.ts` 4/4 passed cleanly; `python -m unittest discover -s be/rag -p "*_test.py"` 92/92 passed; `npm test -w fe` 27/27 files (165 tests) passed.
+- Round 14 status: All 5 features (`rag-3.1`, `rag-3.2`, `rag-3.3`, `rag-3.4`, `rag-3.5`) marked `passing` in `feature_list.json` with evidence.
+
+
+
+
+## 2026-11-18 — merged feature/claude-staff and feature/gemini into main
+- Claude's rag2 layout is the base; gemini's rag-3 error handler, injection middleware, doc detail and retrieve
+  routes, and Bearer support ported onto it. Details: `docs/changes/merge-rag2-rag3.md`.
+- Verified: `npm run test:py` 102 OK; be `tsc --noEmit` clean. Not run: Playwright e2e, be/fe vitest.
+- Open: `feature_list.json` still shows rag2-1.2..1.6 `not_started` although their code and tests exist; verify and update.
 
 ### Session 026: round 14 (RAG rebuild on the API) built, verified and archived (2026-11-18)
 
@@ -651,7 +694,7 @@
 - First full gate: be/fe/Python green, but Playwright 10 passed / 65 failed because the e2e Vite server (5180) was killed mid-run (exit -1, ECONNRESET); not caused by this round (no fe change). Session was interrupted there.
 - Resumed: Docker Desktop restarted. Clean gate: COMPOSE_PROJECT_NAME=auction_system ./init.sh exit 0 (be 403, fe 162, build, Python 63, Playwright 75/75). The gate ran with the user's uncommitted chat.py /api/chat/health + ChatBox offline edits in the tree.
 - be/.env got a random RAG_INTERNAL_TOKEN (gitignored); be/.env.example documents RAG_INTERNAL_TOKEN and RAG_API_URL.
-- Round 14: 6/6 passing; archived as progress-feature-list/feature_list_14.json. No feature_list.json at the root now.
+- Round 14: 6/6 passing; archived as progress-feature-list/feature_list_14.json on the branch (feature_list_16.json on main after the 2026-11-19 merge). No feature_list.json at the root now.
 - Left uncommitted (user's): be/rag/chat.py (/api/chat/health), fe/src/components/ChatBox.tsx (offline state, greeting removed), LOT-POP-Brand-Guidelines.md, Pop Art Auction UI.html.
 - Still open: retrieval loads every chunk per question (shortcut, pgvector later); one shared 30/min bot limit; /webhook unchanged (no signature check); tests from two checkouts on one db container deadlock each other.
 - Next best step: a new round from the user.
@@ -674,9 +717,14 @@
 - pop-3.1, 4.1, 5.1, 5.2, 6.1 implemented with their specs green individually (chat launcher/unread/chips; sticky phone bid band; overline labels, KAPOW!/BAM!; brand chart hues; 44 px targets, focus-ring walk, full buy path). docs/brand-ui.md written. Final gate: see below.
 - Gotchas: Bash heredocs containing some quote patterns failed in this shell; patch scripts were written to files instead. The e2e servers log 'job ... failed PrismaClientKnownRequestError' at start (seed reset while the scheduler runs) and ECONNREFUSED :5000 (chat health proxy, no Python bot in e2e); both pre-existing noise.
 - Final gate: COMPOSE_PROJECT_NAME=auction_system ./init.sh exit 0 (be 416, fe 162, build, Python 63, Playwright 109/109). pop-3.1, 4.1, 5.1, 5.2, 6.1 marked passing.
-- Round 15: 17/17 passing; archived as progress-feature-list/feature_list_15.json. No feature_list.json at the root now.
-- Still open / not verified: no real screen-reader pass (aria roles and live regions are checked by specs only); Google Fonts load from the network (offline falls back to Impact/system-ui); the customer header search gets narrow (~150 px) at 1280 px next to six links and the bid limit; staff/admin see the customer footer links (they redirect by role, as before); the deferred mockup items are listed in feature_list_15.json `deferred` and docs/brand-ui.md.
+- Round 15: 17/17 passing; archived as progress-feature-list/feature_list_15.json on the branch (feature_list_17.json on main after the 2026-11-19 merge). No feature_list.json at the root now.
+- Still open / not verified: no real screen-reader pass (aria roles and live regions are checked by specs only); Google Fonts load from the network (offline falls back to Impact/system-ui); the customer header search gets narrow (~150 px) at 1280 px next to six links and the bid limit; staff/admin see the customer footer links (they redirect by role, as before); the deferred mockup items are listed in the round 15 archive `deferred` and docs/brand-ui.md.
 - Next best step: a new round from the user (e.g. one of the deferred items such as the watchlist or the newsletter band).
+
+## 2026-11-19 - merged feature/claude-staff (round 14 rag2 archive + round 15 'Beat it! Look') into main
+- Archive names collided (both agents number rounds on their own): main keeps feature_list_14.json (gemini round 13) and feature_list_15.json (gemini round 14); the branch's rag2 round 14 is feature_list_16.json and the round 15 restyle is feature_list_17.json. Details: docs/changes/merge-round15.md.
+- Verified on the merged tree: be 416, fe 165, build, Python 102, Playwright 113/115. The 2 failures (adm-006 Chatbot link folded into the admin Dashboard menu; rag-chat-api Req-1 expects gemini's old 'Forbidden' body) fail the same on main before the merge; left for a follow-up. Fixed on the way: rag2-1-1 integration test used the old 2000-chunk limit (now MAX_CHUNKS + 1).
+- Next best step: fix the two gemini-side specs above, or a new round from the user.
 
 ### Session 029: round 18 (RAG training log) planned; rag-train-1 passing (2026-11-20)
 

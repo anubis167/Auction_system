@@ -39,9 +39,10 @@ export function createApp() {
   const app = express();
   app.set('json replacer', jsonReplacer);
   app.use(cors({ origin: config.appUrl, credentials: true }));
-  // rag2-1.1: a document arrives with all its chunk embeddings (~15 KB per chunk), far over the 100 KB default.
+  // rag2-1.1: a document arrives with all its chunk embeddings (~15 KB per chunk), far over the 100 KB default;
+  // a 10 MB document is up to ~12500 chunks, so ~190 MB. Internal-only route, behind the token.
   // The internal token is checked before the big body is read; the global parser then skips the parsed body.
-  app.post('/api/rag/documents', requireInternal, express.json({ limit: '40mb' }));
+  app.post('/api/rag/documents', requireInternal, express.json({ limit: '200mb' }));
   app.use(express.json());
   app.use(cookieParser());
 
