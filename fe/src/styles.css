@@ -977,3 +977,62 @@ th, td { border-bottom: var(--stroke-thin) dashed var(--ink); }
 .messages li::after { content: ""; position: absolute; left: 18px; bottom: -13px; width: 16px; height: 12px; background: var(--ink); clip-path: polygon(0 0, 100% 0, 0 100%); }
 @media (max-width: 560px) { .pop-tab { flex: 1 1 auto; padding: var(--space-3); font-size: 20px; } }
 .lot-seller { margin: 0; font-size: 14px; }
+
+/* pop-3.1 chat widget: Holler! launcher and the Auction desk panel */
+.chat { gap: var(--space-4); }
+.chat-launcher { display: flex; align-items: center; gap: var(--space-3); }
+.chat-teaser { font-size: 20px; padding: var(--space-1) var(--space-3); white-space: nowrap; }
+.chat-teaser::after { left: auto; right: -14px; bottom: 8px; width: 14px; height: 12px; clip-path: polygon(0 0, 100% 50%, 0 100%); }
+.chat-toggle { position: relative; width: 64px; height: 64px; border-radius: var(--radius-round); background: var(--zap-yellow); color: var(--ink); border: var(--stroke-heavy) solid var(--ink); box-shadow: var(--shadow-md); transition: transform 130ms ease-out, box-shadow 130ms ease-out; }
+.chat-toggle:hover { transform: translate(-2px, -2px); box-shadow: var(--shadow-lg); }
+.chat-toggle:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--ink); }
+.chat-unread { position: absolute; top: -8px; right: -8px; min-width: 26px; height: 26px; padding: 0 6px; border-radius: var(--radius-pill); background: var(--pow-red); color: #fff; border: var(--stroke-thin) solid var(--ink); font: 800 13px/22px var(--font-body); text-align: center; }
+.chat-panel { width: min(380px, calc(100vw - 2rem)); padding: 0; gap: 0; box-shadow: var(--shadow-lg); }
+.chat-head { display: flex; align-items: center; gap: var(--space-3); background: var(--sky-cyan); border-bottom: var(--stroke-heavy) solid var(--ink); padding: var(--space-3) var(--space-4); }
+.chat-avatar { width: 44px; height: 44px; border-radius: var(--radius-round); border: var(--stroke-base) solid var(--ink); display: grid; place-items: center; flex: none; }
+.chat-title { font-size: 28px; margin: 0; line-height: 1; }
+.chat-status { margin: 2px 0 0; display: flex; align-items: center; gap: var(--space-2); font-size: 13px; font-weight: 800; color: var(--ink); }
+.chat-status-dot { width: 10px; height: 10px; border-radius: var(--radius-round); background: var(--bam-blue); border: var(--stroke-thin) solid var(--ink); }
+.chat-status.is-offline .chat-status-dot { background: var(--panel); }
+.chat-log { padding: var(--space-4); gap: var(--space-3); background: var(--paper); }
+.chat-msg { border-radius: var(--radius-0); border: var(--stroke-base) solid var(--ink); font-size: 14px; box-shadow: var(--shadow-sm); }
+.chat-msg-model { background: var(--panel); color: var(--ink); }
+.chat-msg-user { background: var(--bam-blue); color: #fff; }
+.chat-msg-staff { background: var(--zap-yellow); color: var(--ink); border-color: var(--ink); }
+.chat-msg-system { border: none; box-shadow: none; color: var(--ink-muted); }
+.chat-typing { display: inline-flex; gap: 5px; align-items: center; min-height: 36px; }
+.chat-typing span { width: 8px; height: 8px; border-radius: var(--radius-round); background: var(--ink); animation: chat-dot 900ms ease-in-out infinite; }
+.chat-typing span:nth-child(2) { animation-delay: 150ms; }
+.chat-typing span:nth-child(3) { animation-delay: 300ms; }
+@keyframes chat-dot { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-4px); } }
+.chat-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); padding: var(--space-3) var(--space-4) 0; }
+.chat-chips .btn { text-transform: none; letter-spacing: 0; }
+.chat-error { padding: var(--space-2) var(--space-4) 0; color: var(--pow-red); font-weight: 700; }
+.chat-form { padding: var(--space-3) var(--space-4) var(--space-4); }
+@media (max-width: 560px) { .chat-teaser { display: none; } }
+
+/* sch-1.8 staff chat panel with the same tokens */
+.chat-list-item { border: var(--stroke-base) solid var(--ink); border-radius: var(--radius-0); background: var(--panel); min-height: 44px; }
+.chat-list-item:hover, .chat-list-item.is-active { border-color: var(--ink); background: var(--zap-yellow); }
+.chat-thread-log { background: var(--paper); border: var(--stroke-base) solid var(--ink); padding: var(--space-3); }
+
+/* pop-4.1 phone quick-bid band: sticky to the bottom of the lot page, so it never covers the footer. */
+.bid-band { display: none; }
+@media (max-width: 640px) {
+  .bid-band {
+    display: flex; flex-direction: column; gap: var(--space-2); grid-column: 1 / -1; position: sticky; bottom: 0; z-index: 30;
+    margin: 0 -1rem; padding: var(--space-3) var(--space-4) var(--space-4); background: var(--zap-yellow); border-top: var(--stroke-heavy) solid var(--ink);
+  }
+  .band-top { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--space-3); }
+  .band-top .overline { color: var(--ink); }
+  .band-price { font: 400 36px/1 var(--font-display); letter-spacing: 1px; color: var(--pow-red); }
+  .band-clock { text-align: right; }
+  .band-clock span { font: 400 28px/1 var(--font-display); letter-spacing: 1px; font-variant-numeric: tabular-nums; }
+  .band-chips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); }
+  .band-chips .btn { min-height: 44px; padding: 0.3rem; font-size: 14px; }
+  .band-note { margin: 0; font-weight: 800; font-size: 14px; }
+  .band-bid { width: 100%; min-height: 56px; }
+  .band-pow { position: absolute; top: -70px; right: 8px; width: 96px; height: 86px; pointer-events: none; }
+  /* Keep the chat launcher above the band while it is on screen. */
+  #root:has(.bid-band) .chat { bottom: 270px; }
+}

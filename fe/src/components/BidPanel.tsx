@@ -327,3 +327,64 @@ export function CountdownPanel({ auction, onElapsed }: { auction: Auction; onEla
     </div>
   );
 }
+
+/**
+ * pop-4.1: phone quick bid. A zap-yellow band stuck to the bottom of the lot page (CSS shows it at <= 640px only)
+ * with the current bid, the time left, the ladder's quick amounts as chips and one 'Bid $X!' button. It uses the
+ * same useBidAction as the form, so the checks and the API call are the same.
+ */
+export function MobileBidBand({ auction, bids, onReload }: { auction: Auction; bids: Bid[]; onReload: () => void }) {
+  const { user } = useAuth();
+  const now = useNow();
+  const [pick, setPick] = useState(0);
+  const { place, error, busy, pow } = useBidAction(auction, bids, onReload);
+  const left = new Date(auction.endTime).getTime() - now;
+  if (auction.status !== 'active' || left <= 0 || !user || auction.isOwner) return null;
+  const quick = quickAmounts(auction.currentPrice, auction.initialPrice);
+  const amount = quick[pick];
+  const { hours, minutes, seconds } = splitCountdown(left);
+  return (
+    <section className="bid-band" aria-label="Quick bid" data-testid="bid-band">
+      <PowBurst count={pow} error={error} className="band-pow" />
+      <div className="band-top">
+        <div>
+          <div className="overline">Current bid</div>
+          <strong className="band-price" data-testid="band-price">
+            {money(auction.currentPrice ?? auction.initialPrice)}
+          </strong>
+        </div>
+        <div className="band-clock">
+          <div className="overline">Ends in</div>
+          <span data-testid="band-clock">
+            {hours}:{minutes}:{seconds}
+          </span>
+        </div>
+      </div>
+      <div className="band-chips" role="group" aria-label="Bid amount">
+        {quick.map((q, i) => (
+          <button
+            key={i}
+            type="button"
+            className={`btn btn-sm ${i === pick ? 'btn-trust' : 'btn-quiet'}`}
+            aria-pressed={i === pick}
+            onClick={() => setPick(i)}
+            data-testid={`band-chip-${QUICK_STEPS[i]}`}
+          >
+            {money(q)}
+          </button>
+        ))}
+      </div>
+      <p className="band-note" data-testid="band-note">
+        {auction.bidCount} bid{auction.bidCount === 1 ? '' : 's'} · You'll bid {money(amount)}
+      </p>
+      {error && (
+        <p className="bid-error" role="alert" data-testid="band-error">
+          {error}
+        </p>
+      )}
+      <button type="button" className="btn btn-primary btn-lg band-bid" disabled={busy} onClick={() => void place(amount)} data-testid="band-bid">
+        {busy ? 'Placing...' : `Bid ${money(amount)}!`}
+      </button>
+    </section>
+  );
+}

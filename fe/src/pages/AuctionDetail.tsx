@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { CONDITION_LABELS, money, type Auction } from '../api';
 import { badgesFor, lotLabel } from '../brand';
 import { StatusBadge, useNow } from '../components/AuctionBits';
-import { BidHistory, BidPanel } from '../components/BidPanel';
+import { BidHistory, BidPanel, MobileBidBand } from '../components/BidPanel';
 import { CancelAuction } from '../components/CancelAuction';
 import { Gallery } from '../components/Gallery';
 import { Messages } from '../components/Messages';
@@ -93,6 +93,8 @@ export function AuctionDetailPage() {
         <LotTabs auction={auction} tab={tab} onTab={setTab} />
         <Messages auctionId={auction.id} sellerId={auction.seller.id} closed={auction.status === 'ended' || auction.status === 'cancelled'} onClosed={load} />
       </div>
+      {/* pop-4.1: phone-only quick-bid band, the last grid item so it sticks inside the lot page only. */}
+      <MobileBidBand auction={auction} bids={bids} onReload={load} />
     </div>
   );
 }

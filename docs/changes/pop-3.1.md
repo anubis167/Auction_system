@@ -1,0 +1,7 @@
+# pop-3.1 Chat widget: Holler! launcher and Auction desk panel
+
+| File | Change |
+|---|---|
+| fe/src/components/ChatBox.tsx | Round zap-yellow launcher (radius-round, 4 px ink, hard shadow) with a 'Questions? Holler!' speech bubble while closed (hidden on phones) and a pow-red pill unread count (`chat-unread`) for staff replies that arrive over the live stream while the box is closed (cleared on open; the button's label says 'Open chat, N unread'). Panel 'Auction desk' with a sky-cyan header, halftone avatar and status line from `/api/chat/health` ('Online · usually replies in minutes', 'Offline · leave it for later'; staff mode 'Online · our staff will reply here'). Message log stays role=log aria-live=polite; typing indicator is three dots (static under reduced motion). Suggestion chips 'How do I bid?', 'How does credit work?', 'Condition report' (bot mode only) send their text through the same send path. Bot/staff modes, handoff, offline state, limits and the `open-chat` event (pop-2.5) unchanged. |
+| fe/src/styles.css | 'pop-3.1' block: launcher, unread pill, teaser, panel, bubbles (user bam-blue/white, bot panel, staff zap-yellow), chips; the /staff/chats list and thread use the same tokens. |
+| e2e/pop-3-1-chat-widget.spec.ts | New: launcher round, opens with Enter, Escape closes and returns focus; header and status; chips listed and a chip sends its text (bot answer stubbed); a real staff claim + reply while the box is closed shows unread '1', opening shows the reply and clears it. |
