@@ -683,3 +683,45 @@
   routes, and Bearer support ported onto it. Details: `docs/changes/merge-rag2-rag3.md`.
 - Verified: `npm run test:py` 102 OK; be `tsc --noEmit` clean. Not run: Playwright e2e, be/fe vitest.
 - Open: `feature_list.json` still shows rag2-1.2..1.6 `not_started` although their code and tests exist; verify and update.
+
+### Session 026: round 14 (RAG rebuild on the API) built, verified and archived (2026-11-18)
+
+- New round from SRS.txt 'system - Rag architechture - Chatbox' (ecbot as reference). feature_list.json: rag2-1.1 .. rag2-1.6.
+- Startup: no containers running; round 13 committed. ./init.sh baseline: one Postgres deadlock (40P01) in staff.export resetDb; the file passed alone. Cause found later: another Claude session ran project-gemini's tests on the same db container at the same time.
+- rag2-1.1 passing: Node /api/rag (me, chunks, documents CRUD with soft delete), X-Internal-Token (RAG_INTERNAL_TOKEN, timing-safe, unset = 503), permission knowledge.manage (staff + admin, migration), 40 MB JSON limit only on POST /api/rag/documents after the token check. e2e/integration/rag2-1-1-rag-api.test.ts 6/6.
+- rag2-1.2 .. 1.5 passing: be/rag/rag.py and psycopg gone; one function per file in be/rag/functions (call_api checks every answer); prompts in be/rag/prompts/*.md (system.md tagged sections; untrusted text neutralised); /api/chat and /api/docs on the API; guard_reply blocks prompt leaks and secrets. Old be/rag tests moved/ported to e2e/py (fake_api.py helper). test:py now discovers only e2e/py.
+- rag2-1.6 passing: e2e/py/rag2_1_6_full_path_test.py starts the real Node API on :4210 (auction_test, seeded) and drives Flask upload -> ask -> delete. docs/rag.md.
+- First full gate: be/fe/Python green, but Playwright 10 passed / 65 failed because the e2e Vite server (5180) was killed mid-run (exit -1, ECONNRESET); not caused by this round (no fe change). Session was interrupted there.
+- Resumed: Docker Desktop restarted. Clean gate: COMPOSE_PROJECT_NAME=auction_system ./init.sh exit 0 (be 403, fe 162, build, Python 63, Playwright 75/75). The gate ran with the user's uncommitted chat.py /api/chat/health + ChatBox offline edits in the tree.
+- be/.env got a random RAG_INTERNAL_TOKEN (gitignored); be/.env.example documents RAG_INTERNAL_TOKEN and RAG_API_URL.
+- Round 14: 6/6 passing; archived as progress-feature-list/feature_list_14.json on the branch (feature_list_16.json on main after the 2026-11-19 merge). No feature_list.json at the root now.
+- Left uncommitted (user's): be/rag/chat.py (/api/chat/health), fe/src/components/ChatBox.tsx (offline state, greeting removed), LOT-POP-Brand-Guidelines.md, Pop Art Auction UI.html.
+- Still open: retrieval loads every chunk per question (shortcut, pgvector later); one shared 30/min bot limit; /webhook unchanged (no signature check); tests from two checkouts on one db container deadlock each other.
+- Next best step: a new round from the user.
+
+### Session 027: round 15 feature list (LOT POP! rebrand) (2026-11-19)
+
+- Startup: no containers running; round 14 committed (9a34853), tree clean.
+- New round from LOT-POP-Brand-Guidelines.md + 'Pop Art Auction UI.html' (5 mockup screens: Homepage, Lot page, Chat widget, Footer, Mobile quick bid). feature_list.json: pop-0.1 .. pop-6.1 (17 features), all not_started.
+- Mockup items with no data/API today (watchlist, auto-bid, newsletter, seller stats, condition grade/specs/shipping, buyer's premium, missing footer pages) are listed under `deferred`, not faked. Open readings are in `readings_to_confirm` (brand name stays Beat'em - user decision, light theme only, lot card link vs quick-bid row, chat chips).
+- ./init.sh not run this session (no code changed).
+- Next: user confirms the readings, then pop-0.1 (tokens, fonts, base styles).
+
+### Session 028: round 15 'Beat it! Look' restyle built and verified (2026-11-19)
+
+- Startup: Docker Desktop was not running (no containers to stop); round 15 list committed (2c8ae0b), tree clean. User: "work only in project-claude, finish feature_list" - the open readings_to_confirm were taken as accepted.
+- Baseline: COMPOSE_PROJECT_NAME=auction_system ./init.sh exit 0 (be 403, fe 162, build, Python 63, Playwright 75/75).
+- pop-0.1 passing: guideline tokens only in :root, old dark tokens rewritten onto them, Bangers/Archivo, base styles, focus ring, reduced motion, logo recoloured. Gate exit 0 (be 406, Playwright 77/77).
+- pop-0.2..0.4 passing: fe/src/brand.ts rules + ui/Brand.tsx components; header (wordmark, guest nav Live now/Ending soon/Categories/Sell with us, Sign in); footer (columns of existing routes, trust row). Group gate: 81/82 - guest-001 hit two 'Register' links (header + new footer); footer link renamed 'Create an account', rerun green.
+- pop-1.1..1.3 and pop-2.1..2.5 passing: home hero + hot lot, ticker, brand LotCards, How it works; lot page breadcrumb/gallery/head, comic countdown (role=timer, polite 5/1-minute marks), bid panel with POW! via one useBidAction hook, history restyle, Description/Condition/Seller tabs. Group gate: 94/95 - sell-001 needs a visible 'Sold by alice'; restored under the title, rerun green. ui-1b-2 and rt-001 expected copy updated for the rebrand only.
+- pop-3.1, 4.1, 5.1, 5.2, 6.1 implemented with their specs green individually (chat launcher/unread/chips; sticky phone bid band; overline labels, KAPOW!/BAM!; brand chart hues; 44 px targets, focus-ring walk, full buy path). docs/brand-ui.md written. Final gate: see below.
+- Gotchas: Bash heredocs containing some quote patterns failed in this shell; patch scripts were written to files instead. The e2e servers log 'job ... failed PrismaClientKnownRequestError' at start (seed reset while the scheduler runs) and ECONNREFUSED :5000 (chat health proxy, no Python bot in e2e); both pre-existing noise.
+- Final gate: COMPOSE_PROJECT_NAME=auction_system ./init.sh exit 0 (be 416, fe 162, build, Python 63, Playwright 109/109). pop-3.1, 4.1, 5.1, 5.2, 6.1 marked passing.
+- Round 15: 17/17 passing; archived as progress-feature-list/feature_list_15.json on the branch (feature_list_17.json on main after the 2026-11-19 merge). No feature_list.json at the root now.
+- Still open / not verified: no real screen-reader pass (aria roles and live regions are checked by specs only); Google Fonts load from the network (offline falls back to Impact/system-ui); the customer header search gets narrow (~150 px) at 1280 px next to six links and the bid limit; staff/admin see the customer footer links (they redirect by role, as before); the deferred mockup items are listed in the round 15 archive `deferred` and docs/brand-ui.md.
+- Next best step: a new round from the user (e.g. one of the deferred items such as the watchlist or the newsletter band).
+
+## 2026-11-19 - merged feature/claude-staff (round 14 rag2 archive + round 15 'Beat it! Look') into main
+- Archive names collided (both agents number rounds on their own): main keeps feature_list_14.json (gemini round 13) and feature_list_15.json (gemini round 14); the branch's rag2 round 14 is feature_list_16.json and the round 15 restyle is feature_list_17.json. Details: docs/changes/merge-round15.md.
+- Verified on the merged tree: be 416, fe 165, build, Python 102, Playwright 113/115. The 2 failures (adm-006 Chatbot link folded into the admin Dashboard menu; rag-chat-api Req-1 expects gemini's old 'Forbidden' body) fail the same on main before the merge; left for a follow-up. Fixed on the way: rag2-1-1 integration test used the old 2000-chunk limit (now MAX_CHUNKS + 1).
+- Next best step: fix the two gemini-side specs above, or a new round from the user.

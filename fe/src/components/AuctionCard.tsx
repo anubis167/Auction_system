@@ -1,57 +1,70 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { money, type Auction } from '../api';
 import { useAuth } from '../auth';
+import { badgesFor, lotLabel, toneFor } from '../brand';
 import { Countdown, NewTag, useNow } from './AuctionBits';
-import { isEndingSoon, priceLabel, stripState } from './auctionCardState';
+import { priceLabel as priceCaption, stripState } from './auctionCardState';
+import { Badge, Halftone, LotGlyph } from './ui';
+
 /**
- * ui-1a.1: lot card with the viewer's own bid position on live lots.
- * ui-1a.3: live lots also get 'Bid $X' and 'Custom bid', both opening the lot page to bid there.
- * Product-card layout: big image with the timer overlaid top-right ('Starts in …' before the start, time left once
- * live), name and category under it, price pinned to the bottom above the two buttons.
+ * pop-1.2: the brand LotCard. The art (halftone panel in a tone that differs from its neighbours) and text form
+ * one link; ui-1a.3's quick-bid row sits below it inside the same frame, never inside the link.
+ * Badges come from badgesFor (max two: Live / lot number, Ending soon! / time left / GONE!). The ticking time
+ * left (ui-1a.1 countdown) stays in the text block; the viewer's own position is shown with the 'you' badge.
  */
-export function AuctionCard({ auction, onElapsed }: { auction: Auction; onElapsed?: () => void }) {
+export function AuctionCard({ auction, onElapsed, index = 0 }: { auction: Auction; onElapsed?: () => void; index?: number }) {
   const { user } = useAuth();
   const now = useNow();
   const ended = auction.status === 'ended';
-  const soon = isEndingSoon(auction, now);
+  const [left, right] = badgesFor(auction, now);
   const strip = stripState(auction, !!user);
-  const timerTone = soon ? 'is-soon' : ended || auction.status === 'cancelled' ? 'is-muted' : '';
+  const image = auction.goods.images[0];
+  const category = auction.goods.category?.name;
   return (
-    <article className="lot-card" data-testid={`auction-card-${auction.id}`}>
-      <Link to={`/auctions/${auction.id}`} className="card-link lot-body">
-        <div className="lot-media">
-          {auction.goods.images[0] ? (
-            <img src={auction.goods.images[0]} alt="" className="lot-image" loading="lazy" />
-          ) : (
-            <div className="lot-image lot-thumb-empty" aria-hidden="true" />
-          )}
-          <span className={`lot-timer ${timerTone}`} data-testid={soon ? 'ending-soon' : undefined}>
-            <ClockIcon />
-            <Countdown status={auction.status} startTime={auction.startTime} endTime={auction.endTime} onElapsed={onElapsed} />
-          </span>
-          <span className="lot-media-tag">
+    <article className={`lot-card ${ended ? 'is-ended' : ''}`} data-testid={`auction-card-${auction.id}`}>
+      <Link to={`/auctions/${auction.id}`} className="card-link lot-link">
+        <Halftone tone={toneFor(index)} className="lot-media">
+          {image ? <img src={image} alt="" className="lot-image" loading="lazy" /> : <LotGlyph className="lot-glyph" />}
+          <span className="lot-badge-left">
+            <Badge kind={left.kind}>{left.label}</Badge>
             <NewTag status={auction.status} startTime={auction.startTime} />
           </span>
-        </div>
-        <div className="lot-head-text">
-          <h3 title={auction.name}>{auction.name}</h3>
-          {auction.goods.category && <div className="lot-sub">{auction.goods.category.name}</div>}
-        </div>
-        <div className="lot-price">
-          <div>
-            <div className="lot-price-label">{priceLabel(auction)}</div>
-            <strong className="lot-price-value">{money(auction.currentPrice ?? auction.initialPrice)}</strong>
+          {right && (
+            <span className="lot-badge-right">
+              <Badge kind={right.kind} testId={right.kind === 'ending' ? 'ending-soon' : `badge-${right.kind}`}>
+                {right.label}
+              </Badge>
+            </span>
+          )}
+        </Halftone>
+        <div className="lot-body">
+          <div className="overline lot-overline">
+            {left.kind === 'live' && `${lotLabel(auction.id)} · `}
+            {category ?? 'Uncategorised'}
           </div>
-          <span className="lot-bid-count">
-            {auction.bidCount} bid{auction.bidCount === 1 ? '' : 's'}
-          </span>
-        </div>
-        {ended && (
-          <div className="small muted" data-testid="card-winner">
-            {auction.winner ? `Won by ${auction.winner.username}` : 'No winner'}
+          <h3 className="lot-title" title={auction.name}>
+            {auction.name}
+          </h3>
+          <div className="lot-price">
+            <div>
+              <div className="lot-price-label">{priceCaption(auction)}</div>
+              <strong className="lot-price-value">{money(auction.currentPrice ?? auction.initialPrice)}</strong>
+            </div>
+            <span className="lot-bid-count" data-testid="card-bid-count">
+              {auction.bidCount ? `${auction.bidCount} bid${auction.bidCount === 1 ? '' : 's'}` : 'No bids yet'}
+            </span>
           </div>
-        )}
-        {strip && <MyBidStrip state={strip} amount={auction.myBid?.amount} />}
+          <div className="lot-time">
+            <ClockIcon />
+            <Countdown status={auction.status} startTime={auction.startTime} endTime={auction.endTime} onElapsed={onElapsed} />
+          </div>
+          {ended && (
+            <div className="small muted" data-testid="card-winner">
+              {auction.winner ? `Won by ${auction.winner.username}` : 'No winner'}
+            </div>
+          )}
+          {strip && <MyBidStrip state={strip} amount={auction.myBid?.amount} />}
+        </div>
       </Link>
       {auction.status === 'active' && !auction.isOwner && auction.nextMinBid != null && <QuickBid auction={auction} />}
     </article>
@@ -60,13 +73,14 @@ export function AuctionCard({ auction, onElapsed }: { auction: Auction; onElapse
 
 function ClockIcon() {
   return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.75" strokeLinecap="round" aria-hidden="true">
       <circle cx="12" cy="12" r="9" />
       <path d="M12 7v5l3 2" />
     </svg>
   );
 }
 
+/** ui-1a.1: where the viewer stands on a live lot. Leading uses the bam-blue 'you' badge; outbid stays plain text. */
 function MyBidStrip({ state, amount }: { state: 'leading' | 'outbid' | 'none'; amount?: number }) {
   if (state === 'none') {
     return (
@@ -77,10 +91,10 @@ function MyBidStrip({ state, amount }: { state: 'leading' | 'outbid' | 'none'; a
   }
   return (
     <div className={`my-bid-strip is-${state}`} data-testid="my-bid-strip" data-state={state}>
-      <span>  
+      {state === 'leading' ? <Badge kind="you">Top bidder</Badge> : <span className="my-bid-state">Outbid</span>}
+      <span>
         Your bid <strong>{money(amount)}</strong>
       </span>
-      <span className="my-bid-state">{state === 'leading' ? '● Leading' : '▲ Outbid'}</span>
     </div>
   );
 }
@@ -93,11 +107,11 @@ function QuickBid({ auction }: { auction: Auction }) {
 
   return (
     <div className="lot-actions">
-      <button type="button" className="lot-action is-bid" onClick={() => open(`/auctions/${auction.id}`)} data-testid="quick-bid">
-        BID {money(auction.nextMinBid)}
+      <button type="button" className="btn btn-secondary btn-sm lot-action" onClick={() => open(`/auctions/${auction.id}`)} data-testid="quick-bid">
+        Bid {money(auction.nextMinBid)}
       </button>
-      <button type="button" className="lot-action is-custom" onClick={() => open(`/auctions/${auction.id}?bid=1`)} data-testid="custom-bid">
-        JOIN IN!
+      <button type="button" className="btn btn-quiet btn-sm lot-action" onClick={() => open(`/auctions/${auction.id}?bid=1`)} data-testid="custom-bid">
+        Custom bid
       </button>
     </div>
   );

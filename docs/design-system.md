@@ -1,5 +1,8 @@
 # Design system (round 8, from the 'Auction Mockups' design file)
 
+> Superseded for the look by round 15: the dark navy tokens below were replaced by the 'Beat it! Look' tokens.
+> See docs/brand-ui.md. Layout and behaviour notes here still apply.
+
 Introduced by ui-0.1. Later ui-* features add the components they introduce.
 
 ## Tokens (`fe/src/styles.css` `:root`) - dark theme since theme-1.1 (round 10)

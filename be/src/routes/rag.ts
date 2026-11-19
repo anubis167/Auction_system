@@ -78,7 +78,7 @@ ragRouter.get(
   }),
 );
 
-const MAX_CHUNKS = 15000; // 10 MB / ~850 new chars per chunk is ~12500 at worst; real documents stay far below
+export const MAX_CHUNKS = 15000; // 10 MB / ~850 new chars per chunk is ~12500 at worst; real documents stay far below
 const documentBody = z.object({
   title: z.string().trim().min(1).max(255),
   filename: z.string().trim().min(1).max(255),

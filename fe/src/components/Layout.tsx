@@ -24,6 +24,10 @@ export function Layout() {
   // ui-0.1: on narrow screens the nav folds behind a menu button; any navigation closes it.
   const [navOpen, setNavOpen] = useState(false);
   useEffect(() => setNavOpen(false), [location.pathname, location.search]);
+  // pop-0.3: router links to '/#categories' etc. scroll to the anchor once the page has rendered it.
+  useEffect(() => {
+    if (location.hash) requestAnimationFrame(() => document.getElementById(location.hash.slice(1))?.scrollIntoView());
+  }, [location.pathname, location.hash]);
   const isCustomer = user?.role === 'customer';
   const roleLinks = ROLE_LINKS.filter((l) => can(user, l.permission));
   const pending = { goods: goodsPending, credit: creditPending };
@@ -38,7 +42,10 @@ export function Layout() {
       <header className={!user ? 'topbar' : isCustomer ? 'topbar topbar-split' : 'topbar topbar-split topbar-staff'}>
         <Link to="/" className="brand" aria-label="Beat'em home">
           <img className="brand-mark" src="/logo.svg" alt="" aria-hidden="true" />
-          <span className="brand-name">Beat'em</span>
+          {/* pop-0.3: live-text wordmark in Bangers, ink with a pow-red accent. */}
+          <span className="brand-name">
+            Beat<span className="brand-accent">'em</span>
+          </span>
         </Link>
         <button
           type="button"
@@ -80,9 +87,17 @@ export function Layout() {
               )}
             </>
           ) : (
-            <NavLink to="/" end>
-              Browse
-            </NavLink>
+            // pop-0.3: guest nav from the mockup, each pointing at a page that exists.
+            <>
+              <NavLink to="/" end>
+                Live now
+              </NavLink>
+              <Link to="/?sort=ending">Ending soon</Link>
+              <Link to="/#categories">Categories</Link>
+              <Link to="/login" state={{ from: '/auctions/new' }}>
+                Sell with us
+              </Link>
+            </>
           )}
         </nav>
         {/* ui-1a.2 / hdr-1.2: the browsing search sits in every role's bar. */}
@@ -111,10 +126,10 @@ export function Layout() {
             </>
           ) : (
             <>
-              <Link to="/login" className="btn btn-ghost">
-                Log in
+              <Link to="/login" className="btn btn-trust btn-sm" data-testid="sign-in">
+                Sign in
               </Link>
-              <Link to="/register" className="btn btn-primary">
+              <Link to="/register" className="btn btn-secondary btn-sm">
                 Register
               </Link>
             </>
@@ -313,24 +328,35 @@ function PendingBadge({ count, testId, label }: { count: number | null; testId: 
   );
 }
 
-/** Site footer: logo and blurb left, link columns right, an outlined wordmark fading into the bottom bar (copyright + quick links). */
+/**
+ * pop-0.4: site footer in the 'Beat it! Look': wordmark + blurb, link columns (only routes that exist), a trust
+ * row and the copyright line. The mockup's newsletter band and company pages are deferred (no backend/pages).
+ */
 const FOOTER_COLUMNS: { title: string; links: { to: string; label: string }[] }[] = [
   {
-    title: 'Auctions',
+    title: 'Buy',
     links: [
-      { to: '/', label: 'Browse lots' },
-      { to: '/auctions/new', label: 'Start an auction' },
-      { to: '/my-auctions', label: 'My auctions' },
+      { to: '/', label: 'Live auctions' },
+      { to: '/?sort=ending', label: 'Ending soon' },
+      { to: '/#categories', label: 'Categories' },
       { to: '/my-bids', label: 'My bids' },
+    ],
+  },
+  {
+    title: 'Sell',
+    links: [
+      { to: '/auctions/new', label: 'Start an auction' },
+      { to: '/goods', label: 'My goods' },
+      { to: '/my-auctions', label: 'My auctions' },
     ],
   },
   {
     title: 'Account',
     links: [
-      { to: '/dashboard', label: 'Dashboard' },
       { to: '/credit', label: 'Credit' },
-      { to: '/goods', label: 'My goods' },
-      { to: '/profile', label: 'Profile' },
+      { to: '/dashboard', label: 'Dashboard' },
+      { to: '/login', label: 'Sign in' },
+      { to: '/register', label: 'Create an account' },
     ],
   },
   {
@@ -342,11 +368,6 @@ const FOOTER_COLUMNS: { title: string; links: { to: string; label: string }[] }[
   },
 ];
 
-const FOOTER_BOTTOM_LINKS = [
-  { to: '/login', label: 'Log in' },
-  { to: '/register', label: 'Create an account' },
-];
-
 function SiteFooter() {
   return (
     <footer className="site-footer" data-testid="site-footer">
@@ -355,6 +376,9 @@ function SiteFooter() {
           <div className="footer-intro">
             <Link to="/" className="footer-brand" aria-label="Beat'em home">
               <img className="footer-mark" src="/logo.svg" alt="" aria-hidden="true" />
+              <span className="footer-wordmark-text">
+                Beat<span className="brand-accent">'em</span>
+              </span>
             </Link>
             <p className="footer-blurb">Beat'em , Beat'it, Win and Win.</p>
           </div>
@@ -371,18 +395,24 @@ function SiteFooter() {
             </nav>
           ))}
         </div>
-        <div className="footer-wordmark" aria-hidden="true">
-          <span>BEAT&apos;EM</span>
-        </div>
+        <ul className="footer-trust" data-testid="footer-trust">
+          <li>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z" />
+              <path d="M8.5 12l2.5 2.5 4.5-5" />
+            </svg>
+            Buyer protection
+          </li>
+          <li>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="4" y="10" width="16" height="11" />
+              <path d="M8 10V7a4 4 0 018 0v3" />
+            </svg>
+            Secure payments
+          </li>
+        </ul>
         <div className="footer-bottom">
-          <span>© {new Date().getFullYear()} Beat&apos;em / Live online auctions</span>
-          <nav className="footer-bottom-links" aria-label="Footer">
-            {FOOTER_BOTTOM_LINKS.map((l) => (
-              <Link key={l.to} to={l.to}>
-                {l.label}
-              </Link>
-            ))}
-          </nav>
+          <span data-testid="footer-copyright">© {new Date().getFullYear()} Beat&apos;em</span>
         </div>
       </div>
     </footer>

@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { api, money } from '../api';
 import { CREDIT_LABELS, RESULT, winRate, type BidHistoryItem, type BidTotals } from '../bidHistory';
 import { HISTORY_TABS, filterHistory, isHistoryTab, tabCounts, type HistoryTab } from '../bidHistoryFilter';
-import { Pill, SearchInput, SegmentedTabs } from '../components/ui';
+import { Burst, Pill, SearchInput, SegmentedTabs } from '../components/ui';
 
 /** ui-3a.1: 'Bid history' from the 3a mockup: totals, then one row per lot with my bid, credit state and result. */
 export function MyBiddingsPage() {
@@ -110,9 +110,13 @@ export function MyBiddingsPage() {
                     {CREDIT_LABELS[i.creditState]}
                   </td>
                   <td>
-                    <Pill tone={RESULT[i.myStatus].tone} testId="my-status">
-                      {RESULT[i.myStatus].label}
-                    </Pill>
+                    <span className="result-cell">
+                      <Pill tone={RESULT[i.myStatus].tone} testId="my-status">
+                        {RESULT[i.myStatus].label}
+                      </Pill>
+                      {/* pop-5.1: BAM! marks a won lot (sound-word bank). */}
+                      {i.myStatus === 'won' && <Burst word="BAM!" className="burst-sm" testId="won-bam" />}
+                    </span>
                   </td>
                 </tr>
               ))}

@@ -1,27 +1,44 @@
 import { useEffect, useRef, useState } from 'react';
+import type { Badge as BadgeInfo } from '../brand';
 import { galleryTiles, step } from './galleryTiles';
+import { Badge, Halftone, LotGlyph } from './ui';
 
 /**
- * ui-1b.1: hero image with a row of thumbnails (selected one outlined in navy). With more than five images the
- * last tile is '+N' and opens a lightbox (arrow keys, Escape) at the first hidden image.
+ * ui-1b.1: hero image with a row of thumbnails. With more than five images the last tile is '+N' and opens a
+ * lightbox (arrow keys, Escape) at the first hidden image. pop-2.1: the hero sits in an outlined halftone frame
+ * with the lot's state badges (Live / Ending soon! / GONE!); without photos the frame holds the lot glyph.
  */
-export function Gallery({ images, name }: { images: string[]; name: string }) {
+export function Gallery({ images, name, badges = [] }: { images: string[]; name: string; badges?: BadgeInfo[] }) {
   const [selected, setSelected] = useState(0);
   const [lightbox, setLightbox] = useState<number | null>(null);
   useEffect(() => setSelected(0), [images]);
 
+  const overlay = (
+    <span className="gallery-badges">
+      {badges.map((b) => (
+        <Badge key={b.kind} kind={b.kind} testId={`lot-badge-${b.kind}`}>
+          {b.label}
+        </Badge>
+      ))}
+    </span>
+  );
   if (images.length === 0) {
     return (
-      <div className="gallery-hero gallery-empty" data-testid="gallery-placeholder">
-        No image
-      </div>
+      <Halftone tone="cyan" className="gallery-frame gallery-empty" testId="gallery-placeholder">
+        <LotGlyph className="gallery-glyph" />
+        <span className="sr-only">No image</span>
+        {overlay}
+      </Halftone>
     );
   }
   return (
     <div className="gallery">
-      <button type="button" className="gallery-hero-button" onClick={() => setLightbox(selected)} aria-label="Open image viewer">
-        <img className="gallery-hero" src={images[selected]} alt={name} data-testid="gallery-hero" />
-      </button>
+      <Halftone tone="cyan" className="gallery-frame">
+        <button type="button" className="gallery-hero-button" onClick={() => setLightbox(selected)} aria-label="Open image viewer">
+          <img className="gallery-hero" src={images[selected]} alt={name} data-testid="gallery-hero" />
+        </button>
+        {overlay}
+      </Halftone>
       {galleryTiles(images.length).length > 0 && (
         <div className="gallery-thumbs" data-testid="gallery-thumbs">
           {galleryTiles(images.length).map((t) =>
@@ -69,13 +86,13 @@ function Lightbox({ images, name, start, onClose }: { images: string[]; name: st
         <img src={images[index]} alt={`${name} image ${index + 1}`} />
         <div className="lightbox-bar">
           <button type="button" className="btn btn-ghost" onClick={() => setIndex(step(index, -1, images.length))} aria-label="Previous image">
-            ‹
+            <Chevron dir="left" />
           </button>
           <span data-testid="lightbox-position">
             {index + 1} / {images.length}
           </span>
           <button type="button" className="btn btn-ghost" onClick={() => setIndex(step(index, 1, images.length))} aria-label="Next image">
-            ›
+            <Chevron dir="right" />
           </button>
           <button type="button" ref={close} className="btn btn-primary" onClick={onClose}>
             Close
@@ -83,5 +100,13 @@ function Lightbox({ images, name, start, onClose }: { images: string[]; name: st
         </div>
       </div>
     </div>
+  );
+}
+
+function Chevron({ dir }: { dir: 'left' | 'right' }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={dir === 'left' ? 'M15 5l-7 7 7 7' : 'M9 5l7 7-7 7'} />
+    </svg>
   );
 }
