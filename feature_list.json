@@ -3,7 +3,10 @@
   "last_updated": "2026-11-19",
   "scope": "Round 15. 'Beat it! Look' restyle: the site keeps its name Beat'em (user, 2026-11-19); only the look changes, from the current dark navy style to the 'Beat it! Look' visual system (LOT-POP-Brand-Guidelines.md) following the 5 mockup screens in 'Pop Art Auction UI.html' (Homepage, Lot page, Chat widget, Footer, Mobile quick bid). This is a UI round: it restyles and rearranges pages that already exist and shows only data the API already has. Every business rule and API from rounds 1-14 (archived in progress-feature-list/) stays: bids checked against available credit and the increment ladder, realtime SSE, idle logout, roles/permissions, staff chat handoff, RAG chat. All 75 existing Playwright specs must keep passing (selectors/text updated only where the rebrand changes visible copy, never to weaken a check). One feature per function, like round 8 (ui-<page>.<n>), here pop-<area>.<n>.",
   "source_requirements": {
-    "files": ["LOT-POP-Brand-Guidelines.md", "Pop Art Auction UI.html"],
+    "files": [
+      "LOT-POP-Brand-Guidelines.md",
+      "Pop Art Auction UI.html"
+    ],
     "text": "User, 2026-11-19: read the UI file and the brand guideline, then generate the feature list. Standing SRS rules (SRS.txt header): e2e, unit and integration tests written to the e2e folder; changed files described in the docs folder; all delete means soft delete.",
     "mockup_screens": {
       "Homepage": "Header (wordmark + mark, Live now / Ending soon / Categories / Sell with us, Search lots, Sign in); hero 'Going, going... GONE!' with a 'Hot lot!' LIVE lot card; category ticker; 'Live lots' grid with Zap! filter chips and LotCards (LOT no, Ending soon!, category, title, current bid, bid count, time left); 'How it works' 1. Spot it! 2. Bid it! 3. Win it!",
@@ -48,8 +51,14 @@
         "./init.sh exit 0 (be, fe, build, Python, all Playwright specs)",
         "docs/changes/pop-0.1.md"
       ],
-      "evidence": [],
-      "status": "not_started"
+      "evidence": [
+        "2026-11-19 e2e/unit/pop-0-1-tokens.test.ts 3/3 (guideline token values, old tokens/fonts gone, WCAG pairs)",
+        "2026-11-19 e2e/pop-0-1-base-styles.spec.ts 2/2 (paper/ink/Archivo/Bangers, 3px bam-blue focus ring, square 3px ink buttons, reduced motion 0s)",
+        "2026-11-19 COMPOSE_PROJECT_NAME=auction_system ./init.sh exit 0: be 406, fe 162, build, Python 63, Playwright 77/77",
+        "2026-11-19 Visual check at 1280 and 375 (home, lot, dashboard): no horizontal scroll",
+        "2026-11-19 docs/changes/pop-0.1.md"
+      ],
+      "status": "passing"
     },
     {
       "id": "pop-0.2",
