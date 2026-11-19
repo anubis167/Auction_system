@@ -63,7 +63,7 @@ export function HomePage() {
 
   return (
     <div>
-      <div className="chip-bar">
+      <div className="chip-bar" id="categories">
         <SegmentedTabs tabs={chips} value={browse.category || 'all'} onChange={(v) => go({ category: v === 'all' ? '' : v })} label="Categories" testId="category-chips" />
       </div>
       {searching && auctions && (

@@ -79,9 +79,11 @@
         "docs/changes/pop-0.2.md"
       ],
       "evidence": [
-        "2026-11-19 e2e/unit/pop-0-2-brand-rules.test.ts 7/7; fe vitest 162/162; fe build ok (awaiting group gate after pop-0.4)"
+        "2026-11-19 e2e/unit/pop-0-2-brand-rules.test.ts 7/7; fe vitest 162/162; fe build ok (awaiting group gate after pop-0.4)",
+        "2026-11-19 group gate ./init.sh: be 413, fe 162, build, Python 63, Playwright 81/82 - the 1 failure was guest-001 (footer 'Register' duplicated the header link, strict mode); footer link renamed 'Create an account', guest-001 + pop-0-3 + pop-0-4 rerun 6/6",
+        "2026-11-19 docs/changes/pop-0.2.md"
       ],
-      "status": "in_progress"
+      "status": "passing"
     },
     {
       "id": "pop-0.3",
@@ -102,8 +104,13 @@
         "existing guest/cust/sec specs still pass",
         "docs/changes/pop-0.3.md"
       ],
-      "evidence": [],
-      "status": "not_started"
+      "evidence": [
+        "2026-11-19 e2e/pop-0-3-header.spec.ts 3/3 (wordmark/rule/accent, 4 guest nav links, trust Sign in, Ending soon -> sorted browse, Categories anchor, Sell with us -> sign in -> create auction, customer menu kept, 375px fold-out 44px, no h-scroll)",
+        "2026-11-19 existing guest-001, cust-001, sec-001 pass",
+        "2026-11-19 group gate ./init.sh: be 413, fe 162, build, Python 63, Playwright 81/82 - the 1 failure was guest-001 (footer 'Register' duplicated the header link, strict mode); footer link renamed 'Create an account', guest-001 + pop-0-3 + pop-0-4 rerun 6/6",
+        "2026-11-19 docs/changes/pop-0.3.md"
+      ],
+      "status": "passing"
     },
     {
       "id": "pop-0.4",
@@ -123,8 +130,12 @@
         "e2e/pop-0-4-footer.spec.ts: footer visible on home and lot page, every footer link returns a page that renders (no 404 route), current year shown, 375px stacked",
         "docs/changes/pop-0.4.md"
       ],
-      "evidence": [],
-      "status": "not_started"
+      "evidence": [
+        "2026-11-19 e2e/pop-0-4-footer.spec.ts 2/2 (home + lot page, year, trust row, every footer href renders a page, 375px stacked)",
+        "2026-11-19 group gate ./init.sh: be 413, fe 162, build, Python 63, Playwright 81/82 - the 1 failure was guest-001 (footer 'Register' duplicated the header link, strict mode); footer link renamed 'Create an account', guest-001 + pop-0-3 + pop-0-4 rerun 6/6",
+        "2026-11-19 docs/changes/pop-0.4.md"
+      ],
+      "status": "passing"
     },
     {
       "id": "pop-1.1",
