@@ -660,6 +660,6 @@
 
 - Startup: no containers running; round 14 committed (9a34853), tree clean.
 - New round from LOT-POP-Brand-Guidelines.md + 'Pop Art Auction UI.html' (5 mockup screens: Homepage, Lot page, Chat widget, Footer, Mobile quick bid). feature_list.json: pop-0.1 .. pop-6.1 (17 features), all not_started.
-- Mockup items with no data/API today (watchlist, auto-bid, newsletter, seller stats, condition grade/specs/shipping, buyer's premium, missing footer pages) are listed under `deferred`, not faked. Open readings are in `readings_to_confirm` (rename Beat'em -> LOT POP!, light theme only, lot card link vs quick-bid row, chat chips).
+- Mockup items with no data/API today (watchlist, auto-bid, newsletter, seller stats, condition grade/specs/shipping, buyer's premium, missing footer pages) are listed under `deferred`, not faked. Open readings are in `readings_to_confirm` (brand name stays Beat'em - user decision, light theme only, lot card link vs quick-bid row, chat chips).
 - ./init.sh not run this session (no code changed).
 - Next: user confirms the readings, then pop-0.1 (tokens, fonts, base styles).

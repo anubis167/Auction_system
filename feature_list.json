@@ -1,7 +1,7 @@
 {
   "project": "Online Auction System",
   "last_updated": "2026-11-19",
-  "scope": "Round 15. LOT POP! rebrand: restyle the whole frontend (fe/) from the current dark navy 'Beat'em' look to the LOT POP! pop-art brand (LOT-POP-Brand-Guidelines.md) following the 5 mockup screens in 'Pop Art Auction UI.html' (Homepage, Lot page, Chat widget, Footer, Mobile quick bid). This is a UI round: it restyles and rearranges pages that already exist and shows only data the API already has. Every business rule and API from rounds 1-14 (archived in progress-feature-list/) stays: bids checked against available credit and the increment ladder, realtime SSE, idle logout, roles/permissions, staff chat handoff, RAG chat. All 75 existing Playwright specs must keep passing (selectors/text updated only where the rebrand changes visible copy, never to weaken a check). One feature per function, like round 8 (ui-<page>.<n>), here pop-<area>.<n>.",
+  "scope": "Round 15. Pop-art restyle: the site keeps its name Beat'em (user, 2026-11-19); only the look changes, from the current dark navy style to the pop-art visual system (LOT-POP-Brand-Guidelines.md) following the 5 mockup screens in 'Pop Art Auction UI.html' (Homepage, Lot page, Chat widget, Footer, Mobile quick bid). This is a UI round: it restyles and rearranges pages that already exist and shows only data the API already has. Every business rule and API from rounds 1-14 (archived in progress-feature-list/) stays: bids checked against available credit and the increment ladder, realtime SSE, idle logout, roles/permissions, staff chat handoff, RAG chat. All 75 existing Playwright specs must keep passing (selectors/text updated only where the rebrand changes visible copy, never to weaken a check). One feature per function, like round 8 (ui-<page>.<n>), here pop-<area>.<n>.",
   "source_requirements": {
     "files": ["LOT-POP-Brand-Guidelines.md", "Pop Art Auction UI.html"],
     "text": "User, 2026-11-19: read the UI file and the brand guideline, then generate the feature list. Standing SRS rules (SRS.txt header): e2e, unit and integration tests written to the e2e folder; changed files described in the docs folder; all delete means soft delete.",
@@ -14,7 +14,7 @@
     }
   },
   "readings_to_confirm": [
-    "Brand name: the site is renamed from 'Beat'em' to 'LOT POP!' everywhere (page title, header, footer, mails stay unchanged unless the user asks). The wordmark is live text (Bangers, LOT in ink, POP! in pow-red); the starburst mark is drawn as fe/public/lotpop-mark.svg (+ lotpop-mark-ink.svg) from the mockup, also used as the favicon. The guideline's components/bundle.js (window.LotPop) is not in the repo, so the components are rebuilt as small React components in fe/src/components/ui.",
+    "Brand name (decided by the user 2026-11-19): the site stays 'Beat'em'. The guideline's look (colours, type, halftone, outlines, sound words) is applied, but the name 'LOT POP!', its tagline 'Auctions with a bang.' and the lotpop-mark files are NOT used. The wordmark is live text \"Beat'em\" in Bangers styled like the guideline's wordmark (ink + pow-red accent on the last word part); the existing fe/public/logo.svg stays as the mark and favicon, recoloured to the brand palette. The guideline's components/bundle.js (window.LotPop) is not in the repo, so the components are rebuilt as small React components in fe/src/components/ui.",
     "Light theme only: the brand page ground is paper #FFF8E7; the current dark tokens are replaced, not kept as a dark mode. Staff/admin charts keep their own series colours, re-checked for contrast on paper.",
     "Mockup items with no data or API today are left out of this round, not faked: watchlist ('My watchlist', 'Save the ones you love'), auto-bid / max bid, newsletter signup (footer band), seller stats ('Verified seller', 'N lots sold'), condition grade / inspected by, specs (maker, model, serial, size, estimate), shipping & pickup details, buyer's premium %, 'Ships from', footer pages that do not exist (Careers, Press, Blog, Seller handbook...). Placeholders like [SELLER NAME] in the mockup map to real fields where one exists (seller username, goods.condition, category, start price, start/end time) and are hidden otherwise. Each left-out item is listed under 'deferred'.",
     "Lot page tabs: Description (auction/goods description), Condition (goods.condition text, plus 'Ask the auction desk in the chat' link), Seller (username + 'See more lots from this seller' -> existing search filtered by seller if supported, else hidden). 'Shipping & pickup' tab is deferred (no data).",
@@ -31,10 +31,10 @@
       "priority": 1,
       "role": "all",
       "area": "design-system",
-      "title": "LOT POP! design tokens, fonts and base styles",
+      "title": "Pop-art design tokens, fonts and base styles",
       "user_visible_behavior": "Every page sits on warm comic paper with ink text, Bangers headlines and Archivo body text; buttons, inputs and cards have square ink outlines and hard shadows; keyboard focus shows a blue outline.",
       "acceptance": [
-        "fe/index.html loads Bangers and Archivo:wght@400;600;800 from Google Fonts (Mulish removed); <title> and favicon are LOT POP! / lotpop-mark.svg.",
+        "fe/index.html loads Bangers and Archivo:wght@400;600;800 from Google Fonts (Mulish removed); <title> stays Beat'em; favicon stays logo.svg recoloured to the brand palette.",
         "fe/src/styles.css :root holds exactly the guideline tokens (colour, -dot partners, font, space-1..8, radius, stroke, shadow); old navy/dark tokens removed; existing class names keep working by pointing at the new tokens.",
         "body: background paper, colour ink, font body 17px/1.6 weight 600; h1-h3 Bangers with 1-2px tracking and no text-transform.",
         "Controls: radius 0, stroke-base 3px ink outline; cards/panels stroke-heavy 4px; hover translate(-2px,-2px) + bigger shadow in 120-150ms; press translate(3px,3px) + smaller shadow.",
@@ -77,10 +77,10 @@
       "priority": 3,
       "role": "all",
       "area": "layout",
-      "title": "Header: LOT POP! wordmark, nav, search and Sign in",
-      "user_visible_behavior": "The top bar shows the starburst mark and 'LOT POP!' wordmark, nav links Live now / Ending soon / Categories / Sell with us, a 'Search lots' box and a blue Sign in button; signed-in users still see their own menu.",
+      "title": "Header: Beat'em wordmark, nav, search and Sign in",
+      "user_visible_behavior": "The top bar shows the Beat'em mark and wordmark in the pop-art style, nav links Live now / Ending soon / Categories / Sell with us, a 'Search lots' box and a blue Sign in button; signed-in users still see their own menu.",
       "acceptance": [
-        "Header has a 4px ink bottom rule; wordmark Bangers with LOT ink and POP! pow-red; mark >= 24px with clear space.",
+        "Header has a 4px ink bottom rule; wordmark 'Beat'em' in Bangers, ink with a pow-red accent; mark >= 24px with clear space.",
         "Live now / Ending soon / Categories link to the existing browse with the matching sort/filter; Sell with us -> sell flow (customer) or /login (guest).",
         "Search lots uses the existing TopSearch behaviour.",
         "Sign in is a trust Button for guests; customer/staff/admin nav, credit bar and idle logout from earlier rounds unchanged.",
@@ -100,12 +100,12 @@
       "role": "all",
       "area": "layout",
       "title": "Footer: brand block, link columns and trust row",
-      "user_visible_behavior": "Every page ends with the LOT POP! footer: wordmark and 'Auctions with a bang.', link columns to pages that exist, a trust row and the copyright line.",
+      "user_visible_behavior": "Every page ends with the pop-art Beat'em footer: wordmark and the existing blurb, link columns to pages that exist, a trust row and the copyright line.",
       "acceptance": [
-        "Replaces the Beat'em footer in Layout.tsx; 4px ink top rule; ink ground with zap-yellow POP!.",
+        "Restyles the Beat'em footer in Layout.tsx (name and blurb kept); 4px ink top rule; ink ground with zap-yellow accent.",
         "Link columns contain only routes that exist (Live auctions, Ending soon, Categories, Sell / My goods, Credit, Sign in / Register); no dead links.",
         "Trust row text only (Buyer protection, Secure payments) with inline SVG icons, no sound words.",
-        "Copyright '(c) <current year> LOT POP!'; columns stack on phones.",
+        "Copyright '(c) <current year> Beat'em'; columns stack on phones.",
         "Newsletter band is deferred (no backend)."
       ],
       "verification": [
@@ -327,7 +327,7 @@
       "role": "customer",
       "area": "pages",
       "title": "Restyle customer and auth pages to the brand",
-      "user_visible_behavior": "Sign in, Register, password pages, Dashboard, My auctions, My biddings, My goods, Create auction, Credit and Profile all use the LOT POP! look.",
+      "user_visible_behavior": "Sign in, Register, password pages, Dashboard, My auctions, My biddings, My goods, Create auction, Credit and Profile all use the pop-art look.",
       "acceptance": [
         "Forms: Archivo labels (overline), panel inputs with 3px outlines, no tilt; Sign in = trust button; Register success shows KAPOW! burst; won lots in My biddings show BAM!.",
         "No sound words in password, credit/payment or error copy.",
