@@ -48,6 +48,12 @@ def api_failure(e, passed_on=(400, 401, 403, 404, 413)):
     return jsonify(error="The document service is unavailable right now, try again later"), 502
 
 
+@app.route("/api/chat/health")
+def chat_health():
+    """The chat box asks this on open; no answer means the bot service is not running"""
+    return jsonify(ok=True)
+
+
 @app.route("/api/chat", methods=["POST"])
 def web_chat():
     """Embedded site chat: the browser sends the conversation, Gemini answers the last message"""

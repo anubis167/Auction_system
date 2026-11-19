@@ -17,6 +17,7 @@ import {
 } from '../supportChat';
 
 const BOT: SupportState = { mode: 'bot', conversationId: null, lines: [] };
+const DOWN = 'Your assistant not available now';
 
 /**
  * chat-1.2: chat box embedded in every page, answered by be/rag/chat.py. sch-1.7: when the bot hands a signed-in
@@ -33,6 +34,7 @@ export function ChatBox() {
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [down, setDown] = useState(false);
   const toggle = useRef<HTMLButtonElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const log = useRef<HTMLDivElement>(null);
@@ -58,6 +60,14 @@ export function ChatBox() {
   useEffect(() => {
     if (open && customer) void sync();
   }, [open, customer, sync]);
+  // The bot service (be/rag/chat.py) is checked each time the box opens; staff mode does not need it.
+  useEffect(() => {
+    if (!open || state.mode === 'staff') return;
+    http.get('/chat/health').then(
+      () => setDown(false),
+      () => setDown(true),
+    );
+  }, [open, state.mode]);
   useEffect(() => {
     const onEvent = (e: Event) => setState((s) => applyEvent(s, (e as CustomEvent<SupportEvent>).detail));
     window.addEventListener('support-chat', onEvent);
@@ -87,7 +97,7 @@ export function ChatBox() {
       // The text goes back in the field, so a failed send loses nothing and can be retried.
       setState(state);
       setDraft(text);
-      setError('The assistant is unavailable right now. Please try again.');
+      setError(DOWN);
     }
   };
 
@@ -125,12 +135,12 @@ export function ChatBox() {
   };
 
   const staffMode = state.mode === 'staff';
+  const offline = down && !staffMode;
   return (
     <div className="chat" onKeyDown={onEscape}>
       <section className="chat-panel" id="chat-panel" aria-label="Chat with Beat'em" hidden={!open} data-testid="chat-panel" data-mode={state.mode}>
         <h2 className="chat-title">{staffMode ? 'Chat with our staff' : "Chat with Beat'em"}</h2>
         <div className="chat-log" role="log" aria-live="polite" ref={log} data-testid="chat-log">
-          <p className="chat-msg chat-msg-model">Hi! How can we help you today?</p>
           {state.lines.map((m, i) => (
             <p key={m.id ?? `l${i}`} className={`chat-msg chat-msg-${m.role}`}>
               {m.text}
@@ -138,9 +148,9 @@ export function ChatBox() {
           ))}
           {busy && !staffMode && <p className="chat-msg chat-msg-model">Typing…</p>}
         </div>
-        {error && (
+        {(offline || error) && (
           <p className="chat-error" role="alert">
-            {error}
+            {offline ? DOWN : error}
           </p>
         )}
         <form className="chat-form" onSubmit={send}>
@@ -151,10 +161,10 @@ export function ChatBox() {
             maxLength={MAX_TEXT}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            disabled={busy}
+            disabled={busy || offline}
             data-testid="chat-input"
           />
-          <button type="submit" className="btn btn-primary" disabled={busy || !draft.trim()}>
+          <button type="submit" className="btn btn-primary" disabled={busy || offline || !draft.trim()}>
             Send
           </button>
         </form>
