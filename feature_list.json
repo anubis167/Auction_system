@@ -1,7 +1,7 @@
 {
   "project": "Online Auction System",
   "last_updated": "2026-11-19",
-  "scope": "Round 15. Pop-art restyle: the site keeps its name Beat'em (user, 2026-11-19); only the look changes, from the current dark navy style to the pop-art visual system (LOT-POP-Brand-Guidelines.md) following the 5 mockup screens in 'Pop Art Auction UI.html' (Homepage, Lot page, Chat widget, Footer, Mobile quick bid). This is a UI round: it restyles and rearranges pages that already exist and shows only data the API already has. Every business rule and API from rounds 1-14 (archived in progress-feature-list/) stays: bids checked against available credit and the increment ladder, realtime SSE, idle logout, roles/permissions, staff chat handoff, RAG chat. All 75 existing Playwright specs must keep passing (selectors/text updated only where the rebrand changes visible copy, never to weaken a check). One feature per function, like round 8 (ui-<page>.<n>), here pop-<area>.<n>.",
+  "scope": "Round 15. 'Beat it! Look' restyle: the site keeps its name Beat'em (user, 2026-11-19); only the look changes, from the current dark navy style to the 'Beat it! Look' visual system (LOT-POP-Brand-Guidelines.md) following the 5 mockup screens in 'Pop Art Auction UI.html' (Homepage, Lot page, Chat widget, Footer, Mobile quick bid). This is a UI round: it restyles and rearranges pages that already exist and shows only data the API already has. Every business rule and API from rounds 1-14 (archived in progress-feature-list/) stays: bids checked against available credit and the increment ladder, realtime SSE, idle logout, roles/permissions, staff chat handoff, RAG chat. All 75 existing Playwright specs must keep passing (selectors/text updated only where the rebrand changes visible copy, never to weaken a check). One feature per function, like round 8 (ui-<page>.<n>), here pop-<area>.<n>.",
   "source_requirements": {
     "files": ["LOT-POP-Brand-Guidelines.md", "Pop Art Auction UI.html"],
     "text": "User, 2026-11-19: read the UI file and the brand guideline, then generate the feature list. Standing SRS rules (SRS.txt header): e2e, unit and integration tests written to the e2e folder; changed files described in the docs folder; all delete means soft delete.",
@@ -31,7 +31,7 @@
       "priority": 1,
       "role": "all",
       "area": "design-system",
-      "title": "Pop-art design tokens, fonts and base styles",
+      "title": "'Beat it! Look' design tokens, fonts and base styles",
       "user_visible_behavior": "Every page sits on warm comic paper with ink text, Bangers headlines and Archivo body text; buttons, inputs and cards have square ink outlines and hard shadows; keyboard focus shows a blue outline.",
       "acceptance": [
         "fe/index.html loads Bangers and Archivo:wght@400;600;800 from Google Fonts (Mulish removed); <title> stays Beat'em; favicon stays logo.svg recoloured to the brand palette.",
@@ -78,7 +78,7 @@
       "role": "all",
       "area": "layout",
       "title": "Header: Beat'em wordmark, nav, search and Sign in",
-      "user_visible_behavior": "The top bar shows the Beat'em mark and wordmark in the pop-art style, nav links Live now / Ending soon / Categories / Sell with us, a 'Search lots' box and a blue Sign in button; signed-in users still see their own menu.",
+      "user_visible_behavior": "The top bar shows the Beat'em mark and wordmark in the Beat it! Look, nav links Live now / Ending soon / Categories / Sell with us, a 'Search lots' box and a blue Sign in button; signed-in users still see their own menu.",
       "acceptance": [
         "Header has a 4px ink bottom rule; wordmark 'Beat'em' in Bangers, ink with a pow-red accent; mark >= 24px with clear space.",
         "Live now / Ending soon / Categories link to the existing browse with the matching sort/filter; Sell with us -> sell flow (customer) or /login (guest).",
@@ -100,7 +100,7 @@
       "role": "all",
       "area": "layout",
       "title": "Footer: brand block, link columns and trust row",
-      "user_visible_behavior": "Every page ends with the pop-art Beat'em footer: wordmark and the existing blurb, link columns to pages that exist, a trust row and the copyright line.",
+      "user_visible_behavior": "Every page ends with the Beat'em footer in the Beat it! Look: wordmark and the existing blurb, link columns to pages that exist, a trust row and the copyright line.",
       "acceptance": [
         "Restyles the Beat'em footer in Layout.tsx (name and blurb kept); 4px ink top rule; ink ground with zap-yellow accent.",
         "Link columns contain only routes that exist (Live auctions, Ending soon, Categories, Sell / My goods, Credit, Sign in / Register); no dead links.",
@@ -327,7 +327,7 @@
       "role": "customer",
       "area": "pages",
       "title": "Restyle customer and auth pages to the brand",
-      "user_visible_behavior": "Sign in, Register, password pages, Dashboard, My auctions, My biddings, My goods, Create auction, Credit and Profile all use the pop-art look.",
+      "user_visible_behavior": "Sign in, Register, password pages, Dashboard, My auctions, My biddings, My goods, Create auction, Credit and Profile all use the Beat it! Look.",
       "acceptance": [
         "Forms: Archivo labels (overline), panel inputs with 3px outlines, no tilt; Sign in = trust button; Register success shows KAPOW! burst; won lots in My biddings show BAM!.",
         "No sound words in password, credit/payment or error copy.",
