@@ -5,6 +5,7 @@ import { homeFor, useAuth } from '../auth';
 import { idleSettings } from '../idle';
 import { idleSignedOutText } from '../idleSession';
 import { safeFrom } from '../safeFrom';
+import { Burst } from '../components/ui';
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -33,6 +34,13 @@ export function LoginPage() {
   return (
     <div className="card narrow">
       <h1>Log in</h1>
+      {/* pop-5.1: sign-up moment from the sound-word bank (KAPOW!), announced once. */}
+      {(location.state as { registered?: boolean } | null)?.registered && (
+        <div className="kapow" data-testid="kapow">
+          <Burst word="KAPOW!" tone="pink" animate announce />
+          <p>You're in! Confirm your email, then sign in below.</p>
+        </div>
+      )}
       {/* sec-005: signed out by the idle logout (this tab or another one). */}
       {(location.state as { idle?: boolean } | null)?.idle && (
         <p className="notice" role="status" data-testid="idle-signed-out">
@@ -64,7 +72,7 @@ export function LoginPage() {
             {error}
           </p>
         )}
-        <button className="btn btn-primary" type="submit" disabled={busy}>
+        <button className="btn btn-trust" type="submit" disabled={busy}>
           {busy ? 'Logging in...' : 'Log in'}
         </button>
       </form>

@@ -37,7 +37,8 @@ export function RegisterPage() {
     try {
       const res = await api<{ message: string }>('/auth/register', { body: values });
       toast(res.message, 'success');
-      navigate('/login');
+      // pop-5.1: the sign-in page greets a new account with KAPOW!.
+      navigate('/login', { state: { registered: true } });
     } catch (err) {
       if (err instanceof ApiError) {
         setServerErrors(err.fields);

@@ -1036,3 +1036,30 @@ th, td { border-bottom: var(--stroke-thin) dashed var(--ink); }
   /* Keep the chat launcher above the band while it is on screen. */
   #root:has(.bid-band) .chat { bottom: 270px; }
 }
+
+/* pop-5.1 customer and auth pages: overline form labels (inputs keep body text), KAPOW!/BAM! moments, no tilt on forms. */
+form label, .field > label, .label {
+  font: 800 13px/1.2 var(--font-body); letter-spacing: 1px; text-transform: uppercase; color: var(--ink);
+}
+form label input, form label select, form label textarea {
+  font: 600 17px/1.4 var(--font-body); letter-spacing: 0; text-transform: none;
+}
+form label input[type='checkbox'], form label input[type='radio'] { width: 20px; height: 20px; }
+.card.narrow { box-shadow: var(--shadow-lg); padding: var(--space-6) var(--space-5); }
+.card.narrow h1 { font-size: 56px; margin-bottom: var(--space-4); }
+.kapow { display: flex; align-items: center; gap: var(--space-4); margin: 0 0 var(--space-4); padding: var(--space-3); border: var(--stroke-base) solid var(--ink); background: var(--paper); }
+.kapow p { margin: 0; font-weight: 800; }
+.burst-sm { width: 64px; height: 58px; }
+.burst-sm::before { inset: 4px; }
+.burst-sm .burst-word { font-size: 16px; }
+.result-cell { display: inline-flex; align-items: center; gap: var(--space-2); }
+.page-head h1 { font-size: clamp(40px, 6vw, 56px); }
+.page-totals dd { font-family: var(--font-display); font-weight: 400; letter-spacing: 1px; font-size: 32px; }
+.dash-label { letter-spacing: 1px; }
+.credit-bar { border-radius: var(--radius-0); border: var(--stroke-thin) solid var(--ink); background: var(--paper); height: 14px; }
+.credit-bar-available { background: var(--bam-blue); }
+.credit-bar-locked { background: var(--pow-red); }
+.owned-thumb, .goods-thumb, .thumbs img { border-radius: var(--radius-0); border: var(--stroke-thin) solid var(--ink); }
+.quick-amounts .btn { min-height: 44px; }
+.more-filters summary { color: var(--ink); }
+.tx-range select { border-radius: var(--radius-0); background: var(--panel); border: var(--stroke-base) solid var(--ink); }
