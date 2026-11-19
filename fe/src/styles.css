@@ -1073,3 +1073,13 @@ form label input[type='checkbox'], form label input[type='radio'] { width: 20px;
 .table-wrap tbody tr:hover { background: var(--paper); }
 .filters, .trx-search { gap: var(--space-3); }
 .staff-chats-grid .ui-card { box-shadow: var(--shadow-sm); }
+
+/* pop-6.1 touch targets: every control on phones is at least 44px tall. */
+.link-button { min-height: 44px; }
+.top-search .ui-search input, .top-search-field select { min-height: 44px; }
+@media (max-width: 640px) {
+  .btn-sm, .btn-small, .quick-bids .btn { min-height: 44px; }
+  .breadcrumb a, .breadcrumb [aria-current] { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; }
+  .card.narrow p a, .kapow a { display: inline-flex; align-items: center; min-height: 44px; }
+}
+.category-ticker a { min-width: 44px; justify-content: center; }
