@@ -2,6 +2,7 @@
 rag2: thin routes only. Data comes from the Node API (functions/call_api.py), never from the database; each step is
 one function in functions/, and the prompt text lives in prompts/."""
 import os
+import time
 
 import ngrok
 import requests
@@ -17,8 +18,10 @@ from functions.call_api import COOKIE, ApiError, call_api
 from functions.check_messages import check_messages
 from functions.chunk_text import chunk_text
 from functions.embed import EmbedError, embed
-from functions.guard_reply import guard_reply
+from functions.guard_reason import guard_reason
+from functions.guard_reply import FALLBACK
 from functions.handoff_or_error import handoff_or_error
+from functions.log_turn import log_turn
 from functions.over_limit import over_limit
 from functions.read_upload import DOC_MAX_BYTES, UploadError, read_upload
 from functions.retrieve import retrieve
@@ -72,9 +75,44 @@ def chat_health():
     return jsonify(ok=True)
 
 
+def _tokens(response, field):
+    """A token count from Gemini's usage_metadata, or None when it is missing."""
+    value = getattr(getattr(response, "usage_metadata", None), field, None)
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+def _save_turn(contents, started, outcome, bot_text=None, guard=None, response=None):
+    """rag-train-2: log this /api/chat turn (visitor token from the body, user from the cookie); its id or None."""
+    body = request.get_json(silent=True)
+    return log_turn(visitor_token(), body.get("visitor") if isinstance(body, dict) else None, {
+        "userText": contents[-1]["parts"][0]["text"], "botText": bot_text, "outcome": outcome, "guardTriggered": guard,
+        "model": GEMINI_MODEL, "promptTokens": _tokens(response, "prompt_token_count"),
+        "completionTokens": _tokens(response, "candidates_token_count"),
+        "latencyMs": int((time.monotonic() - started) * 1000),
+    })
+
+
+def _cannot_serve(contents, started, user, reason, error, status):
+    """handoff_or_error, logged as handed_off (customer) or error (everyone else)."""
+    _save_turn(contents, started, "handed_off" if user and user["role"] == "customer" else "error", bot_text=error)
+    return handoff_or_error(user, reason, error, status)
+
+
+@app.after_request
+def log_refused_chat(response):
+    """rag-train-2: security.py refuses prompt injection before web_chat runs; the turn is still logged as refused."""
+    if (request.path == "/api/chat" and request.method == "POST" and response.status_code == 400
+            and (response.get_json(silent=True) or {}).get("error") == "Prompt injection detected"):
+        contents = check_messages(request.get_json(silent=True))
+        if contents:
+            _save_turn(contents, time.monotonic(), "refused", guard="prompt_injection")
+    return response
+
+
 @app.route("/api/chat", methods=["POST"])
 def web_chat():
     """Embedded site chat: the browser sends the conversation, Gemini answers the last message"""
+    started = time.monotonic()
     contents = check_messages(request.get_json(silent=True))
     if contents is None:
         return jsonify(error="Invalid messages"), 400
@@ -88,7 +126,7 @@ def web_chat():
         user = None
     if limited:
         # sch-1.3: no embedding either, it would be one more Gemini call
-        return handoff_or_error(user, "limit", "Too many messages, please wait a minute", 429)
+        return _cannot_serve(contents, started, user, "limit", "Too many messages, please wait a minute", 429)
 
     # rag-1.5: the best matching excerpts of uploaded documents; without them the bot still answers
     try:
@@ -97,18 +135,27 @@ def web_chat():
         app.logger.exception("Document search failed, answering without it")
         hits = []
 
+    response = None
     try:
-        reply = client.models.generate_content(
+        response = client.models.generate_content(
             model=GEMINI_MODEL, contents=contents, config={"system_instruction": build_prompt(user, hits)},
-        ).text
+        )
+        reply = response.text
     except Exception:
         app.logger.exception("Gemini call failed")
         reply = None
     if not reply:
-        return handoff_or_error(user, "unavailable", "The assistant is unavailable right now", 503)
-    if not hits:
-        return jsonify(reply=guard_reply(reply))
-    return jsonify(reply=guard_reply(reply), sources=list(dict.fromkeys(title for _, title, _ in hits)))
+        return _cannot_serve(contents, started, user, "unavailable", "The assistant is unavailable right now", 503)
+    guard = guard_reason(reply)
+    reply = FALLBACK if guard else reply
+    turn_id = _save_turn(contents, started, "refused" if guard else "answered", bot_text=reply, guard=guard,
+                         response=response)
+    answer = {"reply": reply}
+    if hits:
+        answer["sources"] = list(dict.fromkeys(title for _, title, _ in hits))
+    if turn_id is not None:
+        answer["turnId"] = turn_id
+    return jsonify(answer)
 
 
 @app.route("/api/docs", methods=["POST"])

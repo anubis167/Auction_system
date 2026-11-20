@@ -8,6 +8,8 @@ export interface ChatMessage {
 
 export interface ChatSession {
   id: string;
+  /** rag-train-2: random visitor token sent with each /api/chat call; the server stores only its sha256 */
+  token: string;
   title: string;
   createdAt: number;
   updatedAt: number;
@@ -30,6 +32,11 @@ export function deriveTitle(messages: ChatMessage[]): string {
   return clean.length > 30 ? `${clean.slice(0, 30)}…` : clean;
 }
 
+/** 32 random bytes as hex; getRandomValues also works on plain-http hosts, unlike randomUUID. */
+export function newVisitorToken(): string {
+  return Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 /**
  * Creates a brand new chat session with default metadata.
  */
@@ -38,6 +45,7 @@ export function createSession(title?: string): ChatSession {
   const randomSuffix = Math.random().toString(36).substring(2, 8);
   return {
     id: `session_${now}_${randomSuffix}`,
+    token: newVisitorToken(),
     title: title || 'New Conversation',
     createdAt: now,
     updatedAt: now,
@@ -71,6 +79,7 @@ export function loadSessions(): ChatSession[] {
     if (!Array.isArray(parsed)) return [];
     return (parsed as ChatSession[])
       .filter((s) => s && typeof s.id === 'string' && Array.isArray(s.messages))
+      .map((s) => (typeof s.token === 'string' && s.token ? s : { ...s, token: newVisitorToken() })) // saved before rag-train-2
       .sort((a, b) => b.updatedAt - a.updatedAt);
   } catch {
     return [];
@@ -147,6 +156,7 @@ export function addMessageToSession(
   } else {
     session = {
       id: sessionId,
+      token: newVisitorToken(),
       title: deriveTitle([normalizedMsg]),
       createdAt: now,
       updatedAt: now,

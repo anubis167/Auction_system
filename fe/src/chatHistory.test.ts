@@ -109,6 +109,7 @@ describe('chatHistory session management and persistence', () => {
     it('saves and loads sessions successfully, sorted by updatedAt descending', () => {
       const sessionA: ChatSession = {
         id: 's-1',
+        token: 'tok-1',
         title: 'Older Session',
         createdAt: 1000,
         updatedAt: 2000,
@@ -116,6 +117,7 @@ describe('chatHistory session management and persistence', () => {
       };
       const sessionB: ChatSession = {
         id: 's-2',
+        token: 'tok-2',
         title: 'Newer Session',
         createdAt: 3000,
         updatedAt: 5000,
@@ -127,6 +129,15 @@ describe('chatHistory session management and persistence', () => {
       expect(loaded).toHaveLength(2);
       expect(loaded[0].id).toBe('s-2');
       expect(loaded[1].id).toBe('s-1');
+    });
+
+    it('rag-train-2: gives every session its own random visitor token, also sessions saved before tokens existed', () => {
+      const a = createSession();
+      const b = createSession();
+      expect(a.token).toMatch(/^[0-9a-f]{64}$/);
+      expect(a.token).not.toBe(b.token);
+      localStorage.setItem(STORAGE_SESSIONS_KEY, JSON.stringify([{ id: 'old', title: 'Old', createdAt: 1, updatedAt: 1, messages: [] }]));
+      expect(loadSessions()[0].token).toMatch(/^[0-9a-f]{64}$/);
     });
   });
 
@@ -190,8 +201,8 @@ describe('chatHistory session management and persistence', () => {
 
   describe('deleteSession', () => {
     it('removes the session from the list and storage', () => {
-      const s1: ChatSession = { id: 's1', title: 'Session 1', createdAt: 1, updatedAt: 1, messages: [] };
-      const s2: ChatSession = { id: 's2', title: 'Session 2', createdAt: 2, updatedAt: 2, messages: [] };
+      const s1: ChatSession = { id: 's1', token: 'tok-1', title: 'Session 1', createdAt: 1, updatedAt: 1, messages: [] };
+      const s2: ChatSession = { id: 's2', token: 'tok-2', title: 'Session 2', createdAt: 2, updatedAt: 2, messages: [] };
 
       const { updatedSessions, nextActiveId } = deleteSession([s1, s2], 's1', 's2');
       expect(updatedSessions).toHaveLength(1);
@@ -201,8 +212,8 @@ describe('chatHistory session management and persistence', () => {
     });
 
     it('switches nextActiveId to another remaining session if the active session is deleted', () => {
-      const s1: ChatSession = { id: 's1', title: 'Session 1', createdAt: 1, updatedAt: 1, messages: [] };
-      const s2: ChatSession = { id: 's2', title: 'Session 2', createdAt: 2, updatedAt: 2, messages: [] };
+      const s1: ChatSession = { id: 's1', token: 'tok-1', title: 'Session 1', createdAt: 1, updatedAt: 1, messages: [] };
+      const s2: ChatSession = { id: 's2', token: 'tok-2', title: 'Session 2', createdAt: 2, updatedAt: 2, messages: [] };
 
       const { updatedSessions, nextActiveId } = deleteSession([s1, s2], 's1', 's1');
       expect(updatedSessions).toHaveLength(1);
@@ -211,7 +222,7 @@ describe('chatHistory session management and persistence', () => {
     });
 
     it('sets nextActiveId to null if the last session is deleted', () => {
-      const s1: ChatSession = { id: 's1', title: 'Session 1', createdAt: 1, updatedAt: 1, messages: [] };
+      const s1: ChatSession = { id: 's1', token: 'tok-1', title: 'Session 1', createdAt: 1, updatedAt: 1, messages: [] };
 
       const { updatedSessions, nextActiveId } = deleteSession([s1], 's1', 's1');
       expect(updatedSessions).toHaveLength(0);

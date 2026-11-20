@@ -1,6 +1,6 @@
 {
   "project": "Online Auction System",
-  "last_updated": "2026-11-19",
+  "last_updated": "2026-11-20",
   "scope": "Round 18: RAG training log. Save the RAG chat bot's conversations (visitor question, bot answer, retrieved knowledge chunks, guard outcome, feedback) so they can be reviewed and exported later to train the RAG system. Schema proposal: rag_sessions, rag_turns, rag_retrievals, rag_examples (see the schema discussion in this round). Flask (be/rag) never opens the database: every write goes through the Node API under /api/rag, as the existing functions do. One feature per function, id rag-train-<n>. Standing SRS rules: tests in the e2e folder, changed files described in docs/, all delete means soft delete.",
   "source_requirements": {
     "files": [
@@ -50,7 +50,7 @@
       "area": "logging",
       "title": "Record each chat turn",
       "user_visible_behavior": "No visible change. Every answered, refused, handed-off or failed chat turn is saved with its outcome, model, prompt version, token counts and latency.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Add POST /api/rag/turns in be/src/routes/rag.ts behind the internal token; Flask calls it through call_api from a new function file in be/rag/functions/ (one public function per file).",
         "Store the visitor token as a sha256 hash in rag_sessions.visitor_hash; the raw token is never written.",
@@ -59,7 +59,13 @@
         "e2e spec in e2e/ checks the saved row after a chat request.",
         "Logging failure does not break the chat reply: the visitor still gets the answer when the write fails."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-11-20 POST /api/rag/turns (internal token + forwarded cookie) in be/src/routes/rag.ts; Flask be/rag/functions/log_turn.py called from every web_chat exit and from log_refused_chat (after_request) for security.py's prompt-injection 400. visitor token stored only as sha256 (rag_sessions.visitor_hash).",
+        "2026-11-20 e2e/integration/rag-train-2-turns.test.ts 4/4 (guest user_id null, alice user_id from cookie not body, hash only, turn_index 0/1, refused + guard, 401/400 cases); rag-train-1 + rag2-1-1 still pass (14/14 together).",
+        "2026-11-20 Python: e2e/py/rag_train_2_log_turn_test.py 7/7 (answered/refused prompt_leak, secrets, prompt_injection/error/handed_off, metadata, logging failure (500 and connection error) still answers 200 without turnId); full suite 110/110 incl. rag2_1_6 real-Node turn writes.",
+        "2026-11-20 Playwright e2e/rag-train-2-turn-log.spec.ts 2/2 through Vite -> Flask -> Node -> Postgres (guest row user null, alice rows user alice, refused/prompt_injection, raw token not stored; chat box sends one 64-hex token per conversation). chat-history-widget 1/1. fe tsc clean, chatHistory.test 22/22.",
+        "2026-11-20 Known, not from this feature: rag-chat-api Req-1 expects gemini's old 'Forbidden' body (fails the same before this change, see 2026-11-19 merge note)."
+      ],
       "notes": ""
     },
     {

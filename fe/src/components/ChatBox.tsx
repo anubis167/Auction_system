@@ -208,7 +208,10 @@ export function ChatBox() {
 
     try {
       const payload = updatedSession.messages.slice(-MAX_SENT_MESSAGES).map((m) => ({ role: m.role, text: m.text }));
-      const { data } = await http.post<{ reply?: string; handoff?: boolean; reason?: string }>('/chat', { messages: payload });
+      const { data } = await http.post<{ reply?: string; handoff?: boolean; reason?: string }>('/chat', {
+        messages: payload,
+        visitor: updatedSession.token,
+      });
       if (data.handoff && data.reason) {
         await handOff(data.reason, state.lines);
       } else {

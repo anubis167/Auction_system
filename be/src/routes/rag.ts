@@ -1,10 +1,10 @@
-import { timingSafeEqual } from 'node:crypto';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { Router } from 'express';
 import { z } from 'zod';
 import { config } from '../config';
 import { prisma } from '../db';
 import { HttpError, asyncHandler } from '../lib/http';
-import { requireAuth, requirePermission } from '../middleware/auth';
+import { optionalAuth, requireAuth, requirePermission } from '../middleware/auth';
 import { parseId } from './auctions';
 
 // rag2-1.1: the only data the Python chat service (be/rag) may read or write. It forwards the visitor's own session
@@ -170,5 +170,44 @@ ragRouter.delete(
     });
     if (count === 0) throw new HttpError(404, 'Document not found');
     res.status(204).end();
+  }),
+);
+
+/** rag-train-2: the chat box's visitor token is only ever stored as this hash. */
+export const visitorHash = (visitor: string) => createHash('sha256').update(visitor).digest('hex');
+
+const visitorToken = z.string().min(16).max(200);
+const turnBody = z.object({
+  visitor: visitorToken,
+  userText: z.string().min(1).max(4000),
+  botText: z.string().max(20000).nullable().default(null),
+  outcome: z.enum(['answered', 'refused', 'handed_off', 'error']),
+  guardTriggered: z.string().min(1).max(40).nullable().default(null),
+  model: z.string().min(1).max(60),
+  promptVersion: z.string().min(1).max(64),
+  promptTokens: z.number().int().nonnegative().nullable().default(null),
+  completionTokens: z.number().int().nonnegative().nullable().default(null),
+  latencyMs: z.number().int().nonnegative().nullable().default(null),
+});
+
+// rag-train-2: one chat turn, written by the Python service. The visitor's cookie decides user_id (null = guest);
+// one rag_sessions row per chat-box conversation (visitor token) and user.
+ragRouter.post(
+  '/turns',
+  requireInternal,
+  optionalAuth,
+  asyncHandler(async (req, res) => {
+    const { visitor, ...turn } = turnBody.parse(req.body);
+    const userId = req.user?.id ?? null;
+    const hash = visitorHash(visitor);
+    const saved = await prisma.$transaction(async (tx) => {
+      const session =
+        (await tx.ragSession.findFirst({ where: { visitorHash: hash, userId, deletedAt: null }, select: { id: true } })) ??
+        (await tx.ragSession.create({ data: { visitorHash: hash, userId }, select: { id: true } }));
+      // Deleted turns keep their index, so count them too; the unique key catches a concurrent write
+      const turnIndex = await tx.ragTurn.count({ where: { sessionId: session.id } });
+      return tx.ragTurn.create({ data: { ...turn, sessionId: session.id, turnIndex }, select: { id: true, sessionId: true } });
+    });
+    res.status(201).json({ turnId: Number(saved.id), sessionId: Number(saved.sessionId) });
   }),
 );
