@@ -767,3 +767,22 @@
 - Verified: fe tsc clean; Playwright chat-history-widget 1/1, pop-3.1 'guest Log in button' and 'unread count' pass.
 - Still broken (pre-existing from the gemini merge, not touched): pop-3.1 'launcher opens and closes' expects heading 'Auction desk' and the old status line; ChatBox now shows "Chat with Beat'em". Full ./init.sh gate not run.
 - 2026-11-20: CHAT_CHIPS now four FAQ questions word for word (faq.txt Q5, Q11, Q21, Q32). The longer chips wrap to three rows and pushed the chat header off a 720px screen; .chat-panel now has max-height calc(100dvh - 7rem) so the log shrinks. Verified: chat-history-widget 1/1, pop-3.1 Log in + unread pass. Still failing, from the gemini chat UI and not touched: pop-3.1 'launcher opens' (old 'Auction desk' heading) and pop-6.1 touch targets (chat-head-btn 30x26 < 44px).
+
+### Session 031: round 18 RAG training log finished, rag-train-2 .. 9 (2026-11-20)
+
+- Worked only in the project-claude worktree (branch feature/claude-staff). Startup: Docker Desktop was not running (no containers to stop); round 18 had rag-train-1 passing and committed, tree clean.
+- Baseline ./init.sh was started but disturbed by my own Python full-path run on auction_test (job.close deadlock) and stopped; the round gate below replaces it.
+- One commit per feature:
+  - rag-train-2: POST /api/rag/turns (internal token + forwarded cookie); be/rag log_turn on every /api/chat exit and on security.py's prompt-injection 400 (after_request); chat box sends a random per-conversation visitor token; only its sha256 is stored.
+  - rag-train-3: /chunks carries chunk ids; retrievals (rank, score, cited) saved with the turn; cited = reply contains `[title]` (excerpts.md asks the bot to cite that way).
+  - rag-train-4: thumbs buttons (44 px, aria-pressed) -> POST /api/chat/feedback (Flask) -> PUT /api/rag/turns/:id/feedback; other visitor 403.
+  - rag-train-5: rag_sessions.logging_consent (migration); notice + Privacy link (/privacy) + "Don't save my chats"; opted-out turns send no text and save no row.
+  - rag-train-6: permission rag.review (admin); GET/POST /api/rag/review; /admin/rag-review "Bot review" page; vite proxies /api/rag/review and /api/rag/examples to Node.
+  - rag-train-7: GET /api/rag/examples/export JSONL (claim then read, so no example is exported twice); download link on the review page.
+  - rag-train-8: rag-retention job (RAG_TURN_RETENTION_DAYS, default 180) in auctionJobs.
+  - rag-train-9: docs/rag-training-log.md completed, docs/rag.md links it, doc/route consistency test.
+- Gate: ./init.sh be 448/448, fe 188/188, build, Python 122/122; its Playwright stage died in global setup with P1001. Playwright rerun: 121 passed / 4 failed, the four failures known before this round (adm-006, pop-3.1 launcher heading, pop-6.1 chat-head-btn targets, rag-chat-api Req-1 'Forbidden').
+- Round 18: 9/9 passing; archived as progress-feature-list/feature_list_18.json. No feature_list.json at the root now.
+- Gotchas: localhost:5436 intermittently refuses connects mid-Playwright-run (P1001) through Docker Desktop while 127.0.0.1 works; e2e/rag-db.ts uses 127.0.0.1. global-setup.ts and the e2e server still use localhost (left as they were). A VS Code Playwright test-server (pid started 17:04) was running during the gate. Prettier has no project config here: do not run it on whole files (it rewrote rag.ts; reverted).
+- Still open / not verified: no live Gemini check that the bot really cites `[title]` (cited stays false if it doesn't); all chunks of one document share a citation marker; review queue shows the newest 50 with no paging; the four pre-existing Playwright failures above.
+- Next best step: fix the four pre-existing specs, or a new round from the user.

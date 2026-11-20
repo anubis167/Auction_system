@@ -1,4 +1,5 @@
 import { startDueAuctions } from './jobs';
+import { softDeleteOldTurns } from './ragRetention';
 import { closeDueAuctions } from './settlement';
 
 export const DEFAULT_JOB_INTERVAL_MS = 60 * 60 * 1000;
@@ -15,6 +16,7 @@ export function auctionJobs(intervalMs = jobIntervalMs()): Job[] {
   return [
     { name: 'start-auctions', intervalMs, run: () => startDueAuctions() },
     { name: 'close-auctions', intervalMs, run: () => closeDueAuctions() },
+    { name: 'rag-retention', intervalMs, run: () => softDeleteOldTurns() }, // rag-train-8
   ];
 }
 

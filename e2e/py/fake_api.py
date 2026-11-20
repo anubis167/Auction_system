@@ -37,6 +37,8 @@ class FakeApi:
         self.documents = []
         self.fail = {}
         self.calls = []
+        self.turns = []  # rag-train-2: POST /api/rag/turns bodies, with the user the cookie maps to
+        self.opted_out = []  # rag-train-5: the bodies sent for opted-out visitors
 
     def start(self, test):
         p = patch("functions.call_api.requests.request", side_effect=self.request)
@@ -63,6 +65,15 @@ class FakeApi:
             return Response(200, me) if me else Response(401, {"error": "Authentication required"})
         if path == "/api/rag/chunks":
             return Response(200, self.chunks) if internal else Response(401, {"error": "Invalid internal token"})
+        if path == "/api/rag/turns" and method == "POST":
+            if not internal:
+                return Response(401, {"error": "Invalid internal token"})
+            me = self.user(cookie)
+            if json.get("logging") is False:  # rag-train-5: opted out, Node saves no turn
+                self.opted_out.append(json)
+                return Response(200, {"turnId": None, "sessionId": 1})
+            self.turns.append(dict(json, userId=me["id"] if me else None))
+            return Response(201, {"turnId": len(self.turns), "sessionId": 1})
         if path.startswith("/api/rag/documents"):
             me = self.user(cookie)
             if not me:

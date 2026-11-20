@@ -223,6 +223,7 @@ const ROLE_LINKS: { to: string; label: string; permission: string; badge?: 'good
   { to: '/admin/users', label: 'Users', permission: 'user.manage' },
   { to: '/admin/permissions', label: 'Permissions', permission: 'permission.manage' },
   { to: '/admin/rag', label: 'Chatbot', permission: 'user.manage' },
+  { to: '/admin/rag-review', label: 'Bot review', permission: 'rag.review' },
 ];
 
 const BADGES = {

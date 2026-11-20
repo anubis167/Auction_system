@@ -40,6 +40,11 @@ export const config = {
   get ragInternalToken() {
     return process.env.RAG_INTERNAL_TOKEN ?? '';
   },
+  /** rag-train-8: unreviewed chat bot turns older than this many days are soft-deleted (default 180). */
+  get ragTurnRetentionDays() {
+    const days = Number(process.env.RAG_TURN_RETENTION_DAYS);
+    return Number.isFinite(days) && days > 0 ? days : 180;
+  },
   /** mail-004: a change-password email at most once a minute per user. */
   get passwordLinkIntervalMs() {
     return Number(process.env.PASSWORD_LINK_INTERVAL_MS ?? 60_000);

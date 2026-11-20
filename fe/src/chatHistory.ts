@@ -1,13 +1,19 @@
 export type ChatRole = 'user' | 'model';
+export type Feedback = 'up' | 'down';
 
 export interface ChatMessage {
   role: ChatRole;
   text: string;
   timestamp?: number;
+  /** rag-train-4: the saved rag_turns row behind a bot answer, and the visitor's thumbs on it */
+  turnId?: number;
+  feedback?: Feedback;
 }
 
 export interface ChatSession {
   id: string;
+  /** rag-train-2: random visitor token sent with each /api/chat call; the server stores only its sha256 */
+  token: string;
   title: string;
   createdAt: number;
   updatedAt: number;
@@ -16,6 +22,7 @@ export interface ChatSession {
 
 export const STORAGE_SESSIONS_KEY = 'beat_em_chat_sessions';
 export const STORAGE_ACTIVE_ID_KEY = 'beat_em_active_chat_session_id';
+export const STORAGE_OPT_OUT_KEY = 'beat_em_chat_logging_opt_out';
 export const DEFAULT_WELCOME_MESSAGE = 'Hi! How can we help you today?';
 export const MAX_SENT_MESSAGES = 19;
 export const MAX_TEXT_LENGTH = 1000;
@@ -30,6 +37,11 @@ export function deriveTitle(messages: ChatMessage[]): string {
   return clean.length > 30 ? `${clean.slice(0, 30)}…` : clean;
 }
 
+/** 32 random bytes as hex; getRandomValues also works on plain-http hosts, unlike randomUUID. */
+export function newVisitorToken(): string {
+  return Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 /**
  * Creates a brand new chat session with default metadata.
  */
@@ -38,6 +50,7 @@ export function createSession(title?: string): ChatSession {
   const randomSuffix = Math.random().toString(36).substring(2, 8);
   return {
     id: `session_${now}_${randomSuffix}`,
+    token: newVisitorToken(),
     title: title || 'New Conversation',
     createdAt: now,
     updatedAt: now,
@@ -71,6 +84,7 @@ export function loadSessions(): ChatSession[] {
     if (!Array.isArray(parsed)) return [];
     return (parsed as ChatSession[])
       .filter((s) => s && typeof s.id === 'string' && Array.isArray(s.messages))
+      .map((s) => (typeof s.token === 'string' && s.token ? s : { ...s, token: newVisitorToken() })) // saved before rag-train-2
       .sort((a, b) => b.updatedAt - a.updatedAt);
   } catch {
     return [];
@@ -88,6 +102,24 @@ export function saveSessions(sessions: ChatSession[]): void {
     }
   } catch {
     // Gracefully handle storage errors or quota limits
+  }
+}
+
+/** rag-train-5: true when this browser's visitor chose "Don't save my chats". */
+export function loadLoggingOptOut(): boolean {
+  try {
+    return getStorage()?.getItem(STORAGE_OPT_OUT_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function saveLoggingOptOut(optOut: boolean): void {
+  try {
+    if (optOut) getStorage()?.setItem(STORAGE_OPT_OUT_KEY, '1');
+    else getStorage()?.removeItem(STORAGE_OPT_OUT_KEY);
+  } catch {
+    // Ignore storage errors; the choice still holds for this page view
   }
 }
 
@@ -147,6 +179,7 @@ export function addMessageToSession(
   } else {
     session = {
       id: sessionId,
+      token: newVisitorToken(),
       title: deriveTitle([normalizedMsg]),
       createdAt: now,
       updatedAt: now,
@@ -161,6 +194,15 @@ export function addMessageToSession(
 
   saveSessions(updatedSessions);
   return { updatedSession: session, updatedSessions };
+}
+
+/** rag-train-4: sets (or with undefined, clears) the thumbs on one message of a session and saves. */
+export function setMessageFeedback(sessions: ChatSession[], sessionId: string, index: number, feedback: Feedback | undefined): ChatSession[] {
+  const updated = sessions.map((s) =>
+    s.id === sessionId ? { ...s, messages: s.messages.map((m, i) => (i === index ? { ...m, feedback } : m)) } : s,
+  );
+  saveSessions(updated);
+  return updated;
 }
 
 /**

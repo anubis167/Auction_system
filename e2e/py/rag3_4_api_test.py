@@ -21,7 +21,7 @@ class RagApi(unittest.TestCase):
             self.api.sessions[role] = account(role=role, username=role)
         self.api.documents.append({"id": 1, "title": "Fees", "filename": "fees.md", "deleted": False,
                                    "chunks": [{"text": "The seller fee is 5%.", "embedding": [1.0, 0.0]}]})
-        self.api.chunks = [{"title": "Fees", "text": "The seller fee is 5%.", "embedding": [1.0, 0.0]}]
+        self.api.chunks = [{"id": 1, "title": "Fees", "text": "The seller fee is 5%.", "embedding": [1.0, 0.0]}]
 
     def as_(self, who):
         self.http.set_cookie("auction_token", who)

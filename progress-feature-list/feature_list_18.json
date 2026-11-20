@@ -1,6 +1,6 @@
 {
   "project": "Online Auction System",
-  "last_updated": "2026-11-19",
+  "last_updated": "2026-11-20",
   "scope": "Round 18: RAG training log. Save the RAG chat bot's conversations (visitor question, bot answer, retrieved knowledge chunks, guard outcome, feedback) so they can be reviewed and exported later to train the RAG system. Schema proposal: rag_sessions, rag_turns, rag_retrievals, rag_examples (see the schema discussion in this round). Flask (be/rag) never opens the database: every write goes through the Node API under /api/rag, as the existing functions do. One feature per function, id rag-train-<n>. Standing SRS rules: tests in the e2e folder, changed files described in docs/, all delete means soft delete.",
   "source_requirements": {
     "files": [
@@ -50,7 +50,7 @@
       "area": "logging",
       "title": "Record each chat turn",
       "user_visible_behavior": "No visible change. Every answered, refused, handed-off or failed chat turn is saved with its outcome, model, prompt version, token counts and latency.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Add POST /api/rag/turns in be/src/routes/rag.ts behind the internal token; Flask calls it through call_api from a new function file in be/rag/functions/ (one public function per file).",
         "Store the visitor token as a sha256 hash in rag_sessions.visitor_hash; the raw token is never written.",
@@ -59,7 +59,13 @@
         "e2e spec in e2e/ checks the saved row after a chat request.",
         "Logging failure does not break the chat reply: the visitor still gets the answer when the write fails."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-11-20 POST /api/rag/turns (internal token + forwarded cookie) in be/src/routes/rag.ts; Flask be/rag/functions/log_turn.py called from every web_chat exit and from log_refused_chat (after_request) for security.py's prompt-injection 400. visitor token stored only as sha256 (rag_sessions.visitor_hash).",
+        "2026-11-20 e2e/integration/rag-train-2-turns.test.ts 4/4 (guest user_id null, alice user_id from cookie not body, hash only, turn_index 0/1, refused + guard, 401/400 cases); rag-train-1 + rag2-1-1 still pass (14/14 together).",
+        "2026-11-20 Python: e2e/py/rag_train_2_log_turn_test.py 7/7 (answered/refused prompt_leak, secrets, prompt_injection/error/handed_off, metadata, logging failure (500 and connection error) still answers 200 without turnId); full suite 110/110 incl. rag2_1_6 real-Node turn writes.",
+        "2026-11-20 Playwright e2e/rag-train-2-turn-log.spec.ts 2/2 through Vite -> Flask -> Node -> Postgres (guest row user null, alice rows user alice, refused/prompt_injection, raw token not stored; chat box sends one 64-hex token per conversation). chat-history-widget 1/1. fe tsc clean, chatHistory.test 22/22.",
+        "2026-11-20 Known, not from this feature: rag-chat-api Req-1 expects gemini's old 'Forbidden' body (fails the same before this change, see 2026-11-19 merge note)."
+      ],
       "notes": ""
     },
     {
@@ -68,14 +74,19 @@
       "area": "logging",
       "title": "Record retrieved chunks and citations",
       "user_visible_behavior": "No visible change. Each turn keeps the knowledge chunks the retriever returned, their rank and score, and whether the bot cited them.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "The retrieve step returns chunk ids, rank and score; the turn write sends them to POST /api/rag/turns.",
         "cited is true only for chunks whose citation marker appears in the saved bot reply.",
         "Deleting a knowledge document (soft delete) keeps its past rag_retrievals rows readable.",
         "Unit test for the citation matcher in be/rag (pytest) and an e2e check of one saved turn with two chunks."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-11-20 GET /api/rag/chunks returns chunk id; retrieve() hits are (score, title, text, chunk_id); be/rag/functions/cited_chunks.py marks a chunk cited when the reply contains its [title] (prompts/excerpts.md asks the bot to cite that way); POST /api/rag/turns saves retrievals in the same transaction (unknown chunk 400, nothing saved).",
+        "2026-11-20 Python e2e/py/rag_train_3_citations_test.py 6/6 (matcher: bracketed title only, case-insensitive, none/empty; chat logs ranked chunks with cited flags; refused/failed turns cite nothing). Full Python suite 116/116.",
+        "2026-11-20 e2e/integration/rag-train-3-retrievals.test.ts 2/2: two retrievals saved with rank/score/cited and still readable with chunk text after the document is soft-deleted; bad body/unknown chunk 400 with no turn row. All rag integration files 16/16 (rag2-1-1 /chunks expectation now includes id).",
+        "2026-11-20 Playwright e2e/rag-train-3-retrievals.spec.ts 1/1: one saved turn with two chunks on the e2e API, readable after DELETE of the document."
+      ],
       "notes": ""
     },
     {
@@ -84,14 +95,19 @@
       "area": "feedback",
       "title": "Thumbs up or down on a bot answer",
       "user_visible_behavior": "A visitor can tap thumbs up or thumbs down under a bot answer, and the choice stays after reload.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Each bot bubble shows thumbs up and thumbs down buttons with accessible labels, at least 44px touch targets.",
         "Tap thumbs down; rag_turns.feedback becomes down. Tapping the other button replaces it.",
         "A visitor cannot set feedback on another visitor's turn (returns 403).",
         "e2e spec covers tap, replace and reload."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-11-20 Bot bubbles with a turnId show 'Helpful answer' / 'Not helpful answer' buttons (aria-pressed, 44x44 px); fe -> POST /api/chat/feedback (Flask) -> PUT /api/rag/turns/:id/feedback (Node, internal token, sha256(visitor) must match the session) -> rag_turns.feedback. Choice kept in the chat box's saved conversation.",
+        "2026-11-20 Playwright e2e/rag-train-4-thumbs.spec.ts 2/2: down then up replaces (DB polled: down -> up), aria-pressed kept after reload, both buttons >= 44x44, another visitor token 403 (DB unchanged), refused save rolls the button back with an alert. chat-history-widget 1/1.",
+        "2026-11-20 e2e/integration/rag-train-4-feedback.test.ts 3/3 (owner set + replace, other visitor 403, bad body 400, unknown/deleted turn 404, no token 401); all rag integration 19/19. Python e2e/py/rag_train_4_feedback_test.py 3/3, suite 119/119. fe tsc clean; chatHistory.test 23/23.",
+        "2026-11-20 Known, not from this feature: pop-3.1 'launcher opens and closes' still expects the old 'Auction desk' heading (from the gemini chat UI merge, recorded in Session 030)."
+      ],
       "notes": ""
     },
     {
@@ -100,7 +116,7 @@
       "area": "privacy",
       "title": "Logging notice and opt-out",
       "user_visible_behavior": "The chat box tells visitors their messages are saved to improve the bot, and a visitor can opt out so their chats are not saved.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Add a logging_consent column to rag_sessions (default true); migration applied.",
         "The chat box shows a one-line notice with a link to the privacy text.",
@@ -108,7 +124,12 @@
         "e2e spec: opt out, send a message, confirm no turn row is written.",
         "docs/rag-training-log.md describes what is stored and the opt-out."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-11-20 rag_sessions.logging_consent (default true), migration 20261120100000_rag_logging_consent applied by prisma migrate reset on auction_test; prisma migrate diff --from-url auction_test --to-schema-datamodel: No difference detected.",
+        "2026-11-20 Chat box notice 'Chats are saved to improve our bot.' + Privacy link (/privacy#chat, new page) + 'Don't save my chats' checkbox (localStorage); sends logging:false; Flask then sends only {visitor, logging:false}; Node sets consent false and writes no turn.",
+        "2026-11-20 Playwright e2e/rag-train-5-opt-out.spec.ts 1/1 through Vite -> Flask -> Node -> Postgres: opt out, send a message -> session logging_consent false and no rag_turns row; reload keeps the choice; untick -> one turn saved, consent true; Privacy link opens /privacy#chat. rag-train-2/4 specs and chat-history-widget still pass (6/6 together).",
+        "2026-11-20 e2e/integration/rag-train-5-consent.test.ts 3/3 (default true; opted out = session false, no turn, text ignored; flip mid-conversation and back). Python rag_train_5_opt_out_test.py 3/3 (no text sent, injection not logged, only false opts out); suite 122/122. docs/rag-training-log.md describes what is stored and the opt-out."
+      ],
       "notes": ""
     },
     {
@@ -117,7 +138,7 @@
       "area": "review",
       "title": "Staff review queue for saved turns",
       "user_visible_behavior": "Staff with the rag.review permission can list saved turns, label each one good, bad or needs fix, write a better reply, and approve or reject it.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Add the rag.review permission to the Permission table and the seed; the admin role gets it.",
         "GET /api/rag/review lists raw turns with their feedback and retrieved chunks; a customer without the permission gets 403.",
@@ -125,7 +146,11 @@
         "Turns already reviewed are not listed again by default.",
         "e2e spec covers approve, reject and the 403 case."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-11-20 Permission rag.review (migration 20261120110000_rag_review_permission + PERMISSIONS/DEFAULT_GRANTS; admin only by default). GET /api/rag/review and POST /api/rag/review/:id in be/src/routes/rag.ts; /admin/rag-review 'Bot review' page and nav link; vite proxies /api/rag/review and /api/rag/examples to Node.",
+        "2026-11-20 e2e/integration/rag-train-6-review.test.ts 4/4: guest 401, alice and staff (not granted) 403, admin's /api/auth/me lists rag.review; raw turns listed newest first with feedback and chunks; approve -> one rag_examples row approved/needs_fix/ideal_reply/reviewer, reject -> rejected; reviewed turns not listed by default (?all=1 shows them); 409 second review, 400 no label / needs_fix without reply, 404 unknown/deleted. sec.permissions 10/10 unchanged; all rag integration 8 files 34/34.",
+        "2026-11-20 Playwright e2e/rag-train-6-review.spec.ts 1/1: admin approves (needs_fix + better reply) and rejects in the UI, db rows checked, reviewed turns gone after reload, customer 403 on GET and POST through the Vite proxy. sec-002-permissions still passes."
+      ],
       "notes": ""
     },
     {
@@ -134,7 +159,7 @@
       "area": "export",
       "title": "Export approved examples for training",
       "user_visible_behavior": "Staff can download approved examples as a JSONL file, and each exported example is marked exported.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "GET /api/rag/examples/export (rag.review permission) returns JSONL with question, retrieved chunk texts, bot reply, ideal reply and label.",
         "The file contains no user_id, visitor_hash, email or name.",
@@ -142,7 +167,11 @@
         "Running the export twice does not duplicate rows.",
         "Unit test for the field stripping and an e2e check of the download."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-11-20 GET /api/rag/examples/export (rag.review) in be/src/routes/rag.ts: claims approved examples (status exported + one exported_at) then sends exactly those as JSONL {question, chunks, reply, idealReply, label} built by be/src/lib/ragExport.ts toTrainingRecord; 'Download approved examples (JSONL)' link on /admin/rag-review.",
+        "2026-11-20 Unit e2e/unit/rag-train-7-export.test.ts 2/2 (only the five training fields; no userId/visitorHash/email/name/reviewer/id in the line; JSONL format). Integration e2e/integration/rag-train-7-export.test.ts 3/3 (guest 401, customer 403; approved only, rejected excluded; no alice/email/visitor hash in the file; rows exported with exported_at; second run empty; two concurrent exports put an example in one file only). All rag integration + unit 31/31.",
+        "2026-11-20 Playwright e2e/rag-train-7-export.spec.ts 1/1: admin clicks the link, file rag-examples-YYYY-MM-DD.jsonl has the approved example with exactly the five keys; db row exported with exported_at; next export does not contain it."
+      ],
       "notes": ""
     },
     {
@@ -151,14 +180,17 @@
       "area": "retention",
       "title": "Soft-delete old unreviewed turns",
       "user_visible_behavior": "No visible change. Turns older than the retention period that were never reviewed are soft-deleted by a background job.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Add RAG_TURN_RETENTION_DAYS to config (default 180); the job uses the existing job pattern and interval setting.",
         "A turn older than the retention period with no rag_examples row gets deleted_at set; reviewed turns are kept.",
         "Soft-deleted turns are excluded from the review queue and the export.",
         "Unit test for the cutoff date and an e2e or API check of one run."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-11-20 RAG_TURN_RETENTION_DAYS (config.ragTurnRetentionDays, default 180) and be/src/lib/ragRetention.ts softDeleteOldTurns(); job 'rag-retention' added to auctionJobs() so it uses the existing scheduler and AUCTION_JOB_INTERVAL_MS.",
+        "2026-11-20 Unit e2e/unit/rag-train-8-retention.test.ts 3/3 (cutoff exactly N days back, default 180 and bad values ignored, job registered with the shared interval). Integration e2e/integration/rag-train-8-retention.test.ts 2/2: a run on 4 turns soft-deletes only the 200-day-old one with no rag_examples row (approved and raw-example turns and a 179-day-old turn kept; rows still present), second run 0; deleted turns absent from GET /api/rag/review?all=1 and from the export. job.start/job.close tests still pass (18/18 together)."
+      ],
       "notes": ""
     },
     {
@@ -167,13 +199,17 @@
       "area": "docs",
       "title": "Document the training log",
       "user_visible_behavior": "No visible change. docs/rag-training-log.md describes the tables, the write path, the review and export steps, the privacy rules and the retention period.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "docs/rag-training-log.md exists and lists every table, route and permission added in rag-train-1 to 8.",
         "docs/rag.md links to it.",
         "Every route named in the doc exists in be/src/routes/rag.ts."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-11-20 docs/rag-training-log.md lists every table (rag_sessions, rag_turns, rag_retrievals, rag_examples), the three migrations, the Node routes (POST /api/rag/turns, PUT /api/rag/turns/:id/feedback, GET /api/rag/review, POST /api/rag/review/:id, GET /api/rag/examples/export, GET /api/rag/chunks change), the Python routes/functions, the rag.review permission, review/export steps, privacy and retention; docs/rag.md links to it.",
+        "2026-11-20 e2e/unit/rag-train-9-docs.test.ts 2/2: each Node route in the doc table matches a ragRouter.<method>('<path>') in be/src/routes/rag.ts; tables, migration files, rag.review, RAG_TURN_RETENTION_DAYS named; docs/rag.md links rag-training-log.md.",
+        "2026-11-20 Round gate: COMPOSE_PROJECT_NAME=auction_system ./init.sh -> be 448/448 (98 files), fe 188/188, fe build OK, Python 122/122; its Playwright stage stopped in global setup with P1001 (localhost:5436 unreachable for a moment). Playwright rerun separately: 121 passed, 4 failed - all four known before this round: adm-006 (Chatbot link folded into the admin menu), pop-3.1 'launcher opens' (old 'Auction desk' heading), pop-6.1 touch targets (chat-head-btn 30x26 only), rag-chat-api Req-1 (gemini's old 'Forbidden' body)."
+      ],
       "notes": ""
     }
   ]

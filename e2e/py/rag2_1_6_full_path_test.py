@@ -128,6 +128,19 @@ class FullPath(unittest.TestCase):
         self.assertEqual(res.json, {"reply": "answer"})
         self.assertNotIn("lowest price a seller accepts", prompt)
 
+    def test_turns_are_saved_by_the_real_api(self):
+        """rag-train-2: the turn write goes through Node into rag_turns; the reply carries the new row's id."""
+        visitor = uuid.uuid4().hex * 2
+        ids = []
+        for who in ("alice", None, None):
+            self.http.delete_cookie("auction_token")
+            if who:
+                self.as_user(who)
+            res = self.http.post("/api/chat", json={"messages": [{"role": "user", "text": "Hi"}], "visitor": visitor})
+            self.assertEqual(res.status_code, 200, res.json)
+            ids.append(res.json["turnId"])
+        self.assertTrue(all(isinstance(i, int) for i in ids) and len(set(ids)) == 3, ids)
+
     def test_wrong_service_token_means_no_excerpts_and_no_upload(self):
         os.environ["RAG_INTERNAL_TOKEN"] = "wrong-token"
         self.as_user("staff")

@@ -25,11 +25,15 @@ import {
   formatMessageTime,
   formatRelativeTime,
   loadActiveSessionId,
+  loadLoggingOptOut,
   loadSessions,
   MAX_SENT_MESSAGES,
   saveActiveSessionId,
+  saveLoggingOptOut,
   saveSessions,
+  setMessageFeedback,
   type ChatMessage,
+  type Feedback,
   type ChatSession,
 } from '../chatHistory';
 
@@ -59,6 +63,7 @@ export function ChatBox() {
   const [error, setError] = useState('');
   const [down, setDown] = useState(false);
   const [unread, setUnread] = useState(0);
+  const [optOut, setOptOut] = useState(loadLoggingOptOut);
 
   const openRef = useRef(open);
   openRef.current = open;
@@ -208,18 +213,38 @@ export function ChatBox() {
 
     try {
       const payload = updatedSession.messages.slice(-MAX_SENT_MESSAGES).map((m) => ({ role: m.role, text: m.text }));
-      const { data } = await http.post<{ reply?: string; handoff?: boolean; reason?: string }>('/chat', { messages: payload });
+      const { data } = await http.post<{ reply?: string; handoff?: boolean; reason?: string; turnId?: number }>('/chat', {
+        messages: payload,
+        visitor: updatedSession.token,
+        ...(optOut ? { logging: false } : {}), // rag-train-5: the server then saves no turn
+      });
       if (data.handoff && data.reason) {
         await handOff(data.reason, state.lines);
       } else {
         const replyText = data.reply ?? '';
-        const modelMsg: ChatMessage = { role: 'model', text: replyText, timestamp: Date.now() };
+        const modelMsg: ChatMessage = { role: 'model', text: replyText, timestamp: Date.now(), turnId: data.turnId };
         const withReply = addMessageToSession(updatedSessions, activeSession.id, modelMsg);
         setSessions(withReply.updatedSessions);
       }
     } catch {
       setDraft(text);
       setError(DOWN);
+    }
+  };
+
+  /** rag-train-4: thumbs on a saved bot answer; shown at once, put back if the server refuses it. */
+  const rate = async (index: number, feedback: Feedback) => {
+    const session = activeSession;
+    const message = session?.messages[index];
+    if (!session || !message?.turnId || message.feedback === feedback) return;
+    const previous = message.feedback;
+    setError('');
+    setSessions((all) => setMessageFeedback(all, session.id, index, feedback));
+    try {
+      await http.post('/chat/feedback', { turnId: message.turnId, feedback, visitor: session.token });
+    } catch {
+      setSessions((all) => setMessageFeedback(all, session.id, index, previous));
+      setError('Your feedback was not saved. Please try again.');
     }
   };
 
@@ -477,6 +502,23 @@ export function ChatBox() {
                     {'timestamp' in m && m.timestamp && (
                       <span className="chat-msg-time">{formatMessageTime(m.timestamp)}</span>
                     )}
+                    {!staffMode && 'turnId' in m && m.turnId && (
+                      <span className="chat-feedback" role="group" aria-label="Rate this answer">
+                        {(['up', 'down'] as const).map((f) => (
+                          <button
+                            key={f}
+                            type="button"
+                            className="chat-feedback-btn"
+                            aria-label={f === 'up' ? 'Helpful answer' : 'Not helpful answer'}
+                            aria-pressed={m.feedback === f}
+                            onClick={() => void rate(i, f)}
+                            data-testid={`chat-thumb-${f}`}
+                          >
+                            <ThumbIcon down={f === 'down'} />
+                          </button>
+                        ))}
+                      </span>
+                    )}
                   </p>
                 );
               })}
@@ -508,6 +550,26 @@ export function ChatBox() {
             {(offline || error) && (
               <p className="chat-error" role="alert">
                 {offline ? DOWN : error}
+              </p>
+            )}
+
+            {!staffMode && (
+              <p className="chat-notice" data-testid="chat-notice">
+                <span>
+                  Chats are saved to improve our bot. <Link to="/privacy#chat">Privacy</Link>
+                </span>
+                <label className="chat-optout">
+                  <input
+                    type="checkbox"
+                    checked={optOut}
+                    onChange={(e) => {
+                      setOptOut(e.target.checked);
+                      saveLoggingOptOut(e.target.checked);
+                    }}
+                    data-testid="chat-optout"
+                  />
+                  Don&apos;t save my chats
+                </label>
               </p>
             )}
 
@@ -560,6 +622,15 @@ export function ChatBox() {
         </button>
       </div>
     </div>
+  );
+}
+
+function ThumbIcon({ down }: { down: boolean }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={down ? { transform: 'rotate(180deg)' } : undefined}>
+      <path d="M7 10v11H3V10z" />
+      <path d="M7 10l4-8a3 3 0 0 1 3 3v4h6a2 2 0 0 1 2 2.3l-1.4 8A2 2 0 0 1 18.6 21H7" />
+    </svg>
   );
 }
 
