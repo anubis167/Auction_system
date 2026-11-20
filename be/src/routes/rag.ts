@@ -4,10 +4,13 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { config } from '../config';
 import { prisma } from '../db';
+import { cache } from '../lib/cache';
+import { normalizeQuestion } from '../lib/faqs';
 import { HttpError, asyncHandler } from '../lib/http';
 import { toJsonl, toTrainingRecord } from '../lib/ragExport';
 import { optionalAuth, requireAuth, requirePermission } from '../middleware/auth';
 import { parseId } from './auctions';
+import { FAQ_MATCH_PREFIX } from './faqs';
 
 // rag2-1.1: the only data the Python chat service (be/rag) may read or write. It forwards the visitor's own session
 // cookie, so the user and their permissions are decided here; service-only routes also need X-Internal-Token.
@@ -77,6 +80,31 @@ ragRouter.get(
       select: { id: true, text: true, embedding: true, document: { select: { title: true } } },
     });
     res.json(chunks.map((c) => ({ id: Number(c.id), title: c.document.title, text: c.text, embedding: c.embedding })));
+  }),
+);
+
+/** faq-cache-5: a question nobody asked as an FAQ is remembered this long, so repeats skip Postgres. */
+const NO_MATCH_TTL_SECONDS = 300;
+type FaqMatch = { faqId: number; question: string; answer: string } | { none: true };
+
+/** The FAQ whose normalized question equals the visitor's, from Redis (faq:q:<sha256>) or Postgres; 404 when none. */
+ragRouter.get(
+  '/faq-match',
+  requireInternal,
+  asyncHandler(async (req, res) => {
+    const normalized = normalizeQuestion(z.string().max(4000).parse(req.query.q));
+    if (!normalized) throw new HttpError(400, 'Question is required');
+    const key = FAQ_MATCH_PREFIX + createHash('sha256').update(normalized).digest('hex');
+    let match = await cache.get<FaqMatch>(key);
+    res.set('X-Cache', match === null ? 'MISS' : 'HIT');
+    if (match === null) {
+      const row = await prisma.faq.findFirst({ where: { normalizedQuestion: normalized, deletedAt: null } });
+      match = row ? { faqId: Number(row.id), question: row.question, answer: row.answer } : { none: true };
+      // FAQ writes clear every faq:q: key (clearFaqCache), so a new FAQ is matched at once despite this entry
+      await cache.set(key, match, row ? config.faqCacheTtlSeconds : NO_MATCH_TTL_SECONDS);
+    }
+    if ('none' in match) throw new HttpError(404, 'No FAQ matches this question');
+    res.json(match);
   }),
 );
 

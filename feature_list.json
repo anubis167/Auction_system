@@ -124,13 +124,17 @@
       "requirement": "Req-1",
       "title": "Internal FAQ match endpoint for the chat bot",
       "user_visible_behavior": "No visible change. Flask can ask Node whether a chat question is a known FAQ and get its answer from Redis.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Add GET /api/rag/faq-match?q= in be/src/routes/rag.ts behind requireInternal. It normalizes q, reads faq:q:<sha256(normalized)> from Redis; on a miss it looks up Faq.normalizedQuestion in Postgres and caches the hit (and a short-TTL negative entry for a miss, so repeated unknown questions do not hit Postgres each time).",
         "Answers 200 {faqId, question, answer} on a match, 404 on no match, 400 on an empty or over-long q.",
         "e2e/integration/faq-cache-5-match.test.ts: an exact FAQ question and the same question with different case, spacing and a missing '?' both match; second call served from Redis (spy or key check); an edited FAQ answer is returned right after the edit; a deleted FAQ no longer matches; missing internal token 401."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-11-20 GET /api/rag/faq-match in be/src/routes/rag.ts behind requireInternal: normalizeQuestion, faq:q:<sha256> from Redis, else live faqs.normalized_question, cached (match FAQ_CACHE_TTL_SECONDS, no-match 300 s); X-Cache header.",
+        "2026-11-20 e2e/integration/faq-cache-5-match.test.ts 5/5: exact + loose spelling match, second call HIT; miss 404 remembered; new FAQ matches right after a remembered miss; edit returned at once; deleted 404; 400 empty/blank/missing/over 4000; 401 missing/wrong token.",
+        "2026-11-20 be vitest 104 files / 475 tests pass; tsc --noEmit clean."
+      ],
       "notes": "Exact match on the normalized question only. Fuzzy or embedding similarity is out of scope: questions that do not match exactly go to RAG, which already retrieves FAQ-like knowledge."
     },
     {
