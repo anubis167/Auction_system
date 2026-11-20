@@ -2,7 +2,8 @@ import { createHash, randomBytes } from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
 
 // rag-train-*: specs read the saved training rows straight from the e2e database (playwright.config.ts E2E_DB).
-export const e2eDb = new PrismaClient({ datasources: { db: { url: 'postgresql://auction:auction@localhost:5436/auction_e2e' } } });
+// 127.0.0.1, not localhost: mid-suite, localhost connects through Docker Desktop failed with P1001 (2026-11-20).
+export const e2eDb = new PrismaClient({ datasources: { db: { url: 'postgresql://auction:auction@127.0.0.1:5436/auction_e2e' } } });
 
 export const newVisitor = () => randomBytes(32).toString('hex');
 export const hashOf = (visitor: string) => createHash('sha256').update(visitor).digest('hex');

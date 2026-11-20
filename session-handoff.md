@@ -24,6 +24,7 @@ Note: root package.json `overrides` pin is-generator-function/is-async-function 
 Round 10 (dark theme, theme-1.1) is passing and archived to `progress-feature-list/feature_list_10.json`; tokens in docs/design-system.md.
 Rounds 11-13 (chat, staff chat) are archived as feature_list_11..13.json; gemini's rounds 13/14 (admin RAG upload, rag-3.x) as feature_list_14/15.json; Claude's round 14 (rag2 RAG rebuild) as feature_list_16.json.
 Round 15 ('Beat it! Look' restyle from LOT-POP-Brand-Guidelines.md + 'Pop Art Auction UI.html', 17 features pop-0.1 .. pop-6.1) is passing and archived to `progress-feature-list/feature_list_17.json`. The site is still called Beat'em; the light comic tokens replaced the dark theme. Map: docs/brand-ui.md; notes: docs/changes/pop-*.md; brand rules fe/src/brand.ts; components fe/src/components/ui/Brand.tsx. Last gate 2026-11-19: ./init.sh exit 0 (be 416, fe 162, build, Python 63, Playwright 109/109), run with COMPOSE_PROJECT_NAME=auction_system.
+Round 18 (RAG training log, rag-train-1 .. 9) is passing and archived to `progress-feature-list/feature_list_18.json`: every chat turn saved via POST /api/rag/turns, thumbs feedback, opt-out, /admin/rag-review (rag.review), JSONL export, retention job. Map: docs/rag-training-log.md. Last gate 2026-11-20: be 448, fe 188, build, Python 122, Playwright 121/125 (4 known failures, see claude-progress Session 031).
 `./init.sh` exits 0 (be 362 + fe 162 vitest, fe build, 105 Playwright; 2026-10-27). Stop any running `npm run dev` first (Prisma DLL lock on Windows).
 
 ## Restart path

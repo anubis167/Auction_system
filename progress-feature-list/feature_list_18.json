@@ -199,13 +199,17 @@
       "area": "docs",
       "title": "Document the training log",
       "user_visible_behavior": "No visible change. docs/rag-training-log.md describes the tables, the write path, the review and export steps, the privacy rules and the retention period.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "docs/rag-training-log.md exists and lists every table, route and permission added in rag-train-1 to 8.",
         "docs/rag.md links to it.",
         "Every route named in the doc exists in be/src/routes/rag.ts."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-11-20 docs/rag-training-log.md lists every table (rag_sessions, rag_turns, rag_retrievals, rag_examples), the three migrations, the Node routes (POST /api/rag/turns, PUT /api/rag/turns/:id/feedback, GET /api/rag/review, POST /api/rag/review/:id, GET /api/rag/examples/export, GET /api/rag/chunks change), the Python routes/functions, the rag.review permission, review/export steps, privacy and retention; docs/rag.md links to it.",
+        "2026-11-20 e2e/unit/rag-train-9-docs.test.ts 2/2: each Node route in the doc table matches a ragRouter.<method>('<path>') in be/src/routes/rag.ts; tables, migration files, rag.review, RAG_TURN_RETENTION_DAYS named; docs/rag.md links rag-training-log.md.",
+        "2026-11-20 Round gate: COMPOSE_PROJECT_NAME=auction_system ./init.sh -> be 448/448 (98 files), fe 188/188, fe build OK, Python 122/122; its Playwright stage stopped in global setup with P1001 (localhost:5436 unreachable for a moment). Playwright rerun separately: 121 passed, 4 failed - all four known before this round: adm-006 (Chatbot link folded into the admin menu), pop-3.1 'launcher opens' (old 'Auction desk' heading), pop-6.1 touch targets (chat-head-btn 30x26 only), rag-chat-api Req-1 (gemini's old 'Forbidden' body)."
+      ],
       "notes": ""
     }
   ]
