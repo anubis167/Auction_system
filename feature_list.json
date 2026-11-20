@@ -74,14 +74,19 @@
       "area": "logging",
       "title": "Record retrieved chunks and citations",
       "user_visible_behavior": "No visible change. Each turn keeps the knowledge chunks the retriever returned, their rank and score, and whether the bot cited them.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "The retrieve step returns chunk ids, rank and score; the turn write sends them to POST /api/rag/turns.",
         "cited is true only for chunks whose citation marker appears in the saved bot reply.",
         "Deleting a knowledge document (soft delete) keeps its past rag_retrievals rows readable.",
         "Unit test for the citation matcher in be/rag (pytest) and an e2e check of one saved turn with two chunks."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-11-20 GET /api/rag/chunks returns chunk id; retrieve() hits are (score, title, text, chunk_id); be/rag/functions/cited_chunks.py marks a chunk cited when the reply contains its [title] (prompts/excerpts.md asks the bot to cite that way); POST /api/rag/turns saves retrievals in the same transaction (unknown chunk 400, nothing saved).",
+        "2026-11-20 Python e2e/py/rag_train_3_citations_test.py 6/6 (matcher: bracketed title only, case-insensitive, none/empty; chat logs ranked chunks with cited flags; refused/failed turns cite nothing). Full Python suite 116/116.",
+        "2026-11-20 e2e/integration/rag-train-3-retrievals.test.ts 2/2: two retrievals saved with rank/score/cited and still readable with chunk text after the document is soft-deleted; bad body/unknown chunk 400 with no turn row. All rag integration files 16/16 (rag2-1-1 /chunks expectation now includes id).",
+        "2026-11-20 Playwright e2e/rag-train-3-retrievals.spec.ts 1/1: one saved turn with two chunks on the e2e API, readable after DELETE of the document."
+      ],
       "notes": ""
     },
     {

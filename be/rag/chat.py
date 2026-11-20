@@ -16,6 +16,7 @@ import security
 from functions.build_prompt import build_prompt
 from functions.call_api import COOKIE, ApiError, call_api
 from functions.check_messages import check_messages
+from functions.cited_chunks import cited_chunks
 from functions.chunk_text import chunk_text
 from functions.embed import EmbedError, embed
 from functions.guard_reason import guard_reason
@@ -81,7 +82,7 @@ def _tokens(response, field):
     return value if isinstance(value, int) and not isinstance(value, bool) else None
 
 
-def _save_turn(contents, started, outcome, bot_text=None, guard=None, response=None):
+def _save_turn(contents, started, outcome, bot_text=None, guard=None, response=None, hits=()):
     """rag-train-2: log this /api/chat turn (visitor token from the body, user from the cookie); its id or None."""
     body = request.get_json(silent=True)
     return log_turn(visitor_token(), body.get("visitor") if isinstance(body, dict) else None, {
@@ -89,12 +90,14 @@ def _save_turn(contents, started, outcome, bot_text=None, guard=None, response=N
         "model": GEMINI_MODEL, "promptTokens": _tokens(response, "prompt_token_count"),
         "completionTokens": _tokens(response, "candidates_token_count"),
         "latencyMs": int((time.monotonic() - started) * 1000),
+        "retrievals": cited_chunks(bot_text if outcome == "answered" else "", hits),
     })
 
 
-def _cannot_serve(contents, started, user, reason, error, status):
+def _cannot_serve(contents, started, user, reason, error, status, hits=()):
     """handoff_or_error, logged as handed_off (customer) or error (everyone else)."""
-    _save_turn(contents, started, "handed_off" if user and user["role"] == "customer" else "error", bot_text=error)
+    _save_turn(contents, started, "handed_off" if user and user["role"] == "customer" else "error", bot_text=error,
+               hits=hits)
     return handoff_or_error(user, reason, error, status)
 
 
@@ -145,14 +148,14 @@ def web_chat():
         app.logger.exception("Gemini call failed")
         reply = None
     if not reply:
-        return _cannot_serve(contents, started, user, "unavailable", "The assistant is unavailable right now", 503)
+        return _cannot_serve(contents, started, user, "unavailable", "The assistant is unavailable right now", 503, hits)
     guard = guard_reason(reply)
     reply = FALLBACK if guard else reply
     turn_id = _save_turn(contents, started, "refused" if guard else "answered", bot_text=reply, guard=guard,
-                         response=response)
+                         response=response, hits=hits)
     answer = {"reply": reply}
     if hits:
-        answer["sources"] = list(dict.fromkeys(title for _, title, _ in hits))
+        answer["sources"] = list(dict.fromkeys(hit[1] for hit in hits))
     if turn_id is not None:
         answer["turnId"] = turn_id
     return jsonify(answer)
@@ -251,7 +254,7 @@ def retrieve_chunks():
         return jsonify(error="The assistant is unavailable right now, try again later"), 503
     except ApiError as e:
         return api_failure(e)
-    return jsonify(results=[{"score": float(score), "title": title, "text": text} for score, title, text in hits])
+    return jsonify(results=[{"score": float(score), "title": title, "text": text} for score, title, text, *_ in hits])
 
 
 @app.route("/webhook", methods=["GET"])

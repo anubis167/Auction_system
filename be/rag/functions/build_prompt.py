@@ -30,9 +30,9 @@ def _account(user):
 
 def build_prompt(user, hits):
     """system.md + the visitor's account (or the guest note) + the excerpts, when there are any.
-    user: session_user()'s dict or None; hits: retrieve()'s (score, title, text) list."""
+    user: session_user()'s dict or None; hits: retrieve()'s (score, title, text, chunk_id) list."""
     parts = [load_prompt("system"), _account(user)]
     if hits:
-        excerpts = "\n".join(f"<untrusted>\n[{_clean(title)}]\n{_clean(text)}\n</untrusted>" for _, title, text in hits)
+        excerpts = "\n".join(f"<untrusted>\n[{_clean(title)}]\n{_clean(text)}\n</untrusted>" for _, title, text, *_ in hits)
         parts.append(_fill(load_prompt("excerpts"), {"excerpts": excerpts}))
     return "\n\n".join(parts)

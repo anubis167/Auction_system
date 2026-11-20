@@ -117,7 +117,7 @@ describe('rag2-1.1 /api/rag routes', () => {
 
     const chunks = await request(app).get('/api/rag/chunks').set('X-Internal-Token', TOKEN);
     expect(chunks.status).toBe(200);
-    expect(chunks.body).toContainEqual({ title: 'Fees', text: 'one', embedding: [1, 0] });
+    expect(chunks.body).toContainEqual({ id: expect.any(Number), title: 'Fees', text: 'one', embedding: [1, 0] });
     expect(chunks.body).toHaveLength(3);
 
     expect((await staff.delete(`/api/rag/documents/${created.body.id}`)).status).toBe(204);

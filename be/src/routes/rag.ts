@@ -1,4 +1,5 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
+import { Prisma } from '@prisma/client';
 import { Router } from 'express';
 import { z } from 'zod';
 import { config } from '../config';
@@ -64,7 +65,7 @@ ragRouter.get(
   }),
 );
 
-/** Every live chunk with its embedding; Python ranks them (shortcut until pgvector). */
+/** Every live chunk with its id and embedding; Python ranks them (shortcut until pgvector). */
 ragRouter.get(
   '/chunks',
   requireInternal,
@@ -72,9 +73,9 @@ ragRouter.get(
     const chunks = await prisma.knowledgeChunk.findMany({
       where: { document: { deletedAt: null } },
       orderBy: [{ documentId: 'asc' }, { position: 'asc' }],
-      select: { text: true, embedding: true, document: { select: { title: true } } },
+      select: { id: true, text: true, embedding: true, document: { select: { title: true } } },
     });
-    res.json(chunks.map((c) => ({ title: c.document.title, text: c.text, embedding: c.embedding })));
+    res.json(chunks.map((c) => ({ id: Number(c.id), title: c.document.title, text: c.text, embedding: c.embedding })));
   }),
 );
 
@@ -188,6 +189,11 @@ const turnBody = z.object({
   promptTokens: z.number().int().nonnegative().nullable().default(null),
   completionTokens: z.number().int().nonnegative().nullable().default(null),
   latencyMs: z.number().int().nonnegative().nullable().default(null),
+  // rag-train-3: the chunks the retriever returned, best first
+  retrievals: z
+    .array(z.object({ chunkId: z.number().int().positive(), rank: z.number().int().positive(), score: z.number().finite(), cited: z.boolean() }))
+    .max(20)
+    .default([]),
 });
 
 // rag-train-2: one chat turn, written by the Python service. The visitor's cookie decides user_id (null = guest);
@@ -197,7 +203,7 @@ ragRouter.post(
   requireInternal,
   optionalAuth,
   asyncHandler(async (req, res) => {
-    const { visitor, ...turn } = turnBody.parse(req.body);
+    const { visitor, retrievals, ...turn } = turnBody.parse(req.body);
     const userId = req.user?.id ?? null;
     const hash = visitorHash(visitor);
     const saved = await prisma.$transaction(async (tx) => {
@@ -206,7 +212,19 @@ ragRouter.post(
         (await tx.ragSession.create({ data: { visitorHash: hash, userId }, select: { id: true } }));
       // Deleted turns keep their index, so count them too; the unique key catches a concurrent write
       const turnIndex = await tx.ragTurn.count({ where: { sessionId: session.id } });
-      return tx.ragTurn.create({ data: { ...turn, sessionId: session.id, turnIndex }, select: { id: true, sessionId: true } });
+      return tx.ragTurn.create({
+        data: {
+          ...turn,
+          sessionId: session.id,
+          turnIndex,
+          retrievals: { create: retrievals.map(({ chunkId, ...r }) => ({ ...r, chunkId: BigInt(chunkId) })) },
+        },
+        select: { id: true, sessionId: true },
+      });
+    }).catch((e: unknown) => {
+      // A chunk id missing from knowledge_chunks (foreign key) is the caller's mistake, not a server fault
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2003') throw new HttpError(400, 'Unknown chunk');
+      throw e;
     });
     res.status(201).json({ turnId: Number(saved.id), sessionId: Number(saved.sessionId) });
   }),

@@ -93,8 +93,8 @@ class WebChat(ChatBase):
 class GroundedChat(ChatBase):
     def setUp(self):
         super().setUp()
-        self.api.chunks = [{"title": "Fees", "text": "The seller fee is 5% of the final price.", "embedding": [1.0, 0.0, 0.0]},
-                           {"title": "Shipping", "text": "Sellers ship within 5 days.", "embedding": [0.0, 1.0, 0.0]}]
+        self.api.chunks = [{"id": 1, "title": "Fees", "text": "The seller fee is 5% of the final price.", "embedding": [1.0, 0.0, 0.0]},
+                           {"id": 2, "title": "Shipping", "text": "Sellers ship within 5 days.", "embedding": [0.0, 1.0, 0.0]}]
 
     def test_matching_document_reaches_gemini(self):
         res = self.post()

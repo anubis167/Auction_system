@@ -13,6 +13,7 @@ def _cosine(a, b):
 
 
 def rank(rows, query_vector, k=TOP_K, min_score=MIN_SCORE):
-    """rows: (title, text, embedding). The k best at or above min_score, best first, as (score, title, text)."""
-    scored = [(_cosine(query_vector, embedding), title, text) for title, text, embedding in rows if embedding]
+    """rows: (title, text, embedding, *extra). The k best at or above min_score, best first, as
+    (score, title, text, *extra); retrieve passes the chunk id as extra (rag-train-3)."""
+    scored = [(_cosine(query_vector, embedding), title, text, *extra) for title, text, embedding, *extra in rows if embedding]
     return sorted((hit for hit in scored if hit[0] >= min_score), key=lambda hit: hit[0], reverse=True)[:k]
