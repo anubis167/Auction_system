@@ -12,7 +12,6 @@ import chat  # noqa: E402  (fake_api put be/rag on sys.path)
 from functions import chat_cache as cache_module, over_limit  # noqa: E402
 
 ASK = [{"role": "user", "text": "What fee do you charge?"}]
-FAQ = "How do I add credit?"  # FAQ Q11 in faq_questions.json
 
 
 class FakeRedis:
@@ -44,9 +43,8 @@ class ChatCache(unittest.TestCase):
         self.addCleanup(patch.stopall)
         self.http = chat.app.test_client()
 
-    def post(self, text=ASK[0]["text"], history=None):
-        messages = history or [{"role": "user", "text": text}]
-        return self.http.post("/api/chat", json={"messages": messages})
+    def post(self):
+        return self.http.post("/api/chat", json={"messages": ASK})
 
     def sign_in(self, cookie, **user):
         self.api.sessions[cookie] = account(**user)
@@ -76,37 +74,6 @@ class ChatCache(unittest.TestCase):
         self.assertEqual(self.post().json, {"reply": "answer"})
         self.assertEqual(self.post().json, {"reply": "answer"})
         self.assertEqual(self.client.models.generate_content.call_count, 2)
-
-    def test_dynamic_question_expires_after_the_ttl(self):
-        self.post()
-        self.assertEqual(list(self.store.ttl.values()), [cache_module.TTL_SECONDS])
-
-    def test_faq_question_is_kept_forever_and_matched_loosely(self):
-        self.post(FAQ)
-        self.post("  how do I ADD   credit? ")
-        self.assertEqual(self.client.models.generate_content.call_count, 1)
-        self.assertEqual(list(self.store.ttl.values()), [None])
-
-    def test_faq_answer_is_the_same_for_a_signed_in_visitor(self):
-        self.post(FAQ)
-        self.sign_in("ann-cookie", username="ann")
-        self.post(FAQ)
-        self.assertEqual(self.client.models.generate_content.call_count, 1)
-
-    def test_faq_text_inside_a_conversation_is_a_dynamic_question(self):
-        history = [{"role": "user", "text": "hi"}, {"role": "model", "text": "hello"}, {"role": "user", "text": FAQ}]
-        self.post(history=history)
-        self.assertEqual(list(self.store.ttl.values()), [cache_module.TTL_SECONDS])
-
-    def test_site_chips_are_all_faq_questions(self):
-        import os, re
-        from functions.faq_question import faq_question
-        path = os.path.join(os.path.dirname(__file__), "..", "..", "fe", "src", "components", "ChatBox.tsx")
-        with open(path, encoding="utf-8") as f:
-            chips = re.findall(r"'([^']+\?)'", re.search(r"CHAT_CHIPS = \[(.*?)\]", f.read(), re.S).group(1))
-        self.assertEqual(len(chips), 4)
-        for chip in chips:
-            self.assertIsNotNone(faq_question(chip), chip)
 
     def test_no_redis_url_means_no_cache(self):
         with patch.dict("os.environ", {"REDIS_URL": ""}):

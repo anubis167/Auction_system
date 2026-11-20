@@ -77,10 +77,8 @@ Node side: `e2e/integration/rag2-1-1-rag-api.test.ts` (vitest, in `npm test -w b
 model, the full system instruction (visitor account and excerpts) and the conversation, so a repeat question from the
 same visitor state skips Gemini; a guest never gets a signed-in visitor's answer.
 
-- `REDIS_URL` (e.g. `redis://localhost:6379/0`) turns it on; unset means no cache.
-- FAQ questions (`be/rag/faq_questions.json`, the 38 questions of the FAQ document; matched word for word, case and spaces ignored, single message only) are cached forever, keyed on the question, so every visitor gets the same answer.
-- Dynamic questions expire after `CHAT_CACHE_TTL_SECONDS` (default 3600).
+- `REDIS_URL` (e.g. `redis://localhost:6379/0`) turns it on; unset means no cache. `CHAT_CACHE_TTL_SECONDS` defaults to 3600.
 - Empty or failed Gemini replies are not cached. Redis errors are logged and the chat calls Gemini as before.
 - `docker compose up -d redis` starts Redis on port 6379 (container `auction_redis`).
 - Tests: `e2e/py/chat_cache_test.py` (in-memory stand-in). Live check: two identical questions give one Gemini call.
-- Shortcut: the cache runs after retrieval, so each question still costs one embedding call. FAQ answers ignore the visitor's account, and a changed FAQ answer needs the key deleted in Redis (or a new question text).
+- Shortcut: the cache runs after retrieval, so each question still costs one embedding call.

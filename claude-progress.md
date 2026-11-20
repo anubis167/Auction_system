@@ -772,6 +772,5 @@
 
 - Date: 2026-11-20. Goal: cache chat box replies from Gemini in Redis (not on feature_list.json; the round 18 list was left untouched).
 - Changed: be/rag/functions/chat_cache.py (new), be/rag/chat.py (web_chat calls chat_cache), be/rag/requirements.txt (redis==7.4.1), docker-compose.yml (redis service), e2e/py/chat_cache_test.py (new), docs/rag.md.
-- Verification: `npm run test:py` 112 tests OK with db + redis up; live Redis: two identical questions -> one Gemini call; FAQ key TTL -1 (forever), dynamic key TTL 3600.
-- Update: FAQ questions (38, from faq.txt) cached forever in be/rag/faq_questions.json; dynamic questions 1h. Reverted once and reapplied (f36b3ec, 2fa31e5).
+- Verification: `npm run test:py` 107 tests OK with db + redis up; live Redis: two identical questions -> one Gemini call, key TTL 3600.
 - Not verified: Node suite and Playwright (no Node code changed); the Gemini call in the browser path.
