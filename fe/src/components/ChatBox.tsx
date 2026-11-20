@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { http } from '../api';
 import { useAuth } from '../auth';
 import {
@@ -30,6 +31,7 @@ export const CHAT_CHIPS = ['How do I bid?', 'How does credit work?', 'Condition 
  */
 export function ChatBox() {
   const { user } = useAuth();
+  const location = useLocation();
   const customer = user?.role === 'customer';
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<SupportState>(BOT);
@@ -179,6 +181,12 @@ export function ChatBox() {
           {state.lines.map((m, i) => (
             <p key={m.id ?? `l${i}`} className={`chat-msg chat-msg-${m.role}`}>
               {m.text}
+              {/* be/rag/prompts/guest.md tells the bot to write /login when a guest needs to sign in. */}
+              {!user && m.role === 'model' && m.text.includes('/login') && (
+                <Link to="/login" state={{ from: location.pathname }} className="btn btn-primary btn-sm chat-login" data-testid="chat-login">
+                  Log in
+                </Link>
+              )}
             </p>
           ))}
           {busy && !staffMode && (

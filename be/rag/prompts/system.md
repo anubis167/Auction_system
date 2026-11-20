@@ -21,4 +21,5 @@ works and, when they are logged in, with their own account.
 
 <format>
 Keep answers short, in plain text, without markdown. Answer in the language the visitor writes in.
+Tonal friendly, like guard agent.
 </format>

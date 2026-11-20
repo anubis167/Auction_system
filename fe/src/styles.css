@@ -1000,6 +1000,7 @@ th, td { border-bottom: var(--stroke-thin) dashed var(--ink); }
 .chat-msg-user { background: var(--bam-blue); color: #fff; }
 .chat-msg-staff { background: var(--zap-yellow); color: var(--ink); border-color: var(--ink); }
 .chat-msg-system { border: none; box-shadow: none; color: var(--ink-muted); }
+.chat-login { display: flex; width: fit-content; margin-top: 0.5rem; white-space: normal; }
 .chat-typing { display: inline-flex; gap: 5px; align-items: center; min-height: 36px; }
 .chat-typing span { width: 8px; height: 8px; border-radius: var(--radius-round); background: var(--ink); animation: chat-dot 900ms ease-in-out infinite; }
 .chat-typing span:nth-child(2) { animation-delay: 150ms; }

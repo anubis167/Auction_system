@@ -29,6 +29,17 @@ test('pop-3.1 launcher opens and closes by keyboard; chips send their text', asy
   await expect(toggle).toBeFocused();
 });
 
+
+test('pop-3.1 a guest told to log in gets a Log in button to /login', async ({ page }) => {
+  await page.route('**/api/chat/health', (r) => r.fulfill({ json: { ok: true } }));
+  await page.route('**/api/chat', (r) => r.fulfill({ json: { reply: 'Please log in first on the login page (/login).' } }));
+  await page.goto('/');
+  await page.getByTestId('chat-toggle').click();
+  await page.getByTestId('chat-input').fill('What is my credit?');
+  await page.keyboard.press('Enter');
+  await page.getByTestId('chat-login').click();
+  await expect(page).toHaveURL(/\/login$/);
+});
 test('pop-3.1 a staff reply while the box is closed shows an unread count', async ({ page }) => {
   const username = `holler${Date.now().toString(36)}`;
   await registerViaApi(page.request, username);
