@@ -47,6 +47,9 @@ class FakeApi:
         self.turns = []  # rag-train-2: POST /api/rag/turns bodies, with the user the cookie maps to
         self.opted_out = []  # rag-train-5: the bodies sent for opted-out visitors
         self.faqs = []  # faq-cache-6: {faqId, question, answer}; matched like Node's normalizeQuestion
+        # faq-cache-7: None = no answer-cache route (404, as before this round); a dict turns it on
+        self.answers = None
+        self.version = "v1"
 
     def start(self, test):
         p = patch("functions.call_api.requests.request", side_effect=self.request)
@@ -78,6 +81,16 @@ class FakeApi:
                 if normalize(faq["question"]) == q:
                     return Response(200, faq)
             return Response(404, {"error": "No FAQ matches this question"})
+        if path.startswith("/api/rag/answer-cache") and self.answers is not None:
+            if not internal:
+                return Response(401, {"error": "Invalid internal token"})
+            if method == "GET":
+                q = normalize(parse_qs(urlsplit(path).query).get("q", [""])[0])
+                return Response(200, {"version": self.version, "answer": self.answers.get((self.version, q))})
+            if json["version"] != self.version:
+                return Response(409, {"error": "Knowledge changed; answer not cached"})
+            self.answers[(self.version, normalize(json["question"]))] = {"reply": json["reply"], "sources": json["sources"]}
+            return Response(204, None)
         if path == "/api/rag/me":
             me = self.user(cookie)
             return Response(200, me) if me else Response(401, {"error": "Authentication required"})

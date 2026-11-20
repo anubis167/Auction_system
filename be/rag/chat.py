@@ -14,6 +14,7 @@ import error_handler
 import security
 
 from functions.build_prompt import build_prompt
+from functions.cached_answer import cached_answer
 from functions.call_api import COOKIE, ApiError, call_api
 from functions.check_messages import check_messages
 from functions.cited_chunks import cited_chunks
@@ -28,6 +29,7 @@ from functions.over_limit import over_limit
 from functions.read_upload import DOC_MAX_BYTES, UploadError, read_upload
 from functions.retrieve import retrieve
 from functions.session_user import session_user
+from functions.store_answer import store_answer
 
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 load_dotenv()
@@ -53,6 +55,8 @@ client = genai.Client(
 GEMINI_MODEL = "gemini-flash-lite-latest"
 # faq-cache-6: the "model" logged for a turn answered from the FAQ cache instead of Gemini
 FAQ_MODEL = "faq-cache"
+# faq-cache-7: the "model" logged for a guest turn answered from the cached Gemini answers
+RAG_CACHE_MODEL = "rag-cache"
 
 # Credentials from Facebook Developer Console
 PAGE_ACCESS_TOKEN = os.getenv("FACEBOOK_PAGE_ACCESS_TOKEN")
@@ -136,18 +140,24 @@ def web_chat():
         # sch-1.3: no embedding either, it would be one more Gemini call
         return _cannot_serve(contents, started, user, "limit", "Too many messages, please wait a minute", 429)
 
+    question = contents[-1]["parts"][0]["text"]
     # faq-cache-6: an FAQ question is answered from the cache, no Gemini call; anything else goes on to RAG below
-    faq = faq_answer(contents[-1]["parts"][0]["text"])
+    faq = faq_answer(question)
     if faq:
-        turn_id = _save_turn(contents, started, "answered", bot_text=faq["answer"], model=FAQ_MODEL)
-        answer = {"reply": faq["answer"], "sources": ["FAQ"]}
-        if turn_id is not None:
-            answer["turnId"] = turn_id
-        return jsonify(answer)
+        return _answer(faq["answer"], ["FAQ"], _save_turn(contents, started, "answered", bot_text=faq["answer"],
+                                                           model=FAQ_MODEL))
+
+    # faq-cache-7: a guest's opening question reuses an earlier Gemini answer. Never for signed-in visitors (their
+    # prompt holds their bids and credit) nor mid-conversation (the answer depends on the earlier messages).
+    cached = cached_answer(question) if user is None and len(contents) == 1 else None
+    if cached and cached["answer"]:
+        hit = cached["answer"]
+        return _answer(hit["reply"], hit["sources"], _save_turn(contents, started, "answered", bot_text=hit["reply"],
+                                                                model=RAG_CACHE_MODEL))
 
     # rag-1.5: the best matching excerpts of uploaded documents; without them the bot still answers
     try:
-        hits = retrieve(client, contents[-1]["parts"][0]["text"])
+        hits = retrieve(client, question)
     except (ApiError, EmbedError):
         app.logger.exception("Document search failed, answering without it")
         hits = []
@@ -167,9 +177,17 @@ def web_chat():
     reply = FALLBACK if guard else reply
     turn_id = _save_turn(contents, started, "refused" if guard else "answered", bot_text=reply, guard=guard,
                          response=response, hits=hits)
+    sources = list(dict.fromkeys(hit[1] for hit in hits))
+    if cached and not guard:
+        store_answer(question, cached["version"], reply, sources)
+    return _answer(reply, sources, turn_id)
+
+
+def _answer(reply, sources, turn_id):
+    """The /api/chat JSON: sources only when there are any, turnId only when the turn was saved."""
     answer = {"reply": reply}
-    if hits:
-        answer["sources"] = list(dict.fromkeys(hit[1] for hit in hits))
+    if sources:
+        answer["sources"] = sources
     if turn_id is not None:
         answer["turnId"] = turn_id
     return jsonify(answer)

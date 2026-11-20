@@ -6,6 +6,7 @@ import { config } from '../config';
 import { prisma } from '../db';
 import { cache } from '../lib/cache';
 import { normalizeQuestion } from '../lib/faqs';
+import { answerKey, bumpKnowledgeVersion, knowledgeVersion } from '../lib/ragAnswerCache';
 import { HttpError, asyncHandler } from '../lib/http';
 import { toJsonl, toTrainingRecord } from '../lib/ragExport';
 import { optionalAuth, requireAuth, requirePermission } from '../middleware/auth';
@@ -108,6 +109,41 @@ ragRouter.get(
   }),
 );
 
+// faq-cache-7: Gemini answers to guests' questions, reused for the same question until the knowledge changes.
+// Signed-in visitors never use it: their prompt holds their own bids and credit. Flask decides who is a guest.
+const cacheQuestion = z.string().max(4000).refine((q) => normalizeQuestion(q) !== '', 'Question is required');
+type CachedAnswer = { reply: string; sources: string[] };
+
+/** {version, answer}: answer is null on a miss; version is what PUT must send back. */
+ragRouter.get(
+  '/answer-cache',
+  requireInternal,
+  asyncHandler(async (req, res) => {
+    const question = cacheQuestion.parse(req.query.q);
+    const version = await knowledgeVersion();
+    res.json({ version, answer: await cache.get<CachedAnswer>(answerKey(version, question)) });
+  }),
+);
+
+const answerBody = z.object({
+  question: cacheQuestion,
+  version: z.string().min(1).max(64),
+  reply: z.string().min(1).max(20000),
+  sources: z.array(z.string().max(255)).max(20).default([]),
+});
+
+/** Store an answer; 409 when the knowledge changed while it was being written, so it is not cached. */
+ragRouter.put(
+  '/answer-cache',
+  requireInternal,
+  asyncHandler(async (req, res) => {
+    const body = answerBody.parse(req.body);
+    if (body.version !== (await knowledgeVersion())) throw new HttpError(409, 'Knowledge changed; answer not cached');
+    await cache.set(answerKey(body.version, body.question), { reply: body.reply, sources: body.sources }, config.ragAnswerTtlSeconds);
+    res.status(204).end();
+  }),
+);
+
 export const MAX_CHUNKS = 15000; // 10 MB / ~850 new chars per chunk is ~12500 at worst; real documents stay far below
 const documentBody = z.object({
   title: z.string().trim().min(1).max(255),
@@ -139,6 +175,7 @@ ragRouter.post(
       },
       select: { id: true, title: true },
     });
+    await bumpKnowledgeVersion(); // faq-cache-7: cached answers predate this document
     res.status(201).json({ id: Number(doc.id), title: doc.title, chunks: body.chunks.length });
   }),
 );
@@ -199,6 +236,7 @@ ragRouter.delete(
       data: { deletedAt: new Date() },
     });
     if (count === 0) throw new HttpError(404, 'Document not found');
+    await bumpKnowledgeVersion(); // faq-cache-7: cached answers may quote this document
     res.status(204).end();
   }),
 );

@@ -5,6 +5,7 @@ import { config } from '../config';
 import { prisma } from '../db';
 import { cache } from '../lib/cache';
 import { normalizeQuestion } from '../lib/faqs';
+import { bumpKnowledgeVersion } from '../lib/ragAnswerCache';
 import { HttpError, asyncHandler } from '../lib/http';
 import { requirePermission } from '../middleware/auth';
 import { parseId } from './auctions';
@@ -21,6 +22,7 @@ export const FAQ_MATCH_PREFIX = 'faq:q:';
 export async function clearFaqCache(id: bigint) {
   await cache.del(FAQ_LIST_KEY, faqItemKey(id));
   await cache.delByPrefix(FAQ_MATCH_PREFIX);
+  await bumpKnowledgeVersion(); // faq-cache-7: cached bot answers may rest on the old FAQ text
 }
 
 /** What the API returns for one FAQ; plain JSON so it can go into Redis as is. */

@@ -166,7 +166,7 @@
       "requirement": "Req-3",
       "title": "Cache RAG answers to repeated guest questions",
       "user_visible_behavior": "A guest asking a question that was already answered recently gets the same answer faster; answers are refreshed when the bot's documents or FAQs change.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Only guest turns are cached: a signed-in visitor's prompt contains their bids, lots and credit (build_prompt._account), so their answers are never stored or served from cache.",
         "Only outcome answered with no guard reason is stored. Key rag:ans:<knowledge version>:<sha256(normalized question)>, TTL RAG_ANSWER_TTL_SECONDS (default 86400). Node exposes GET and PUT /api/rag/answer-cache behind requireInternal; Flask uses them through one function file.",
@@ -175,8 +175,13 @@
         "e2e/integration/faq-cache-7-answer-cache.test.ts: PUT then GET returns the answer; after a document upload or FAQ edit GET misses; missing internal token 401.",
         "e2e/py/faq_cache_7_answer_cache_test.py: second identical guest question does not call Gemini; signed-in visitor always calls Gemini and never PUTs; refused (guarded) reply is not stored; cache endpoint down -> normal RAG answer."
       ],
-      "evidence": [],
-      "notes": "Lowest priority: drop it if the user only wants FAQ caching."
+      "evidence": [
+        "2026-11-20 be/src/lib/ragAnswerCache.ts (rag:ver random version, rag:ans:<ver>:<sha256>); GET/PUT /api/rag/answer-cache (internal; PUT 409 on a stale version); version bumped on document upload/delete and on every FAQ write; RAG_ANSWER_TTL_SECONDS default 86400.",
+        "2026-11-20 be/rag cached_answer.py + store_answer.py; chat.py uses them for guests asking an opening question only; hit logged with model rag-cache.",
+        "2026-11-20 e2e/integration/faq-cache-7-answer-cache.test.ts 5/5; e2e/py/faq_cache_7_answer_cache_test.py 8/8.",
+        "2026-11-20 npm run test:py 139 OK twice; be vitest 105 files / 480 tests pass; tsc clean."
+      ],
+      "notes": "Two Python files instead of one (one public function per file). Also limited to opening questions: a follow-up answer depends on the earlier messages. Lowest priority: drop it if the user only wants FAQ caching."
     },
     {
       "id": "faq-cache-8",

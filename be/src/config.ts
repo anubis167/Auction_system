@@ -54,6 +54,11 @@ export const config = {
     const seconds = Number(process.env.FAQ_CACHE_TTL_SECONDS);
     return Number.isInteger(seconds) && seconds > 0 ? seconds : 3600;
   },
+  /** faq-cache-7: how long a cached RAG answer for a guest question is reused (default one day). */
+  get ragAnswerTtlSeconds() {
+    const seconds = Number(process.env.RAG_ANSWER_TTL_SECONDS);
+    return Number.isInteger(seconds) && seconds > 0 ? seconds : 86400;
+  },
   /** mail-004: a change-password email at most once a minute per user. */
   get passwordLinkIntervalMs() {
     return Number(process.env.PASSWORD_LINK_INTERVAL_MS ?? 60_000);
