@@ -19,6 +19,7 @@ from functions.check_messages import check_messages
 from functions.cited_chunks import cited_chunks
 from functions.chunk_text import chunk_text
 from functions.embed import EmbedError, embed
+from functions.faq_answer import faq_answer
 from functions.guard_reason import guard_reason
 from functions.guard_reply import FALLBACK
 from functions.handoff_or_error import handoff_or_error
@@ -50,6 +51,8 @@ client = genai.Client(
 ) if api_key else None
 # An alias, because Google retires pinned models (gemini-2.5-flash stopped working for this key)
 GEMINI_MODEL = "gemini-flash-lite-latest"
+# faq-cache-6: the "model" logged for a turn answered from the FAQ cache instead of Gemini
+FAQ_MODEL = "faq-cache"
 
 # Credentials from Facebook Developer Console
 PAGE_ACCESS_TOKEN = os.getenv("FACEBOOK_PAGE_ACCESS_TOKEN")
@@ -82,14 +85,14 @@ def _tokens(response, field):
     return value if isinstance(value, int) and not isinstance(value, bool) else None
 
 
-def _save_turn(contents, started, outcome, bot_text=None, guard=None, response=None, hits=()):
+def _save_turn(contents, started, outcome, bot_text=None, guard=None, response=None, hits=(), model=GEMINI_MODEL):
     """rag-train-2: log this /api/chat turn (visitor token from the body, user from the cookie); its id or None."""
     body = request.get_json(silent=True)
     body = body if isinstance(body, dict) else {}
     # rag-train-5: the chat box sends logging: false when the visitor opted out
     return log_turn(visitor_token(), body.get("visitor"), consent=body.get("logging") is not False, turn={
         "userText": contents[-1]["parts"][0]["text"], "botText": bot_text, "outcome": outcome, "guardTriggered": guard,
-        "model": GEMINI_MODEL, "promptTokens": _tokens(response, "prompt_token_count"),
+        "model": model, "promptTokens": _tokens(response, "prompt_token_count"),
         "completionTokens": _tokens(response, "candidates_token_count"),
         "latencyMs": int((time.monotonic() - started) * 1000),
         "retrievals": cited_chunks(bot_text if outcome == "answered" else "", hits),
@@ -132,6 +135,15 @@ def web_chat():
     if limited:
         # sch-1.3: no embedding either, it would be one more Gemini call
         return _cannot_serve(contents, started, user, "limit", "Too many messages, please wait a minute", 429)
+
+    # faq-cache-6: an FAQ question is answered from the cache, no Gemini call; anything else goes on to RAG below
+    faq = faq_answer(contents[-1]["parts"][0]["text"])
+    if faq:
+        turn_id = _save_turn(contents, started, "answered", bot_text=faq["answer"], model=FAQ_MODEL)
+        answer = {"reply": faq["answer"], "sources": ["FAQ"]}
+        if turn_id is not None:
+            answer["turnId"] = turn_id
+        return jsonify(answer)
 
     # rag-1.5: the best matching excerpts of uploaded documents; without them the bot still answers
     try:

@@ -26,6 +26,7 @@ NODE_ENV = {
     **os.environ,
     "DATABASE_URL": os.getenv("RAG_TEST_DATABASE_URL", "postgresql://auction:auction@localhost:5436/auction_test"),
     "PORT": str(PORT), "JWT_SECRET": "full-path-secret", "NODE_ENV": "test", "RAG_INTERNAL_TOKEN": TOKEN,
+    "REDIS_URL": "redis://127.0.0.1:6380/1",  # faq-cache-1: the tests' Redis database, never dev's
     "GMAIL_USER": "", "GMAIL_CLIENT_ID": "", "GMAIL_CLIENT_SECRET": "", "GMAIL_REFRESH_TOKEN": "", "SMTP_HOST": "",
 }
 TSX = [os.path.join(ROOT, "node_modules", ".bin", "tsx.cmd" if os.name == "nt" else "tsx")]
@@ -104,7 +105,7 @@ class FullPath(unittest.TestCase):
 
         # A customer asks: the excerpt and their own account (from Node, via their cookie) reach Gemini
         self.as_user("alice")
-        res, prompt = self.ask("What is a reserve price?")
+        res, prompt = self.ask("Explain the reserve price rule")
         self.assertEqual(res.json, {"reply": "answer", "sources": [title]})
         self.assertIn("A reserve price is the lowest price a seller accepts.", prompt)
         self.assertIn("Username: <untrusted>alice</untrusted>", prompt)
@@ -116,7 +117,7 @@ class FullPath(unittest.TestCase):
 
         # A forged cookie is a guest: Node rejects it, Python never decides
         self.as_user("forged.cookie.value")
-        _, prompt = self.ask("What is a reserve price?")
+        _, prompt = self.ask("Explain the reserve price rule")
         self.assertIn(load_prompt("guest"), prompt)
 
         # Soft delete through Flask -> Node: the excerpt is gone
@@ -124,7 +125,7 @@ class FullPath(unittest.TestCase):
         self.assertEqual(self.http.delete(f"/api/docs/{doc_id}").status_code, 204)
         self.assertEqual(self.http.delete(f"/api/docs/{doc_id}").status_code, 404)
         self.as_user("alice")
-        res, prompt = self.ask("What is a reserve price?")
+        res, prompt = self.ask("Explain the reserve price rule")
         self.assertEqual(res.json, {"reply": "answer"})
         self.assertNotIn("lowest price a seller accepts", prompt)
 
@@ -141,13 +142,26 @@ class FullPath(unittest.TestCase):
             ids.append(res.json["turnId"])
         self.assertTrue(all(isinstance(i, int) for i in ids) and len(set(ids)) == 3, ids)
 
+    def test_faq_question_is_answered_by_the_real_faq_cache(self):
+        """faq-cache-6: the seeded FAQ Q29 comes back from Node (Postgres, then Redis) without a Gemini call;
+        a question that is not an FAQ still reaches Gemini."""
+        self.as_user("alice")
+        for _ in range(2):  # first from Postgres, then from Redis
+            res = self.http.post("/api/chat", json={"messages": [{"role": "user", "text": "what is a RESERVE price"}]})
+            self.assertEqual(res.status_code, 200, res.json)
+            self.assertEqual(res.json["sources"], ["FAQ"])
+            self.assertTrue(res.json["reply"].startswith("A reserve price is the minimum price the seller requires"))
+        self.client.models.generate_content.assert_not_called()
+        self.ask("Explain the reserve price rule")
+        self.client.models.generate_content.assert_called_once()
+
     def test_wrong_service_token_means_no_excerpts_and_no_upload(self):
         os.environ["RAG_INTERNAL_TOKEN"] = "wrong-token"
         self.as_user("staff")
         res = self.http.post("/api/docs", data={"file": (io.BytesIO(b"reserve text"), "r.md")},
                              content_type="multipart/form-data")
         self.assertEqual(res.status_code, 502)  # Node refused the service token: a server fault, not the staff's
-        res, prompt = self.ask("What is a reserve price?")
+        res, prompt = self.ask("Explain the reserve price rule")
         self.assertEqual(res.status_code, 200)
         self.assertNotIn("Excerpts from Beat'em", prompt)
 

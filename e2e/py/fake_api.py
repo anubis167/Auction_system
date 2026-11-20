@@ -2,7 +2,9 @@
 functions/call_api.py, so call_api's own checks (status, JSON, type) still run on every answer."""
 import json
 import os
+import re
 import sys
+from urllib.parse import parse_qs, urlsplit
 from unittest.mock import patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "be", "rag"))
@@ -27,6 +29,11 @@ def account(user_id=7, role="customer", username="ann", bids=(), lots=()):
             "bids": list(bids), "lots": list(lots)}
 
 
+def normalize(question):
+    """Node's normalizeQuestion (be/src/lib/faqs.ts): lower case, single spaces, no trailing ? ! ."""
+    return re.sub(r"[\s?!.]+$", "", re.sub(r"\s+", " ", question.lower()).strip())
+
+
 class FakeApi:
     """sessions: cookie -> /api/rag/me answer. chunks: /api/rag/chunks answer. documents: stored uploads.
     Set fail[path_prefix] = (status, body) to make a route answer that instead. calls: every request seen."""
@@ -39,6 +46,7 @@ class FakeApi:
         self.calls = []
         self.turns = []  # rag-train-2: POST /api/rag/turns bodies, with the user the cookie maps to
         self.opted_out = []  # rag-train-5: the bodies sent for opted-out visitors
+        self.faqs = []  # faq-cache-6: {faqId, question, answer}; matched like Node's normalizeQuestion
 
     def start(self, test):
         p = patch("functions.call_api.requests.request", side_effect=self.request)
@@ -60,6 +68,16 @@ class FakeApi:
                     raise answer
                 return Response(*answer)
 
+        if path.startswith("/api/rag/faq-match"):
+            if not internal:
+                return Response(401, {"error": "Invalid internal token"})
+            q = normalize(parse_qs(urlsplit(path).query).get("q", [""])[0])
+            if not q:
+                return Response(400, {"error": "Question is required"})
+            for faq in self.faqs:
+                if normalize(faq["question"]) == q:
+                    return Response(200, faq)
+            return Response(404, {"error": "No FAQ matches this question"})
         if path == "/api/rag/me":
             me = self.user(cookie)
             return Response(200, me) if me else Response(401, {"error": "Authentication required"})

@@ -144,14 +144,19 @@
       "requirement": "Req-3",
       "title": "Chat answers FAQ questions from the cache, everything else still goes through RAG",
       "user_visible_behavior": "Asking the bot an FAQ question (for example a suggestion chip) returns the FAQ answer at once, without a Gemini call. Any other question gets the same RAG answer as before.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "New be/rag/functions/faq_answer.py (one public function) calls /api/rag/faq-match through call_api; any ApiError or 404 returns None.",
         "In web_chat, after check_messages, prompt-injection middleware and over_limit, and before retrieve: on a hit, reply with the FAQ answer and sources ['FAQ'], log the turn through _save_turn with outcome answered and model 'faq-cache', and return turnId so thumbs feedback still works. On None, the existing retrieve -> Gemini -> guard path runs unchanged.",
         "e2e/py/faq_cache_6_chat_test.py with the fake API: FAQ hit -> FAQ text returned and the Gemini client is never called; miss -> Gemini called as before; faq-match raising ApiError/502 -> RAG still answers; logging opt-out still saves no row on a hit.",
         "Existing e2e/py RAG tests (rag2_1_4, rag2_1_6, rag3_4, rag_train_2..5) still pass unchanged."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-11-20 be/rag/functions/faq_answer.py; chat.py answers an FAQ match before retrieve (sources [FAQ], turn model faq-cache, turnId), else unchanged RAG path.",
+        "2026-11-20 e2e/py/faq_cache_6_chat_test.py 8/8 (hit without Gemini/retrieval, customer, non-FAQ via RAG, 502/500/connection error -> RAG, opt-out saves nothing, rate limit + injection first, faq_answer edge cases).",
+        "2026-11-20 e2e/py/rag2_1_6_full_path_test.py: RAG questions reworded (old wording is now FAQ Q29); new real Node+Postgres+Redis check that Q29 is answered from the FAQ twice with no Gemini call. Its Node server uses REDIS_URL db 1.",
+        "2026-11-20 npm run test:py: 131 tests OK, twice in a row (after resetting auction_test, which held documents from two interrupted runs)."
+      ],
       "notes": ""
     },
     {
