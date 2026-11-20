@@ -15,6 +15,7 @@ import security
 from functions.build_prompt import build_prompt
 from functions.call_api import COOKIE, ApiError, call_api
 from functions.check_messages import check_messages
+from functions.chat_cache import chat_cache
 from functions.chunk_text import chunk_text
 from functions.embed import EmbedError, embed
 from functions.guard_reply import guard_reply
@@ -97,13 +98,18 @@ def web_chat():
         app.logger.exception("Document search failed, answering without it")
         hits = []
 
-    try:
-        reply = client.models.generate_content(
-            model=GEMINI_MODEL, contents=contents, config={"system_instruction": build_prompt(user, hits)},
-        ).text
-    except Exception:
-        app.logger.exception("Gemini call failed")
-        reply = None
+    system = build_prompt(user, hits)
+
+    def ask_gemini():
+        try:
+            return client.models.generate_content(
+                model=GEMINI_MODEL, contents=contents, config={"system_instruction": system},
+            ).text
+        except Exception:
+            app.logger.exception("Gemini call failed")
+            return None
+
+    reply = chat_cache(GEMINI_MODEL, system, contents, ask_gemini)  # Redis reuses a repeat question; see chat_cache.py
     if not reply:
         return handoff_or_error(user, "unavailable", "The assistant is unavailable right now", 503)
     if not hits:
