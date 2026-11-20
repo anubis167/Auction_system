@@ -70,15 +70,3 @@ Node side: `e2e/integration/rag2-1-1-rag-api.test.ts` (vitest, in `npm test -w b
   Node past a few thousand chunks.
 - shortcut: the 30 calls/min limit is one in-memory counter for all visitors.
 - The Facebook `/webhook` route was left as it was (no data access, no system prompt, no signature check).
-
-## Redis reply cache (chat-cache)
-
-`be/rag/functions/chat_cache.py` caches the Gemini answer for `POST /api/chat` in Redis. The key is a sha256 of the
-model, the full system instruction (visitor account and excerpts) and the conversation, so a repeat question from the
-same visitor state skips Gemini; a guest never gets a signed-in visitor's answer.
-
-- `REDIS_URL` (e.g. `redis://localhost:6379/0`) turns it on; unset means no cache. `CHAT_CACHE_TTL_SECONDS` defaults to 3600.
-- Empty or failed Gemini replies are not cached. Redis errors are logged and the chat calls Gemini as before.
-- `docker compose up -d redis` starts Redis on port 6379 (container `auction_redis`).
-- Tests: `e2e/py/chat_cache_test.py` (in-memory stand-in). Live check: two identical questions give one Gemini call.
-- Shortcut: the cache runs after retrieval, so each question still costs one embedding call.
