@@ -203,13 +203,26 @@ ragRouter.post(
   requireInternal,
   optionalAuth,
   asyncHandler(async (req, res) => {
-    const { visitor, retrievals, ...turn } = turnBody.parse(req.body);
     const userId = req.user?.id ?? null;
-    const hash = visitorHash(visitor);
+    /** The visitor's session row, created on first use; its consent follows the visitor's latest choice. */
+    const sessionOf = async (tx: Prisma.TransactionClient, visitor: string, loggingConsent: boolean) => {
+      const where = { visitorHash: visitorHash(visitor), userId, deletedAt: null };
+      const found = await tx.ragSession.findFirst({ where, select: { id: true, loggingConsent: true } });
+      if (!found) return tx.ragSession.create({ data: { visitorHash: where.visitorHash, userId, loggingConsent }, select: { id: true } });
+      if (found.loggingConsent !== loggingConsent) await tx.ragSession.update({ where: { id: found.id }, data: { loggingConsent } });
+      return found;
+    };
+
+    // rag-train-5: an opted-out visitor's turn carries no text at all; only the session's consent flag is saved
+    if (req.body?.logging === false) {
+      const { visitor } = z.object({ visitor: visitorToken, logging: z.literal(false) }).parse(req.body);
+      const session = await prisma.$transaction((tx) => sessionOf(tx, visitor, false));
+      res.json({ turnId: null, sessionId: Number(session.id) });
+      return;
+    }
+    const { visitor, retrievals, ...turn } = turnBody.parse(req.body);
     const saved = await prisma.$transaction(async (tx) => {
-      const session =
-        (await tx.ragSession.findFirst({ where: { visitorHash: hash, userId, deletedAt: null }, select: { id: true } })) ??
-        (await tx.ragSession.create({ data: { visitorHash: hash, userId }, select: { id: true } }));
+      const session = await sessionOf(tx, visitor, true);
       // Deleted turns keep their index, so count them too; the unique key catches a concurrent write
       const turnIndex = await tx.ragTurn.count({ where: { sessionId: session.id } });
       return tx.ragTurn.create({

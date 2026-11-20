@@ -85,7 +85,9 @@ def _tokens(response, field):
 def _save_turn(contents, started, outcome, bot_text=None, guard=None, response=None, hits=()):
     """rag-train-2: log this /api/chat turn (visitor token from the body, user from the cookie); its id or None."""
     body = request.get_json(silent=True)
-    return log_turn(visitor_token(), body.get("visitor") if isinstance(body, dict) else None, {
+    body = body if isinstance(body, dict) else {}
+    # rag-train-5: the chat box sends logging: false when the visitor opted out
+    return log_turn(visitor_token(), body.get("visitor"), consent=body.get("logging") is not False, turn={
         "userText": contents[-1]["parts"][0]["text"], "botText": bot_text, "outcome": outcome, "guardTriggered": guard,
         "model": GEMINI_MODEL, "promptTokens": _tokens(response, "prompt_token_count"),
         "completionTokens": _tokens(response, "candidates_token_count"),

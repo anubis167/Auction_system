@@ -22,6 +22,7 @@ export interface ChatSession {
 
 export const STORAGE_SESSIONS_KEY = 'beat_em_chat_sessions';
 export const STORAGE_ACTIVE_ID_KEY = 'beat_em_active_chat_session_id';
+export const STORAGE_OPT_OUT_KEY = 'beat_em_chat_logging_opt_out';
 export const DEFAULT_WELCOME_MESSAGE = 'Hi! How can we help you today?';
 export const MAX_SENT_MESSAGES = 19;
 export const MAX_TEXT_LENGTH = 1000;
@@ -101,6 +102,24 @@ export function saveSessions(sessions: ChatSession[]): void {
     }
   } catch {
     // Gracefully handle storage errors or quota limits
+  }
+}
+
+/** rag-train-5: true when this browser's visitor chose "Don't save my chats". */
+export function loadLoggingOptOut(): boolean {
+  try {
+    return getStorage()?.getItem(STORAGE_OPT_OUT_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function saveLoggingOptOut(optOut: boolean): void {
+  try {
+    if (optOut) getStorage()?.setItem(STORAGE_OPT_OUT_KEY, '1');
+    else getStorage()?.removeItem(STORAGE_OPT_OUT_KEY);
+  } catch {
+    // Ignore storage errors; the choice still holds for this page view
   }
 }
 

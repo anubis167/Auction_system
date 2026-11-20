@@ -19,6 +19,7 @@ import { AdminUsersPage } from './pages/AdminUsers';
 import { MyAuctionsPage } from './pages/MyAuctions';
 import { MyBiddingsPage } from './pages/MyBiddings';
 import { ProfilePage } from './pages/Profile';
+import { PrivacyPage } from './pages/Privacy';
 import { RegisterPage } from './pages/Register';
 import { ResetPasswordPage } from './pages/ResetPassword';
 import { StaffAuctionDetailPage, StaffAuctionNewPage, StaffAuctionsPage } from './pages/StaffAuctions';
@@ -37,6 +38,7 @@ export function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />

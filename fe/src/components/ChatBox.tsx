@@ -25,9 +25,11 @@ import {
   formatMessageTime,
   formatRelativeTime,
   loadActiveSessionId,
+  loadLoggingOptOut,
   loadSessions,
   MAX_SENT_MESSAGES,
   saveActiveSessionId,
+  saveLoggingOptOut,
   saveSessions,
   setMessageFeedback,
   type ChatMessage,
@@ -61,6 +63,7 @@ export function ChatBox() {
   const [error, setError] = useState('');
   const [down, setDown] = useState(false);
   const [unread, setUnread] = useState(0);
+  const [optOut, setOptOut] = useState(loadLoggingOptOut);
 
   const openRef = useRef(open);
   openRef.current = open;
@@ -213,6 +216,7 @@ export function ChatBox() {
       const { data } = await http.post<{ reply?: string; handoff?: boolean; reason?: string; turnId?: number }>('/chat', {
         messages: payload,
         visitor: updatedSession.token,
+        ...(optOut ? { logging: false } : {}), // rag-train-5: the server then saves no turn
       });
       if (data.handoff && data.reason) {
         await handOff(data.reason, state.lines);
@@ -546,6 +550,26 @@ export function ChatBox() {
             {(offline || error) && (
               <p className="chat-error" role="alert">
                 {offline ? DOWN : error}
+              </p>
+            )}
+
+            {!staffMode && (
+              <p className="chat-notice" data-testid="chat-notice">
+                <span>
+                  Chats are saved to improve our bot. <Link to="/privacy#chat">Privacy</Link>
+                </span>
+                <label className="chat-optout">
+                  <input
+                    type="checkbox"
+                    checked={optOut}
+                    onChange={(e) => {
+                      setOptOut(e.target.checked);
+                      saveLoggingOptOut(e.target.checked);
+                    }}
+                    data-testid="chat-optout"
+                  />
+                  Don&apos;t save my chats
+                </label>
               </p>
             )}
 

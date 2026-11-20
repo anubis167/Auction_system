@@ -116,7 +116,7 @@
       "area": "privacy",
       "title": "Logging notice and opt-out",
       "user_visible_behavior": "The chat box tells visitors their messages are saved to improve the bot, and a visitor can opt out so their chats are not saved.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Add a logging_consent column to rag_sessions (default true); migration applied.",
         "The chat box shows a one-line notice with a link to the privacy text.",
@@ -124,7 +124,12 @@
         "e2e spec: opt out, send a message, confirm no turn row is written.",
         "docs/rag-training-log.md describes what is stored and the opt-out."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-11-20 rag_sessions.logging_consent (default true), migration 20261120100000_rag_logging_consent applied by prisma migrate reset on auction_test; prisma migrate diff --from-url auction_test --to-schema-datamodel: No difference detected.",
+        "2026-11-20 Chat box notice 'Chats are saved to improve our bot.' + Privacy link (/privacy#chat, new page) + 'Don't save my chats' checkbox (localStorage); sends logging:false; Flask then sends only {visitor, logging:false}; Node sets consent false and writes no turn.",
+        "2026-11-20 Playwright e2e/rag-train-5-opt-out.spec.ts 1/1 through Vite -> Flask -> Node -> Postgres: opt out, send a message -> session logging_consent false and no rag_turns row; reload keeps the choice; untick -> one turn saved, consent true; Privacy link opens /privacy#chat. rag-train-2/4 specs and chat-history-widget still pass (6/6 together).",
+        "2026-11-20 e2e/integration/rag-train-5-consent.test.ts 3/3 (default true; opted out = session false, no turn, text ignored; flip mid-conversation and back). Python rag_train_5_opt_out_test.py 3/3 (no text sent, injection not logged, only false opts out); suite 122/122. docs/rag-training-log.md describes what is stored and the opt-out."
+      ],
       "notes": ""
     },
     {

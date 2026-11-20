@@ -8,16 +8,19 @@ from functions.load_prompt import load_prompt
 log = logging.getLogger(__name__)
 
 
-def log_turn(cookie, visitor, turn):
+def log_turn(cookie, visitor, turn, consent=True):
     """Send the turn (userText, botText, outcome, guardTriggered, model, ...) with the system prompt's hash as its
-    version. Returns the saved turn id, or None when nothing was saved: no visitor token, or the API failed.
+    version. Returns the saved turn id, or None when nothing was saved: no visitor token, the visitor opted out
+    (rag-train-5: then only {visitor, logging: false} is sent, never the text), or the API failed.
     Never raises: a lost log line must not cost the visitor their answer."""
     if not isinstance(visitor, str) or not visitor:
         return None
-    version = hashlib.sha256(load_prompt("system").encode()).hexdigest()
+    if consent:
+        body = {"visitor": visitor, "promptVersion": hashlib.sha256(load_prompt("system").encode()).hexdigest(), **turn}
+    else:
+        body = {"visitor": visitor, "logging": False}
     try:
-        saved = call_api("POST", "/api/rag/turns", cookie=cookie, internal=True,
-                         json={"visitor": visitor, "promptVersion": version, **turn})
+        saved = call_api("POST", "/api/rag/turns", cookie=cookie, internal=True, json=body)
     except ApiError:
         log.exception("Saving the chat turn failed")
         return None

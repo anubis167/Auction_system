@@ -357,16 +357,18 @@ model ChatMessage {
 
 // rag-train-1: the RAG bot's conversations, kept to review and export as training data. Delete = soft delete.
 model RagSession {
-  id          BigInt    @id @default(autoincrement())
+  id             BigInt    @id @default(autoincrement())
   /// null = guest
-  userId      BigInt?   @map("user_id")
+  userId         BigInt?   @map("user_id")
   /// sha256 of the visitor token, never the raw token
-  visitorHash String    @map("visitor_hash") @db.VarChar(64)
-  locale      String?   @db.VarChar(10)
-  startedAt   DateTime  @default(now()) @map("started_at")
-  deletedAt   DateTime? @map("deleted_at")
-  user        User?     @relation(fields: [userId], references: [id])
-  turns       RagTurn[]
+  visitorHash    String    @map("visitor_hash") @db.VarChar(64)
+  locale         String?   @db.VarChar(10)
+  /// rag-train-5: false = the visitor opted out, no turns are saved for this session
+  loggingConsent Boolean   @default(true) @map("logging_consent")
+  startedAt      DateTime  @default(now()) @map("started_at")
+  deletedAt      DateTime? @map("deleted_at")
+  user           User?     @relation(fields: [userId], references: [id])
+  turns          RagTurn[]
 
   @@index([userId])
   @@index([startedAt])
