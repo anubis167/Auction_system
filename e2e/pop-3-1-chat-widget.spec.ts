@@ -18,10 +18,10 @@ test('pop-3.1 launcher opens and closes by keyboard; chips send their text', asy
   await expect(page.getByTestId('chat-status')).toHaveText('Online · usually replies in minutes');
   await expect(page.getByTestId('chat-log')).toHaveAttribute('role', 'log');
   await expect(page.getByTestId('chat-log')).toHaveAttribute('aria-live', 'polite');
-  await expect(page.getByTestId('chat-chips').getByRole('button')).toHaveText(['How do I bid?', 'How does credit work?', 'Condition report']);
+  await expect(page.getByTestId('chat-chips').getByRole('button')).toHaveText(['How do I create an account?', 'How do I add credit?', 'Who can place a bid?', 'What happens after I win?']);
 
-  await page.getByTestId('chat-chips').getByRole('button', { name: 'How do I bid?' }).click();
-  await expect(page.getByTestId('chat-log').locator('.chat-msg-user')).toHaveText('How do I bid?');
+  await page.getByTestId('chat-chips').getByRole('button', { name: 'Who can place a bid?' }).click();
+  await expect(page.getByTestId('chat-log').locator('.chat-msg-user')).toHaveText('Who can place a bid?');
   await expect(page.getByTestId('chat-log').locator('.chat-msg-model')).toHaveText('Open a lot and press Place bid!');
 
   await page.keyboard.press('Escape');

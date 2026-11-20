@@ -1018,7 +1018,7 @@ th, td { border-bottom: var(--stroke-thin) dashed var(--ink); }
 .chat-toggle:hover { transform: translate(-2px, -2px); box-shadow: var(--shadow-lg); }
 .chat-toggle:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--ink); }
 .chat-unread { position: absolute; top: -8px; right: -8px; min-width: 26px; height: 26px; padding: 0 6px; border-radius: var(--radius-pill); background: var(--pow-red); color: #fff; border: var(--stroke-thin) solid var(--ink); font: 800 13px/22px var(--font-body); text-align: center; }
-.chat-panel { width: min(380px, calc(100vw - 2rem)); padding: 0; gap: 0; box-shadow: var(--shadow-lg); }
+.chat-panel { width: min(380px, calc(100vw - 2rem)); max-height: calc(100dvh - 7rem); padding: 0; gap: 0; box-shadow: var(--shadow-lg); } /* the log shrinks so the header stays on screen */
 .chat-head { display: flex; align-items: center; gap: var(--space-3); background: var(--sky-cyan); border-bottom: var(--stroke-heavy) solid var(--ink); padding: var(--space-3) var(--space-4); }
 .chat-avatar { width: 44px; height: 44px; border-radius: var(--radius-round); border: var(--stroke-base) solid var(--ink); display: grid; place-items: center; flex: none; }
 .chat-title { font-size: 28px; margin: 0; line-height: 1; }
