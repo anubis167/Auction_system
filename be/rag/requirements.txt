@@ -4,3 +4,4 @@ google-genai==2.34.0
 python-dotenv==1.2.4
 ngrok==1.7.0
 requests==2.34.2
+redis==7.4.1
