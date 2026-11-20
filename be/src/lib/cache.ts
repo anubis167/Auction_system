@@ -74,7 +74,8 @@ export function createCache(url: string) {
       return redis().isReady;
     },
     async close(): Promise<void> {
-      if (client?.isOpen) await client.quit().catch(warn);
+      // quit() waits for a connection that may never come; a client that is not ready is simply dropped
+      if (client?.isOpen) await (client.isReady ? client.quit() : client.disconnect()).catch(warn);
       client = undefined;
     },
   };

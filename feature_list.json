@@ -80,15 +80,21 @@
       "requirement": "Req-2",
       "title": "Public FAQ read API served from the Redis cache",
       "user_visible_behavior": "GET /api/faqs lists every live FAQ grouped by category; GET /api/faqs/:id returns one. Anyone can call them, signed in or not.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Add be/src/routes/faqs.ts mounted at /api/faqs. GET / reads key faq:list from Redis; on a miss it reads Postgres (deletedAt null, ordered by category then sortOrder), stores it with FAQ_CACHE_TTL_SECONDS (config, default 3600) and returns it. GET /:id does the same with faq:item:<id>; unknown or deleted id -> 404.",
         "Each response carries X-Cache: HIT or MISS so tests and ops can see the cache working.",
         "e2e/integration/faq-cache-3-read.test.ts: first GET is MISS, second is HIT with the same body; a deleted FAQ is not listed and its id is 404; a guest gets 200.",
         "Same test with Redis unreachable: GET /api/faqs still 200 with the Postgres data (X-Cache: MISS)."
       ],
-      "evidence": [],
-      "notes": ""
+      "evidence": [
+        "2026-11-20 be/src/routes/faqs.ts GET /api/faqs + /api/faqs/:id, cache-aside faq:list / faq:item:<id>, X-Cache HIT|MISS; FAQ_CACHE_TTL_SECONDS (default 3600) in config.ts and .env.example; mounted in app.ts.",
+        "2026-11-20 e2e/integration/faq-cache-3-read.test.ts 3/3: list MISS->HIT same body, 8 categories in faq.txt order, 38 FAQs; item MISS->HIT; 404 unknown/bad/deleted; Redis down (cache spied onto a client at port 1) -> 200 from Postgres, always MISS.",
+        "2026-11-20 Real server smoke (tsx be/src/server.ts :4200, Redis db 3): MISS, HIT, auction:faq:list TTL 3600.",
+        "2026-11-20 cache.close() fixed to disconnect a never-connected client (quit() hung the afterAll hook).",
+        "2026-11-20 be vitest 102 files / 464 tests pass; tsc --noEmit clean."
+      ],
+      "notes": "Categories are ordered by their first question (faq.txt A..H), not alphabetically."
     },
     {
       "id": "faq-cache-4",

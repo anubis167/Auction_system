@@ -49,6 +49,11 @@ export const config = {
   get redisUrl() {
     return process.env.REDIS_URL || 'redis://127.0.0.1:6380/0';
   },
+  /** faq-cache-3: how long the FAQ list and items stay in Redis (default one hour; writes clear them sooner). */
+  get faqCacheTtlSeconds() {
+    const seconds = Number(process.env.FAQ_CACHE_TTL_SECONDS);
+    return Number.isInteger(seconds) && seconds > 0 ? seconds : 3600;
+  },
   /** mail-004: a change-password email at most once a minute per user. */
   get passwordLinkIntervalMs() {
     return Number(process.env.PASSWORD_LINK_INTERVAL_MS ?? 60_000);

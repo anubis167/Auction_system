@@ -12,6 +12,7 @@ import { authRouter } from './routes/auth';
 import { bidsRouter } from './routes/bids';
 import { creditRouter } from './routes/credit';
 import { devRouter } from './routes/dev';
+import { faqsRouter } from './routes/faqs';
 import { goodsRouter } from './routes/goods';
 import { meRouter } from './routes/me';
 import { messagesRouter } from './routes/messages';
@@ -78,6 +79,7 @@ export function createApp() {
   app.use('/api/staff', staffRouter);
   app.use('/api/credit', creditRouter);
   app.use('/api/rag', ragRouter);
+  app.use('/api/faqs', faqsRouter);
   app.use('/api/support', supportRouter);
   app.use('/api/uploads', uploadsRouter);
   app.use('/api', goodsRouter);
