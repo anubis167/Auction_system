@@ -724,6 +724,19 @@
 ## 2026-11-19 - merged feature/claude-staff (round 14 rag2 archive + round 15 'Beat it! Look') into main
 - Archive names collided (both agents number rounds on their own): main keeps feature_list_14.json (gemini round 13) and feature_list_15.json (gemini round 14); the branch's rag2 round 14 is feature_list_16.json and the round 15 restyle is feature_list_17.json. Details: docs/changes/merge-round15.md.
 - Verified on the merged tree: be 416, fe 165, build, Python 102, Playwright 113/115. The 2 failures (adm-006 Chatbot link folded into the admin Dashboard menu; rag-chat-api Req-1 expects gemini's old 'Forbidden' body) fail the same on main before the merge; left for a follow-up. Fixed on the way: rag2-1-1 integration test used the old 2000-chunk limit (now MAX_CHUNKS + 1).
+- Next best step: fix the two gemini-side specs above, or a new round from the user.
+
+### Session 029: round 18 (RAG training log) planned; rag-train-1 passing (2026-11-20)
+
+- Worked only in the project-claude worktree (branch feature/claude-staff), then merged to main on the user's request.
+- New round from the user: save RAG chat conversations for later training. feature_list.json: rag-train-1 .. rag-train-9 (tables, turn logging via the Node API, retrievals/citations, thumbs feedback, notice + opt-out, staff review queue, JSONL export, retention job, docs).
+- Startup: auction_db was running (stopped it); round 15 committed. The new list was first written to progress-feature-list/feature_list.json by mistake; moved to the root and the template restored.
+- Baseline: ./init.sh 108/109 Playwright; stf-003-charts failed because the run crossed midnight (auction bucketed Nov 19, 'today' Nov 20). Rerun alone: 1/1 passed.
+- rag-train-1 passing: rag_sessions, rag_turns, rag_retrievals, rag_examples (migration 20261120090000_rag_training_log via prisma migrate diff, dev db untouched). Changed from the proposal: rag_turns.deleted_at added, no ON DELETE CASCADE (soft delete). e2e/integration/rag-train-1-tables.test.ts 4/4; no drift between migrations and schema. docs/changes/rag-train-1.md.
+- Gate: be 420, fe 162, build, Python 63, Playwright 109/109.
+- Gotchas met again: the main repo (E:/Auction_system) ran `npm run verify` on the same db container mid-gate (deadlocks 40P01, users vanishing: 79 be failures); and the VS Code Playwright test-server grabbed ports 4100/5180 mid-run (97 ECONNREFUSED). Both cleared by rerunning when they were idle. Do not test from two checkouts or from the IDE while a gate runs.
+- Left uncommitted (user's): be/rag/prompts/system.md (one 'Tonal friendly' line), fe/tsconfig.tsbuildinfo.
+- Next: rag-train-2 (record each chat turn through POST /api/rag/turns).
 
 ### Session 029: Chat Widget History UI (merged from feature/gemini) (2026-11-20)
 
@@ -746,3 +759,10 @@
   - Comprehensive spec verifying opening widget, chatting with quick chips, receiving reply with timestamp, creating new conversation via header button, opening history view, verifying listed sessions with title and "Current" badge, switching sessions, restoring message log, deleting single session, clearing all history, empty state, and persistence across page reload.
   - Configured `reuseExistingServer: !process.env.CI` in `playwright.config.ts`.
   - Verification: `npx playwright test e2e/chat-history-widget.spec.ts` passed cleanly. Change doc in `docs/changes/chat-ui-1.3.md`.
+
+### Session 030: chat Log in button for guests; merged to main (2026-11-20)
+
+- guest.md tells the bot to write /login; ChatBox shows a Log in link-button (data-testid chat-login) under a guest's bot reply that contains /login. system.md 'Tonal friendly' line committed on the user's request.
+- Merged main (gemini chat history UI) into the branch: header taken from main, the Log in button moved into main's message bubbles.
+- Verified: fe tsc clean; Playwright chat-history-widget 1/1, pop-3.1 'guest Log in button' and 'unread count' pass.
+- Still broken (pre-existing from the gemini merge, not touched): pop-3.1 'launcher opens and closes' expects heading 'Auction desk' and the old status line; ChatBox now shows "Chat with Beat'em". Full ./init.sh gate not run.
