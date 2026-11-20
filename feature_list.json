@@ -180,14 +180,17 @@
       "area": "retention",
       "title": "Soft-delete old unreviewed turns",
       "user_visible_behavior": "No visible change. Turns older than the retention period that were never reviewed are soft-deleted by a background job.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Add RAG_TURN_RETENTION_DAYS to config (default 180); the job uses the existing job pattern and interval setting.",
         "A turn older than the retention period with no rag_examples row gets deleted_at set; reviewed turns are kept.",
         "Soft-deleted turns are excluded from the review queue and the export.",
         "Unit test for the cutoff date and an e2e or API check of one run."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-11-20 RAG_TURN_RETENTION_DAYS (config.ragTurnRetentionDays, default 180) and be/src/lib/ragRetention.ts softDeleteOldTurns(); job 'rag-retention' added to auctionJobs() so it uses the existing scheduler and AUCTION_JOB_INTERVAL_MS.",
+        "2026-11-20 Unit e2e/unit/rag-train-8-retention.test.ts 3/3 (cutoff exactly N days back, default 180 and bad values ignored, job registered with the shared interval). Integration e2e/integration/rag-train-8-retention.test.ts 2/2: a run on 4 turns soft-deletes only the 200-day-old one with no rag_examples row (approved and raw-example turns and a 179-day-old turn kept; rows still present), second run 0; deleted turns absent from GET /api/rag/review?all=1 and from the export. job.start/job.close tests still pass (18/18 together)."
+      ],
       "notes": ""
     },
     {
