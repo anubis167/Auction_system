@@ -229,3 +229,22 @@ ragRouter.post(
     res.status(201).json({ turnId: Number(saved.id), sessionId: Number(saved.sessionId) });
   }),
 );
+
+// rag-train-4: the visitor's thumbs on a bot answer, relayed by be/rag. Only the visitor whose token started the
+// conversation may set it; a second tap replaces the first.
+ragRouter.put(
+  '/turns/:id/feedback',
+  requireInternal,
+  asyncHandler(async (req, res) => {
+    const { visitor, feedback } = z.object({ visitor: visitorToken, feedback: z.enum(['up', 'down']) }).parse(req.body);
+    const turn = await prisma.ragTurn.findFirst({
+      where: { id: parseId(req.params.id), deletedAt: null },
+      select: { id: true, session: { select: { visitorHash: true } } },
+    });
+    if (!turn) throw new HttpError(404, 'Turn not found');
+    // Hashes on both sides, so a plain compare leaks nothing about the token
+    if (turn.session.visitorHash !== visitorHash(visitor)) throw new HttpError(403, 'Not your conversation');
+    await prisma.ragTurn.update({ where: { id: turn.id }, data: { feedback } });
+    res.json({ turnId: Number(turn.id), feedback });
+  }),
+);

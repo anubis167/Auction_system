@@ -161,6 +161,23 @@ def web_chat():
     return jsonify(answer)
 
 
+@app.route("/api/chat/feedback", methods=["POST"])
+def chat_feedback():
+    """rag-train-4: thumbs up or down on a saved bot answer; Node checks the visitor token owns the turn."""
+    body = request.get_json(silent=True)
+    body = body if isinstance(body, dict) else {}
+    turn_id, feedback, visitor = body.get("turnId"), body.get("feedback"), body.get("visitor")
+    if (not isinstance(turn_id, int) or isinstance(turn_id, bool) or turn_id < 1 or feedback not in ("up", "down")
+            or not isinstance(visitor, str)):
+        return jsonify(error="Invalid feedback"), 400
+    try:
+        saved = call_api("PUT", f"/api/rag/turns/{turn_id}/feedback", internal=True,
+                         json={"visitor": visitor, "feedback": feedback})
+    except ApiError as e:
+        return api_failure(e, passed_on=(400, 403, 404))
+    return jsonify(turnId=saved.get("turnId", turn_id), feedback=saved.get("feedback", feedback))
+
+
 @app.route("/api/docs", methods=["POST"])
 def upload_doc():
     """rag-1.4: store a .txt/.md document, its chunks and their embeddings for the chat box (through the API)"""

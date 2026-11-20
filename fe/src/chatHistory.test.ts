@@ -11,6 +11,7 @@ import {
   loadSessions,
   saveActiveSessionId,
   saveSessions,
+  setMessageFeedback,
   STORAGE_ACTIVE_ID_KEY,
   STORAGE_SESSIONS_KEY,
   type ChatMessage,
@@ -282,6 +283,20 @@ describe('chatHistory session management and persistence', () => {
       const str = formatMessageTime(time);
       expect(str).toBeTruthy();
       expect(str.length).toBeGreaterThanOrEqual(4);
+    });
+  });
+
+  describe('setMessageFeedback (rag-train-4)', () => {
+    it('sets, replaces and clears the thumbs on one message only, and saves', () => {
+      const session = { ...createSession(), messages: [{ role: 'user' as const, text: 'Q' }, { role: 'model' as const, text: 'A', turnId: 5 }] };
+      let all = setMessageFeedback([session], session.id, 1, 'down');
+      expect(all[0].messages[1].feedback).toBe('down');
+      expect(all[0].messages[0].feedback).toBeUndefined();
+      all = setMessageFeedback(all, session.id, 1, 'up');
+      expect(loadSessions()[0].messages[1]).toMatchObject({ turnId: 5, feedback: 'up' });
+      all = setMessageFeedback(all, session.id, 1, undefined);
+      expect(all[0].messages[1].feedback).toBeUndefined();
+      expect(setMessageFeedback(all, 'other', 1, 'up')[0].messages[1].feedback).toBeUndefined();
     });
   });
 });

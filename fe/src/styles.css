@@ -1032,6 +1032,11 @@ th, td { border-bottom: var(--stroke-thin) dashed var(--ink); }
 .chat-msg-user { background: var(--bam-blue); color: #fff; }
 .chat-msg-staff { background: var(--zap-yellow); color: var(--ink); border-color: var(--ink); }
 .chat-msg-system { border: none; box-shadow: none; color: var(--ink-muted); }
+/* rag-train-4: thumbs under a bot answer; 44px targets (pop-6.1) */
+.chat-feedback { display: flex; gap: var(--space-1); margin-top: var(--space-1); }
+.chat-feedback-btn { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; background: var(--panel); color: var(--ink); border: var(--stroke-thin) solid var(--ink); border-radius: var(--radius-0); cursor: pointer; }
+.chat-feedback-btn:hover { background: var(--paper-dot); }
+.chat-feedback-btn[aria-pressed='true'] { background: var(--zap-yellow); box-shadow: var(--shadow-sm); }
 .chat-login { display: flex; width: fit-content; margin-top: 0.5rem; white-space: normal; }
 .chat-typing { display: inline-flex; gap: 5px; align-items: center; min-height: 36px; }
 .chat-typing span { width: 8px; height: 8px; border-radius: var(--radius-round); background: var(--ink); animation: chat-dot 900ms ease-in-out infinite; }

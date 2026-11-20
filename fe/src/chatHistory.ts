@@ -1,9 +1,13 @@
 export type ChatRole = 'user' | 'model';
+export type Feedback = 'up' | 'down';
 
 export interface ChatMessage {
   role: ChatRole;
   text: string;
   timestamp?: number;
+  /** rag-train-4: the saved rag_turns row behind a bot answer, and the visitor's thumbs on it */
+  turnId?: number;
+  feedback?: Feedback;
 }
 
 export interface ChatSession {
@@ -171,6 +175,15 @@ export function addMessageToSession(
 
   saveSessions(updatedSessions);
   return { updatedSession: session, updatedSessions };
+}
+
+/** rag-train-4: sets (or with undefined, clears) the thumbs on one message of a session and saves. */
+export function setMessageFeedback(sessions: ChatSession[], sessionId: string, index: number, feedback: Feedback | undefined): ChatSession[] {
+  const updated = sessions.map((s) =>
+    s.id === sessionId ? { ...s, messages: s.messages.map((m, i) => (i === index ? { ...m, feedback } : m)) } : s,
+  );
+  saveSessions(updated);
+  return updated;
 }
 
 /**
