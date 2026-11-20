@@ -767,3 +767,10 @@
 - Verified: fe tsc clean; Playwright chat-history-widget 1/1, pop-3.1 'guest Log in button' and 'unread count' pass.
 - Still broken (pre-existing from the gemini merge, not touched): pop-3.1 'launcher opens and closes' expects heading 'Auction desk' and the old status line; ChatBox now shows "Chat with Beat'em". Full ./init.sh gate not run.
 - 2026-11-20: CHAT_CHIPS now four FAQ questions word for word (faq.txt Q5, Q11, Q21, Q32). The longer chips wrap to three rows and pushed the chat header off a 720px screen; .chat-panel now has max-height calc(100dvh - 7rem) so the log shrinks. Verified: chat-history-widget 1/1, pop-3.1 Log in + unread pass. Still failing, from the gemini chat UI and not touched: pop-3.1 'launcher opens' (old 'Auction desk' heading) and pop-6.1 touch targets (chat-head-btn 30x26 < 44px).
+
+### Session (chat-cache) Redis reply cache
+
+- Date: 2026-11-20. Goal: cache chat box replies from Gemini in Redis (not on feature_list.json; the round 18 list was left untouched).
+- Changed: be/rag/functions/chat_cache.py (new), be/rag/chat.py (web_chat calls chat_cache), be/rag/requirements.txt (redis==7.4.1), docker-compose.yml (redis service), e2e/py/chat_cache_test.py (new), docs/rag.md.
+- Verification: `npm run test:py` 107 tests OK with db + redis up; live Redis: two identical questions -> one Gemini call, key TTL 3600.
+- Not verified: Node suite and Playwright (no Node code changed); the Gemini call in the browser path.
