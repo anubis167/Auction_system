@@ -43,6 +43,12 @@ export function AdminRagReviewPage() {
     <div data-testid="rag-review-page">
       <h1>Bot review</h1>
       <p className="text-muted">Saved chat bot answers waiting for review. Approved ones can be exported as training examples.</p>
+      {/* rag-train-7: a plain link, so the browser saves the JSONL file with the session cookie */}
+      <p>
+        <a className="btn btn-secondary" href="/api/rag/examples/export" download data-testid="rag-export">
+          Download approved examples (JSONL)
+        </a>
+      </p>
       {error && (
         <div className="banner banner-error" role="alert">
           {error}

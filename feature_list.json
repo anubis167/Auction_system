@@ -159,7 +159,7 @@
       "area": "export",
       "title": "Export approved examples for training",
       "user_visible_behavior": "Staff can download approved examples as a JSONL file, and each exported example is marked exported.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "GET /api/rag/examples/export (rag.review permission) returns JSONL with question, retrieved chunk texts, bot reply, ideal reply and label.",
         "The file contains no user_id, visitor_hash, email or name.",
@@ -167,7 +167,11 @@
         "Running the export twice does not duplicate rows.",
         "Unit test for the field stripping and an e2e check of the download."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-11-20 GET /api/rag/examples/export (rag.review) in be/src/routes/rag.ts: claims approved examples (status exported + one exported_at) then sends exactly those as JSONL {question, chunks, reply, idealReply, label} built by be/src/lib/ragExport.ts toTrainingRecord; 'Download approved examples (JSONL)' link on /admin/rag-review.",
+        "2026-11-20 Unit e2e/unit/rag-train-7-export.test.ts 2/2 (only the five training fields; no userId/visitorHash/email/name/reviewer/id in the line; JSONL format). Integration e2e/integration/rag-train-7-export.test.ts 3/3 (guest 401, customer 403; approved only, rejected excluded; no alice/email/visitor hash in the file; rows exported with exported_at; second run empty; two concurrent exports put an example in one file only). All rag integration + unit 31/31.",
+        "2026-11-20 Playwright e2e/rag-train-7-export.spec.ts 1/1: admin clicks the link, file rag-examples-YYYY-MM-DD.jsonl has the approved example with exactly the five keys; db row exported with exported_at; next export does not contain it."
+      ],
       "notes": ""
     },
     {

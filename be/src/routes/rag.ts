@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { config } from '../config';
 import { prisma } from '../db';
 import { HttpError, asyncHandler } from '../lib/http';
+import { toJsonl, toTrainingRecord } from '../lib/ragExport';
 import { optionalAuth, requireAuth, requirePermission } from '../middleware/auth';
 import { parseId } from './auctions';
 
@@ -325,5 +326,31 @@ ragRouter.post(
       await tx.ragExample.upsert({ where: { turnId }, create: { turnId, ...data }, update: data });
     });
     res.json({ turnId: Number(turnId), status });
+  }),
+);
+
+// rag-train-7: approved examples as a JSONL download; each is marked exported so the next export skips it.
+ragRouter.get(
+  '/examples/export',
+  requirePermission('rag.review'),
+  asyncHandler(async (_req, res) => {
+    const exportedAt = new Date();
+    // Claim first, read second: a concurrent export cannot claim the same rows, so no example is in two files
+    await prisma.ragExample.updateMany({
+      where: { status: 'approved', turn: { deletedAt: null } },
+      data: { status: 'exported', exportedAt },
+    });
+    const examples = await prisma.ragExample.findMany({
+      where: { status: 'exported', exportedAt },
+      orderBy: { id: 'asc' },
+      select: {
+        label: true,
+        idealReply: true,
+        turn: { select: { userText: true, botText: true, retrievals: { select: { rank: true, chunk: { select: { text: true } } } } } },
+      },
+    });
+    res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="rag-examples-${exportedAt.toISOString().slice(0, 10)}.jsonl"`);
+    res.send(toJsonl(examples.map(toTrainingRecord)));
   }),
 );
