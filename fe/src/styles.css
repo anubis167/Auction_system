@@ -1032,6 +1032,9 @@ th, td { border-bottom: var(--stroke-thin) dashed var(--ink); }
 .chat-msg-user { background: var(--bam-blue); color: #fff; }
 .chat-msg-staff { background: var(--zap-yellow); color: var(--ink); border-color: var(--ink); }
 .chat-msg-system { border: none; box-shadow: none; color: var(--ink-muted); }
+.rag-review-q { font-size: 1.1rem; margin: var(--space-2) 0; }
+.rag-review-reply { white-space: pre-wrap; border-left: var(--stroke-base) solid var(--ink); padding-left: var(--space-3); }
+
 /* rag-train-4: thumbs under a bot answer; 44px targets (pop-6.1) */
 .chat-feedback { display: flex; gap: var(--space-1); margin-top: var(--space-1); }
 .chat-feedback-btn { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; background: var(--panel); color: var(--ink); border: var(--stroke-thin) solid var(--ink); border-radius: var(--radius-0); cursor: pointer; }

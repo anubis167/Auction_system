@@ -138,7 +138,7 @@
       "area": "review",
       "title": "Staff review queue for saved turns",
       "user_visible_behavior": "Staff with the rag.review permission can list saved turns, label each one good, bad or needs fix, write a better reply, and approve or reject it.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Add the rag.review permission to the Permission table and the seed; the admin role gets it.",
         "GET /api/rag/review lists raw turns with their feedback and retrieved chunks; a customer without the permission gets 403.",
@@ -146,7 +146,11 @@
         "Turns already reviewed are not listed again by default.",
         "e2e spec covers approve, reject and the 403 case."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-11-20 Permission rag.review (migration 20261120110000_rag_review_permission + PERMISSIONS/DEFAULT_GRANTS; admin only by default). GET /api/rag/review and POST /api/rag/review/:id in be/src/routes/rag.ts; /admin/rag-review 'Bot review' page and nav link; vite proxies /api/rag/review and /api/rag/examples to Node.",
+        "2026-11-20 e2e/integration/rag-train-6-review.test.ts 4/4: guest 401, alice and staff (not granted) 403, admin's /api/auth/me lists rag.review; raw turns listed newest first with feedback and chunks; approve -> one rag_examples row approved/needs_fix/ideal_reply/reviewer, reject -> rejected; reviewed turns not listed by default (?all=1 shows them); 409 second review, 400 no label / needs_fix without reply, 404 unknown/deleted. sec.permissions 10/10 unchanged; all rag integration 8 files 34/34.",
+        "2026-11-20 Playwright e2e/rag-train-6-review.spec.ts 1/1: admin approves (needs_fix + better reply) and rejects in the UI, db rows checked, reviewed turns gone after reload, customer 403 on GET and POST through the Vite proxy. sec-002-permissions still passes."
+      ],
       "notes": ""
     },
     {

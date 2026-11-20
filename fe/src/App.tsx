@@ -20,6 +20,7 @@ import { MyAuctionsPage } from './pages/MyAuctions';
 import { MyBiddingsPage } from './pages/MyBiddings';
 import { ProfilePage } from './pages/Profile';
 import { PrivacyPage } from './pages/Privacy';
+import { AdminRagReviewPage } from './pages/AdminRagReview';
 import { RegisterPage } from './pages/Register';
 import { ResetPasswordPage } from './pages/ResetPassword';
 import { StaffAuctionDetailPage, StaffAuctionNewPage, StaffAuctionsPage } from './pages/StaffAuctions';
@@ -71,6 +72,7 @@ export function App() {
         <Route path="/admin/users/:id" element={<RequireAuth permission="user.manage"><AdminUserDetailPage /></RequireAuth>} />
         <Route path="/admin/permissions" element={<RequireAuth permission="permission.manage"><AdminPermissionsPage /></RequireAuth>} />
         <Route path="/admin/rag" element={<RequireAuth permission="user.manage"><AdminRagPage /></RequireAuth>} />
+        <Route path="/admin/rag-review" element={<RequireAuth permission="rag.review"><AdminRagReviewPage /></RequireAuth>} />
         <Route path="*" element={<p>Page not found.</p>} />
       </Route>
     </Routes>

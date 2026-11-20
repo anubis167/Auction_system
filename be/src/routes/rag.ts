@@ -261,3 +261,69 @@ ragRouter.put(
     res.json({ turnId: Number(turn.id), feedback });
   }),
 );
+
+// rag-train-6: the staff review queue. A turn is waiting until it has a rag_examples row that is no longer raw.
+const LABELS = ['good', 'bad', 'needs_fix'] as const;
+const waiting: Prisma.RagTurnWhereInput = { OR: [{ example: { is: null } }, { example: { is: { status: 'raw' } } }] };
+
+ragRouter.get(
+  '/review',
+  requirePermission('rag.review'),
+  asyncHandler(async (req, res) => {
+    const turns = await prisma.ragTurn.findMany({
+      // ?all=1 also lists reviewed turns; soft-deleted turns (rag-train-8) never show
+      where: { deletedAt: null, session: { deletedAt: null }, ...(req.query.all === '1' ? {} : waiting) },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: 50,
+      include: {
+        session: { select: { user: { select: { username: true } } } },
+        example: { select: { status: true, label: true, idealReply: true } },
+        retrievals: {
+          orderBy: { rank: 'asc' },
+          select: { rank: true, score: true, cited: true, chunk: { select: { text: true, document: { select: { title: true } } } } },
+        },
+      },
+    });
+    res.json({
+      turns: turns.map((t) => ({
+        id: Number(t.id),
+        createdAt: t.createdAt.toISOString(),
+        user: t.session.user?.username ?? null,
+        question: t.userText,
+        reply: t.botText,
+        outcome: t.outcome,
+        guardTriggered: t.guardTriggered,
+        feedback: t.feedback,
+        model: t.model,
+        review: t.example && t.example.status !== 'raw' ? t.example : null,
+        chunks: t.retrievals.map((r) => ({ rank: r.rank, score: r.score, cited: r.cited, title: r.chunk.document.title, text: r.chunk.text })),
+      })),
+    });
+  }),
+);
+
+const reviewBody = z.object({
+  decision: z.enum(['approve', 'reject']),
+  label: z.enum(LABELS).optional(),
+  idealReply: z.string().trim().min(1).max(4000).optional(),
+});
+
+ragRouter.post(
+  '/review/:id',
+  requirePermission('rag.review'),
+  asyncHandler(async (req, res) => {
+    const body = reviewBody.parse(req.body);
+    if (body.decision === 'approve' && !body.label) throw new HttpError(400, 'Pick a label to approve');
+    if (body.decision === 'approve' && body.label === 'needs_fix' && !body.idealReply) throw new HttpError(400, 'Write the better reply');
+    const turnId = parseId(req.params.id);
+    const status = body.decision === 'approve' ? 'approved' : 'rejected';
+    await prisma.$transaction(async (tx) => {
+      const turn = await tx.ragTurn.findFirst({ where: { id: turnId, deletedAt: null }, select: { example: { select: { status: true } } } });
+      if (!turn) throw new HttpError(404, 'Turn not found');
+      if (turn.example && turn.example.status !== 'raw') throw new HttpError(409, 'This turn was already reviewed');
+      const data = { status, label: body.label ?? null, idealReply: body.idealReply ?? null, reviewerId: req.user!.id, reviewedAt: new Date() };
+      await tx.ragExample.upsert({ where: { turnId }, create: { turnId, ...data }, update: data });
+    });
+    res.json({ turnId: Number(turnId), status });
+  }),
+);

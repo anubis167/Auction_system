@@ -11,6 +11,7 @@ export const PERMISSIONS = [
   { code: 'credit.manage', description: 'Approve credit requests and manage transactions' },
   { code: 'chat.handle', description: 'Answer customer chats handed off by the bot' },
   { code: 'knowledge.manage', description: 'Upload and delete documents the chat bot answers from' },
+  { code: 'rag.review', description: 'Review saved chat bot answers and export training examples' },
 ] as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[number]['code'];
@@ -19,7 +20,7 @@ export type PermissionCode = (typeof PERMISSIONS)[number]['code'];
 export const DEFAULT_GRANTS: Record<Role, PermissionCode[]> = {
   customer: [],
   staff: ['report.view', 'report.export', 'goods.manage', 'auction.manage', 'credit.manage', 'chat.handle', 'knowledge.manage'],
-  admin: ['user.manage', 'permission.manage', 'goods.manage', 'auction.manage', 'credit.manage', 'chat.handle', 'knowledge.manage'],
+  admin: ['user.manage', 'permission.manage', 'goods.manage', 'auction.manage', 'credit.manage', 'chat.handle', 'knowledge.manage', 'rag.review'],
 };
 
 /** Admin keeps these so nobody can lock themselves out of administration. */
