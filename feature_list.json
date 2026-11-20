@@ -1,0 +1,169 @@
+{
+  "project": "Online Auction System",
+  "last_updated": "2026-11-20",
+  "scope": "Round 19: cache the FAQ and its answers in Redis. The Node API owns Redis (Flask in be/rag still never opens a database or Redis; it goes through call_api to /api/rag/* with the internal token). FAQ entries live in Postgres (soft delete) and are served through a new FAQ API, cache-aside from Redis. The chat bot answers a question that matches an FAQ from the cache without calling Gemini; every other question goes through the existing RAG pipeline unchanged. Redis is never required for correctness: when it is down, every read falls back to Postgres and the chat falls back to RAG. One feature per step, id faq-cache-<n>. Standing SRS rules: unit and integration tests in the e2e folder (e2e/unit, e2e/integration, e2e/py; this SRS no longer asks for Playwright e2e specs), changed files described in docs/changes/, all delete means soft delete.",
+  "source_requirements": {
+    "files": [
+      "SRS.txt",
+      "faq.txt",
+      "docs/rag.md",
+      "be/rag/chat.py",
+      "be/src/routes/rag.ts",
+      "be/prisma/schema.prisma",
+      "docker-compose.yml"
+    ],
+    "text": "SRS.txt 2026-11-20: system - caching FAQ with redis. Build a feature_list for caching FAQ and answer with redis. Req-1: build on backend side. Req-2: FAQ API handle. Req-3: Keep Rag pipeline continue."
+  },
+  "rules": {
+    "single_active_feature": true,
+    "passing_requires_evidence": true,
+    "do_not_skip_verification": true
+  },
+  "status_legend": {
+    "not_started": "Work has not begun.",
+    "in_progress": "The feature is the current active task.",
+    "blocked": "Work cannot continue until a documented blocker is resolved.",
+    "passing": "Required verification has passed and evidence is recorded."
+  },
+  "features": [
+    {
+      "id": "faq-cache-1",
+      "priority": 1,
+      "area": "infra",
+      "requirement": "Req-1",
+      "title": "Run Redis and give the API a fail-open cache client",
+      "user_visible_behavior": "No visible change. docker compose also starts Redis; the API can read and write cache keys, and keeps working when Redis is down.",
+      "status": "not_started",
+      "verification": [
+        "Add a redis service (redis:7-alpine, container auction_redis, host port 6380, healthcheck redis-cli ping) to docker-compose.yml.",
+        "Add REDIS_URL to be/src/config.ts and be/.env.example (default redis://127.0.0.1:6380/0). Tests use their own database index (auction_test -> /1, auction_e2e -> /2) so runs never see dev keys.",
+        "Add the official redis npm client to be/ and one module be/src/lib/cache.ts exposing get/set(ttl)/del/delByPrefix with JSON values and a key prefix. Every call catches Redis errors, logs once, and returns null / does nothing (fail-open) with a short connect timeout so a dead Redis never blocks a request.",
+        "e2e/unit/faq-cache-1-cache.test.ts: set then get returns the value; TTL expires; delByPrefix removes only that prefix.",
+        "Same test with REDIS_URL pointing at a closed port: get returns null and set resolves within 1 s without throwing.",
+        "Existing be and fe tests still pass."
+      ],
+      "evidence": [],
+      "notes": "A new npm dependency is justified here: talking the Redis protocol is not a few lines."
+    },
+    {
+      "id": "faq-cache-2",
+      "priority": 2,
+      "area": "schema",
+      "requirement": "Req-2",
+      "title": "Add the faqs table and seed it from faq.txt",
+      "user_visible_behavior": "No visible change. The database holds every question and answer from faq.txt with its category.",
+      "status": "not_started",
+      "verification": [
+        "Add model Faq (bigint id, category, question, answer, normalizedQuestion unique among non-deleted rows, sortOrder, createdById/updatedById -> User, createdAt, updatedAt, deletedAt) with @map snake_case names to be/prisma/schema.prisma; migration faq_cache applies on a clean database.",
+        "One normalize function (lower case, trim, collapse whitespace, strip trailing ?!. ) shared by the seed, the API and the match lookup.",
+        "Seed reads faq.txt: each '### Qn.' block under a '# X. CATEGORY' heading becomes one row; seeding twice does not create duplicates.",
+        "e2e/unit/faq-cache-2-parse.test.ts: the faq.txt parser returns 38 entries with the right category, question and answer for Q1, Q5 and the last question; normalize cases above.",
+        "e2e/integration/faq-cache-2-table.test.ts: seed stores 38 rows; a second seed keeps 38; a duplicate normalized question is rejected; a soft-deleted row frees its question."
+      ],
+      "evidence": [],
+      "notes": "faq.txt section I (knowledge-base notes) has no '### Qn.' blocks, so it is not seeded."
+    },
+    {
+      "id": "faq-cache-3",
+      "priority": 3,
+      "area": "api",
+      "requirement": "Req-2",
+      "title": "Public FAQ read API served from the Redis cache",
+      "user_visible_behavior": "GET /api/faqs lists every live FAQ grouped by category; GET /api/faqs/:id returns one. Anyone can call them, signed in or not.",
+      "status": "not_started",
+      "verification": [
+        "Add be/src/routes/faqs.ts mounted at /api/faqs. GET / reads key faq:list from Redis; on a miss it reads Postgres (deletedAt null, ordered by category then sortOrder), stores it with FAQ_CACHE_TTL_SECONDS (config, default 3600) and returns it. GET /:id does the same with faq:item:<id>; unknown or deleted id -> 404.",
+        "Each response carries X-Cache: HIT or MISS so tests and ops can see the cache working.",
+        "e2e/integration/faq-cache-3-read.test.ts: first GET is MISS, second is HIT with the same body; a deleted FAQ is not listed and its id is 404; a guest gets 200.",
+        "Same test with Redis unreachable: GET /api/faqs still 200 with the Postgres data (X-Cache: MISS)."
+      ],
+      "evidence": [],
+      "notes": ""
+    },
+    {
+      "id": "faq-cache-4",
+      "priority": 4,
+      "area": "api",
+      "requirement": "Req-2",
+      "title": "Staff manage FAQs; every change refreshes the cache",
+      "user_visible_behavior": "Staff and admins can add, edit and delete FAQ entries through the API; readers and the chat bot see the change on their next request.",
+      "status": "not_started",
+      "verification": [
+        "POST /api/faqs, PUT /api/faqs/:id, DELETE /api/faqs/:id behind the existing knowledge.manage permission (staff + admin); zod validates category, question and answer (non-empty, length limits).",
+        "DELETE is a soft delete (sets deletedAt); a deleted FAQ cannot be edited (404).",
+        "Every write deletes faq:list, the faq:item:<id> key and every faq:q:* match key (faq-cache-5) after the Postgres write commits.",
+        "e2e/integration/faq-cache-4-write.test.ts: staff create -> GET list shows it (MISS then HIT); edit -> next GET shows the new text; delete -> row still in the table with deletedAt set and gone from the list; customer and guest get 403/401; duplicate question 409; invalid body 400."
+      ],
+      "evidence": [],
+      "notes": "Reusing knowledge.manage instead of a new faq.manage permission: the same people already manage what the bot answers from. Split it out only if the user asks."
+    },
+    {
+      "id": "faq-cache-5",
+      "priority": 5,
+      "area": "api",
+      "requirement": "Req-1",
+      "title": "Internal FAQ match endpoint for the chat bot",
+      "user_visible_behavior": "No visible change. Flask can ask Node whether a chat question is a known FAQ and get its answer from Redis.",
+      "status": "not_started",
+      "verification": [
+        "Add GET /api/rag/faq-match?q= in be/src/routes/rag.ts behind requireInternal. It normalizes q, reads faq:q:<sha256(normalized)> from Redis; on a miss it looks up Faq.normalizedQuestion in Postgres and caches the hit (and a short-TTL negative entry for a miss, so repeated unknown questions do not hit Postgres each time).",
+        "Answers 200 {faqId, question, answer} on a match, 404 on no match, 400 on an empty or over-long q.",
+        "e2e/integration/faq-cache-5-match.test.ts: an exact FAQ question and the same question with different case, spacing and a missing '?' both match; second call served from Redis (spy or key check); an edited FAQ answer is returned right after the edit; a deleted FAQ no longer matches; missing internal token 401."
+      ],
+      "evidence": [],
+      "notes": "Exact match on the normalized question only. Fuzzy or embedding similarity is out of scope: questions that do not match exactly go to RAG, which already retrieves FAQ-like knowledge."
+    },
+    {
+      "id": "faq-cache-6",
+      "priority": 6,
+      "area": "rag",
+      "requirement": "Req-3",
+      "title": "Chat answers FAQ questions from the cache, everything else still goes through RAG",
+      "user_visible_behavior": "Asking the bot an FAQ question (for example a suggestion chip) returns the FAQ answer at once, without a Gemini call. Any other question gets the same RAG answer as before.",
+      "status": "not_started",
+      "verification": [
+        "New be/rag/functions/faq_answer.py (one public function) calls /api/rag/faq-match through call_api; any ApiError or 404 returns None.",
+        "In web_chat, after check_messages, prompt-injection middleware and over_limit, and before retrieve: on a hit, reply with the FAQ answer and sources ['FAQ'], log the turn through _save_turn with outcome answered and model 'faq-cache', and return turnId so thumbs feedback still works. On None, the existing retrieve -> Gemini -> guard path runs unchanged.",
+        "e2e/py/faq_cache_6_chat_test.py with the fake API: FAQ hit -> FAQ text returned and the Gemini client is never called; miss -> Gemini called as before; faq-match raising ApiError/502 -> RAG still answers; logging opt-out still saves no row on a hit.",
+        "Existing e2e/py RAG tests (rag2_1_4, rag2_1_6, rag3_4, rag_train_2..5) still pass unchanged."
+      ],
+      "evidence": [],
+      "notes": ""
+    },
+    {
+      "id": "faq-cache-7",
+      "priority": 7,
+      "area": "rag",
+      "requirement": "Req-3",
+      "title": "Cache RAG answers to repeated guest questions",
+      "user_visible_behavior": "A guest asking a question that was already answered recently gets the same answer faster; answers are refreshed when the bot's documents or FAQs change.",
+      "status": "not_started",
+      "verification": [
+        "Only guest turns are cached: a signed-in visitor's prompt contains their bids, lots and credit (build_prompt._account), so their answers are never stored or served from cache.",
+        "Only outcome answered with no guard reason is stored. Key rag:ans:<knowledge version>:<sha256(normalized question)>, TTL RAG_ANSWER_TTL_SECONDS (default 86400). Node exposes GET and PUT /api/rag/answer-cache behind requireInternal; Flask uses them through one function file.",
+        "The knowledge version key rag:ver is bumped when a document is uploaded or deleted (existing /api/docs routes in Node) and on any FAQ write, so old answers stop matching at once.",
+        "A cache hit is still logged as a turn (model 'rag-cache') with the cached sources.",
+        "e2e/integration/faq-cache-7-answer-cache.test.ts: PUT then GET returns the answer; after a document upload or FAQ edit GET misses; missing internal token 401.",
+        "e2e/py/faq_cache_7_answer_cache_test.py: second identical guest question does not call Gemini; signed-in visitor always calls Gemini and never PUTs; refused (guarded) reply is not stored; cache endpoint down -> normal RAG answer."
+      ],
+      "evidence": [],
+      "notes": "Lowest priority: drop it if the user only wants FAQ caching."
+    },
+    {
+      "id": "faq-cache-8",
+      "priority": 8,
+      "area": "docs",
+      "requirement": "Req-1, Req-2, Req-3",
+      "title": "Document the FAQ cache and pass the full gate",
+      "user_visible_behavior": "No visible change. docs/faq-cache.md explains the keys, TTLs, invalidation, fail-open behaviour and the FAQ API.",
+      "status": "not_started",
+      "verification": [
+        "docs/faq-cache.md: Redis setup, every key and its TTL, who invalidates it, FAQ API routes with permissions, how chat.py chooses FAQ cache -> answer cache -> RAG. docs/rag.md links it. docs/changes/faq-cache-<n>.md written for each feature.",
+        "e2e/unit/faq-cache-8-docs.test.ts: every /api/faqs and /api/rag faq/cache route in code is listed in docs/faq-cache.md and the reverse.",
+        "./init.sh passes with Postgres and Redis running (be + fe tests, build, Python tests, existing Playwright suite with only the failures known before this round)."
+      ],
+      "evidence": [],
+      "notes": ""
+    }
+  ]
+}

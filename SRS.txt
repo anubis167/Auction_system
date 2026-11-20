@@ -1,6 +1,12 @@
 Role description: You're my code-agent, i'm gonna create a sites for system auction, read all Requirements below,
-then write me a feature-list.json file, with e2e function, unit and intergration tests write to e2e folder.
+then write me a feature-list.json file, unit and intergration tests write to e2e folder.
 Write changed description (files, changed in code) to docs folder
 All delete mean soft delete
 
-system -schema 
+system - caching FAQ with redis
+description and priority
+build me a feature_list for caching FAQ and answer with redis
+
+Req-1: build on backend side
+Req-2: FAQ API handle 
+Req-3: Keep Rag pipeline countinue

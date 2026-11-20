@@ -786,3 +786,11 @@
 - Gotchas: localhost:5436 intermittently refuses connects mid-Playwright-run (P1001) through Docker Desktop while 127.0.0.1 works; e2e/rag-db.ts uses 127.0.0.1. global-setup.ts and the e2e server still use localhost (left as they were). A VS Code Playwright test-server (pid started 17:04) was running during the gate. Prettier has no project config here: do not run it on whole files (it rewrote rag.ts; reverted).
 - Still open / not verified: no live Gemini check that the bot really cites `[title]` (cited stays false if it doesn't); all chunks of one document share a citation marker; review queue shows the newest 50 with no paging; the four pre-existing Playwright failures above.
 - Next best step: fix the four pre-existing specs, or a new round from the user.
+
+### Session 032: round 19 feature list, FAQ cache with Redis (2026-11-20)
+
+- On main (user asked for main this time). Stopped auction_db. Committed round 18 as ce49245 "rag-chat-improvement-with-users-feedback" on the user's request.
+- Wrote ./feature_list.json from SRS.txt (Req-1 backend, Req-2 FAQ API, Req-3 keep the RAG pipeline): faq-cache-1..8, all not_started. Node owns Redis; Flask goes through /api/rag; fail-open to Postgres/RAG when Redis is down.
+- Not run: ./init.sh baseline (planning only, no code changed).
+- Open: faq.txt is untracked but faq-cache-2 seeds from it; it must be committed before that feature. be/rag/ecbot/, policies.txt untracked and not part of this round.
+- Next best step: faq-cache-1 (Redis service + be/src/lib/cache.ts).
