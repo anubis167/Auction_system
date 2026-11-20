@@ -103,14 +103,18 @@
       "requirement": "Req-2",
       "title": "Staff manage FAQs; every change refreshes the cache",
       "user_visible_behavior": "Staff and admins can add, edit and delete FAQ entries through the API; readers and the chat bot see the change on their next request.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "POST /api/faqs, PUT /api/faqs/:id, DELETE /api/faqs/:id behind the existing knowledge.manage permission (staff + admin); zod validates category, question and answer (non-empty, length limits).",
         "DELETE is a soft delete (sets deletedAt); a deleted FAQ cannot be edited (404).",
         "Every write deletes faq:list, the faq:item:<id> key and every faq:q:* match key (faq-cache-5) after the Postgres write commits.",
         "e2e/integration/faq-cache-4-write.test.ts: staff create -> GET list shows it (MISS then HIT); edit -> next GET shows the new text; delete -> row still in the table with deletedAt set and gone from the list; customer and guest get 403/401; duplicate question 409; invalid body 400."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-11-20 POST/PUT/DELETE /api/faqs in be/src/routes/faqs.ts behind knowledge.manage; zod body; P2002 -> 409; soft delete; clearFaqCache(id) deletes faq:list, faq:item:<id>, faq:q:* after each write.",
+        "2026-11-20 e2e/integration/faq-cache-4-write.test.ts 6/6: create listed (MISS then HIT, sortOrder 39, createdBy staff); edit visible in list + item; soft delete keeps row, 404 after, no re-edit/re-delete; faq:q:* cleared, rag:other kept; customer 403 / guest 401, row unchanged; normalized duplicate 409 on create and edit; 6 invalid bodies 400.",
+        "2026-11-20 be vitest 103 files / 470 tests pass; tsc --noEmit clean."
+      ],
       "notes": "Reusing knowledge.manage instead of a new faq.manage permission: the same people already manage what the bot answers from. Split it out only if the user asks."
     },
     {
