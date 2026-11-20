@@ -27,6 +27,8 @@ export default defineConfig({
         APP_URL: 'http://localhost:5180',
         JWT_SECRET: 'e2e-secret',
         NODE_ENV: 'e2e',
+        // faq-cache-1: Playwright's API owns Redis database 2
+        REDIS_URL: 'redis://127.0.0.1:6380/2',
         AUCTION_JOB_INTERVAL_MS: '1000',
         UPLOAD_DIR: 'be/uploads/e2e',
         // mail-002: the e2e flow resends activation mails back to back.

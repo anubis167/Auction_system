@@ -33,7 +33,7 @@
       "requirement": "Req-1",
       "title": "Run Redis and give the API a fail-open cache client",
       "user_visible_behavior": "No visible change. docker compose also starts Redis; the API can read and write cache keys, and keeps working when Redis is down.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Add a redis service (redis:7-alpine, container auction_redis, host port 6380, healthcheck redis-cli ping) to docker-compose.yml.",
         "Add REDIS_URL to be/src/config.ts and be/.env.example (default redis://127.0.0.1:6380/0). Tests use their own database index (auction_test -> /1, auction_e2e -> /2) so runs never see dev keys.",
@@ -42,8 +42,13 @@
         "Same test with REDIS_URL pointing at a closed port: get returns null and set resolves within 1 s without throwing.",
         "Existing be and fe tests still pass."
       ],
-      "evidence": [],
-      "notes": "A new npm dependency is justified here: talking the Redis protocol is not a few lines."
+      "evidence": [
+        "2026-11-20 redis service (auction_redis, 6380) in docker-compose.yml; npm run db:up waits for db and redis healthy.",
+        "2026-11-20 redis 4.7.0 in be/package.json (npm install -w hit an npm arborist bug, so added by hand + npm install). be/src/lib/cache.ts createCache/cache; REDIS_URL in config.ts and .env.example; vitest uses /1, playwright /2.",
+        "2026-11-20 e2e/unit/faq-cache-1-cache.test.ts 4/4: set/get, TTL expiry, del + delByPrefix scope, Redis down (port 1) -> null/no-op in < 1 s without throwing. Test Redis db 1 left empty.",
+        "2026-11-20 be vitest 99 files / 452 tests pass (baseline 448 + 4); tsc --noEmit clean."
+      ],
+      "notes": "redis client pinned to 4.7.0. A new npm dependency is justified here: talking the Redis protocol is not a few lines."
     },
     {
       "id": "faq-cache-2",

@@ -45,6 +45,10 @@ export const config = {
     const days = Number(process.env.RAG_TURN_RETENTION_DAYS);
     return Number.isFinite(days) && days > 0 ? days : 180;
   },
+  /** faq-cache-1: Redis for the FAQ and answer cache (docs/faq-cache.md); tests use their own database index. */
+  get redisUrl() {
+    return process.env.REDIS_URL || 'redis://127.0.0.1:6380/0';
+  },
   /** mail-004: a change-password email at most once a minute per user. */
   get passwordLinkIntervalMs() {
     return Number(process.env.PASSWORD_LINK_INTERVAL_MS ?? 60_000);

@@ -6,7 +6,7 @@
     "fe"
   ],
   "scripts": {
-    "db:up": "docker compose up -d --wait db",
+    "db:up": "docker compose up -d --wait db redis",
     "db:migrate": "npm run db:migrate -w be",
     "test": "npm run db:up && npm test -w be && npm test -w fe && npm run build -w fe && npm run test:py",
     "test:py": "cross-env GEMINI_API_KEY=test-key NGROK_AUTHTOKEN=test-token RAG_INTERNAL_TOKEN=test-internal-token python -m unittest discover -s e2e/py -t e2e/py -p \"*_test.py\"",

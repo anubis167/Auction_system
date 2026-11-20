@@ -5,6 +5,8 @@ export default defineConfig({
       DATABASE_URL: 'postgresql://auction:auction@localhost:5436/auction_test',
       JWT_SECRET: 'test-secret',
       NODE_ENV: 'test',
+      // faq-cache-1: tests own Redis database 1 (dev uses 0, Playwright 2)
+      REDIS_URL: 'redis://127.0.0.1:6380/1',
       // Keep tests on the in-memory outbox even when be/.env holds real Gmail/SMTP settings
       // (dotenv does not override keys that are already set).
       GMAIL_USER: '',
