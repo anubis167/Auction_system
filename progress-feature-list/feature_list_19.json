@@ -190,13 +190,17 @@
       "requirement": "Req-1, Req-2, Req-3",
       "title": "Document the FAQ cache and pass the full gate",
       "user_visible_behavior": "No visible change. docs/faq-cache.md explains the keys, TTLs, invalidation, fail-open behaviour and the FAQ API.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "docs/faq-cache.md: Redis setup, every key and its TTL, who invalidates it, FAQ API routes with permissions, how chat.py chooses FAQ cache -> answer cache -> RAG. docs/rag.md links it. docs/changes/faq-cache-<n>.md written for each feature.",
         "e2e/unit/faq-cache-8-docs.test.ts: every /api/faqs and /api/rag faq/cache route in code is listed in docs/faq-cache.md and the reverse.",
         "./init.sh passes with Postgres and Redis running (be + fe tests, build, Python tests, existing Playwright suite with only the failures known before this round)."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-11-20 docs/faq-cache.md (setup, settings, keys + TTL + invalidation, routes, chat order, limits); docs/rag.md links it; docs/changes/faq-cache-1..8.md.",
+        "2026-11-20 e2e/unit/faq-cache-8-docs.test.ts 3/3: routes table == code (8 routes, both directions), settings in config.ts + .env.example, key prefixes in code, chat functions exist, change notes exist, rag.md link.",
+        "2026-11-20 ./init.sh gate: be 106 files / 483 tests, fe 28 / 188, fe build, Python 139 OK, Playwright 121 passed / 4 failed. The 4 are the same as the baseline run at the start of this round (adm-006, pop-3.1 launcher, pop-6.1 touch targets, rag-chat-api Req-1 Forbidden at line 136, identical message); init.sh exits 1 only because of them."
+      ],
       "notes": ""
     }
   ]

@@ -4,6 +4,7 @@ Round 14 (rag2-1.1 .. 1.6). The Flask service in `be/rag` answers the site's cha
 document library the bot answers from (`/api/docs`) and the Facebook webhook. It never opens the database: every
 read and write is a call to the Node API under `/api/rag`, and every answer is checked before it is used.
 Round 18 saves every chat turn for review and training: see [rag-training-log.md](rag-training-log.md).
+Round 19 answers FAQ questions, and guests' repeated questions, from Redis before RAG: see [faq-cache.md](faq-cache.md).
 Design reference: ecbot's `apps/ai` (be/rag/ecbot, not used at runtime).
 
 ```
@@ -24,7 +25,8 @@ browser ──/api/chat, /api/docs──▶ Flask (be/rag/chat.py) ──call_ap
 
 Functions: `call_api` (the only data access), `session_user`, `retrieve` (embed + `rank`), `chunk_text`, `embed`,
 `check_messages`, `over_limit`, `handoff_or_error`, `read_upload`, `load_prompt`, `build_prompt`, `guard_reply`,
-`guard_reason`, `log_turn`, `cited_chunks` (the last three: [rag-training-log.md](rag-training-log.md)).
+`guard_reason`, `log_turn`, `cited_chunks` (the last three: [rag-training-log.md](rag-training-log.md)),
+`faq_answer`, `cached_answer`, `store_answer` (the last three: [faq-cache.md](faq-cache.md)).
 To add a step, add a file in `functions/` with one public function and call it from a route.
 
 ## Node routes
@@ -36,6 +38,7 @@ To add a step, add a file in `functions/` with one public function and call it f
 | `POST /api/rag/documents` | internal token + cookie with `knowledge.manage` | store an upload and its chunks |
 | `GET /api/rag/documents`, `DELETE /api/rag/documents/:id` | cookie with `knowledge.manage` | list, soft delete |
 | `POST /api/rag/turns`, `PUT /api/rag/turns/:id/feedback`, `/api/rag/review`, `/api/rag/examples/export` | see [rag-training-log.md](rag-training-log.md) | training log, review, export |
+| `GET /api/rag/faq-match`, `GET`/`PUT /api/rag/answer-cache` | internal token | FAQ and answer cache, see [faq-cache.md](faq-cache.md) |
 
 ## Security
 

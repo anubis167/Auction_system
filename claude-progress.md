@@ -794,3 +794,22 @@
 - Not run: ./init.sh baseline (planning only, no code changed).
 - Open: faq.txt is untracked but faq-cache-2 seeds from it; it must be committed before that feature. be/rag/ecbot/, policies.txt untracked and not part of this round.
 - Next best step: faq-cache-1 (Redis service + be/src/lib/cache.ts).
+
+### Session 033: round 19 FAQ cache with Redis, faq-cache-1 .. 8 (2026-11-20)
+
+- On main (user asked for main). Stopped auction_db at start; committed faq.txt (b2e0453) as the FAQ seed source.
+- Baseline ./init.sh before any change: be 448, fe 188, build, Python 122, Playwright 121 passed / 4 failed (adm-006, pop-3.1 launcher, pop-6.1 touch targets, rag-chat-api Req-1 'Forbidden').
+- One commit per feature:
+  - faq-cache-1: redis service (auction_redis, host 6380) in docker-compose; db:up starts it; redis 4.7.0; be/src/lib/cache.ts fail-open client (keys under auction:). Tests use Redis db 1, Playwright db 2, dev db 0.
+  - faq-cache-2: faqs table (soft delete, partial unique index on normalized_question among live rows, written by hand in the migration); seedFaqs() from faq.txt (38 questions) inside seed().
+  - faq-cache-3: public GET /api/faqs, /api/faqs/:id, cache-aside, X-Cache header; FAQ_CACHE_TTL_SECONDS.
+  - faq-cache-4: POST/PUT/DELETE /api/faqs (knowledge.manage), 409 duplicates, soft delete; every write clears faq:list, faq:item:<id>, faq:q:*.
+  - faq-cache-5: internal GET /api/rag/faq-match (exact match after normalizeQuestion; misses remembered 300 s).
+  - faq-cache-6: chat.py answers an FAQ match before retrieve (sources [FAQ], turn model faq-cache), else RAG unchanged.
+  - faq-cache-7: guests' opening questions reuse cached Gemini answers (GET/PUT /api/rag/answer-cache, knowledge version rag:ver bumped on document and FAQ changes, stale PUT 409); RAG_ANSWER_TTL_SECONDS.
+  - faq-cache-8: docs/faq-cache.md, docs/rag.md link, doc/route consistency test.
+- Gate: ./init.sh be 106 files / 483 tests, fe 188, build, Python 139, Playwright 121 passed / the same 4 failures as the baseline.
+- Round 19: 8/8 passing; archived as progress-feature-list/feature_list_19.json. No feature_list.json at the root now.
+- Gotchas: `npm install <pkg> -w be` crashes in npm's arborist ("reading 'location'"); add the dependency to be/package.json by hand and run `npm install`. rag2_1_6_full_path_test shares auction_test with vitest: never run them at the same time (login 500, stray Node on :4210, leftover documents; `prisma migrate reset` on auction_test clears them). "What is a reserve price?" is now FAQ Q29 word for word, so it never reaches RAG; that test now asks "Explain the reserve price rule".
+- Still open / not verified: no FAQ admin UI (API only); FAQ matching is exact after normalizing; no live Gemini run; the four pre-existing Playwright failures.
+- Next best step: fix the four pre-existing specs, or a new round from the user.
