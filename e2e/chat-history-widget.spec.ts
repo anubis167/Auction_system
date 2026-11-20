@@ -42,18 +42,18 @@ test.describe('chat-ui-1.3: chat widget conversation history and session managem
 
     const quickChips = page.getByTestId('chat-chips');
     await expect(quickChips).toBeVisible();
-    await expect(quickChips).toContainText('How do I place a bid?');
+    await expect(quickChips).toContainText('Who can place a bid?');
 
     // 2. Send first message using quick prompt chip
-    await quickChips.getByRole('button', { name: 'How do I place a bid?' }).click();
+    await quickChips.getByRole('button', { name: 'Who can place a bid?' }).click();
 
     // Verify message sent, reply received, and timestamp displayed
-    await expect(chatLog).toContainText('How do I place a bid?');
+    await expect(chatLog).toContainText('Who can place a bid?');
     await expect(chatLog).toContainText('To place a bid, navigate to any live auction lot');
     await expect(page.locator('.chat-msg-time').first()).toBeVisible();
 
     // Header subtitle updates with title
-    await expect(page.locator('.chat-head-sub')).toContainText('How do I place a bid?');
+    await expect(page.locator('.chat-head-sub')).toContainText('Who can place a bid?');
 
     // 3. Start a new conversation via header 'New Chat' button
     const newChatBtn = page.getByTestId('chat-new-btn');
@@ -87,13 +87,13 @@ test.describe('chat-ui-1.3: chat widget conversation history and session managem
 
     // One should have Current badge
     await expect(historyItems.filter({ hasText: 'What is the return policy?' })).toContainText('Current');
-    await expect(historyItems.filter({ hasText: 'How do I place a bid?' })).toBeVisible();
+    await expect(historyItems.filter({ hasText: 'Who can place a bid?' })).toBeVisible();
 
     // 5. Switch back to first conversation by clicking it in history
-    await historyItems.filter({ hasText: 'How do I place a bid?' }).getByRole('button', { name: /Open conversation/ }).click();
+    await historyItems.filter({ hasText: 'Who can place a bid?' }).getByRole('button', { name: /Open conversation/ }).click();
 
     // Verify switched back to chat view and restored first conversation
-    await expect(page.getByTestId('chat-log')).toContainText('How do I place a bid?');
+    await expect(page.getByTestId('chat-log')).toContainText('Who can place a bid?');
     await expect(page.getByTestId('chat-log')).toContainText('To place a bid, navigate to any live auction lot');
     await expect(page.getByTestId('chat-log')).not.toContainText('What is the return policy?');
 
@@ -106,7 +106,7 @@ test.describe('chat-ui-1.3: chat widget conversation history and session managem
 
     // Only one item remains now
     await expect(page.getByTestId('chat-history-item')).toHaveCount(1);
-    await expect(page.getByTestId('chat-history-item')).toContainText('How do I place a bid?');
+    await expect(page.getByTestId('chat-history-item')).toContainText('Who can place a bid?');
 
     // 7. Clear all history
     const clearBtn = page.getByTestId('chat-history-clear');

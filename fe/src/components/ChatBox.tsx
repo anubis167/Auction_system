@@ -36,8 +36,8 @@ import {
 const BOT: SupportState = { mode: 'bot', conversationId: null, lines: [] };
 const DOWN = 'Your assistant not available now';
 
-/** pop-3.1: suggestion chips; questions the site can really answer. */
-export const CHAT_CHIPS = ['How do I bid?', 'How does credit work?', 'Condition report', 'How do I place a bid?'] as const;
+/** pop-3.1: suggestion chips, copied word for word from the FAQ doc (faq.txt Q5, Q11, Q21, Q32) so retrieval finds the answer. */
+export const CHAT_CHIPS = ['How do I create an account?', 'How do I add credit?', 'Who can place a bid?', 'What happens after I win?'] as const;
 
 /**
  * chat-1.2 & chat-ui-1.2: embedded chat box in every page.

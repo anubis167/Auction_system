@@ -766,3 +766,4 @@
 - Merged main (gemini chat history UI) into the branch: header taken from main, the Log in button moved into main's message bubbles.
 - Verified: fe tsc clean; Playwright chat-history-widget 1/1, pop-3.1 'guest Log in button' and 'unread count' pass.
 - Still broken (pre-existing from the gemini merge, not touched): pop-3.1 'launcher opens and closes' expects heading 'Auction desk' and the old status line; ChatBox now shows "Chat with Beat'em". Full ./init.sh gate not run.
+- 2026-11-20: CHAT_CHIPS now four FAQ questions word for word (faq.txt Q5, Q11, Q21, Q32). The longer chips wrap to three rows and pushed the chat header off a 720px screen; .chat-panel now has max-height calc(100dvh - 7rem) so the log shrinks. Verified: chat-history-widget 1/1, pop-3.1 Log in + unread pass. Still failing, from the gemini chat UI and not touched: pop-3.1 'launcher opens' (old 'Auction desk' heading) and pop-6.1 touch targets (chat-head-btn 30x26 < 44px).
