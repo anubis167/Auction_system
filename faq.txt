@@ -1,0 +1,387 @@
+# ONLINE AUCTION SYSTEM — FREQUENTLY ASKED QUESTIONS (FAQ)
+
+**Document ID:** FAQ-AUC-001  
+**Version:** 0.2  
+**Status:** Draft — Pending Approval  
+**Audience:** Customers, Sellers, and Bidders
+
+---
+
+## ABOUT THIS FAQ
+
+This document answers common questions about using the Online Auction System.
+
+Answers are based on confirmed business policies and the original Software Requirements Specification.
+
+Where a policy is awaiting approval, this FAQ explicitly identifies it as pending approval. It must not be interpreted as an implemented or officially approved feature.
+
+---
+
+# A. GENERAL
+
+### Q1. What is the Online Auction System?
+
+The Online Auction System is a platform where sellers list goods for auction and eligible users participate by placing bids.
+
+The platform manages auction timing, bid validation, winner determination, and the defined credit and payment workflow.
+
+### Q2. Can I browse auctions without logging in?
+
+Yes.
+
+Guests may browse and search auctions, view auction details, bid history, and comments.
+
+However, logging in is required for actions such as bidding and commenting.
+
+### Q3. Does the platform handle shipping or delivery?
+
+No.
+
+The platform does not provide shipping, delivery, or fulfillment services.
+
+Buyers and sellers must arrange these services directly with one another.
+
+You may contact the platform to request available information, but the platform does not provide or guarantee fulfillment services.
+
+### Q4. What currency does the platform use?
+
+The final supported currency has not yet been confirmed.
+
+USD is currently used in the policy examples and proposed bid increment schedule.
+
+Please refer to the approved platform terms for the supported currency.
+
+---
+
+# B. ACCOUNT AND SECURITY
+
+### Q5. How do I create an account?
+
+Register using the information requested by the system, including:
+
+- Full name.
+- Email address.
+- Phone number.
+- Address.
+- Password.
+
+### Q6. Do I need to activate my account?
+
+Yes.
+
+You must complete the required email activation process before using account features that require an activated account.
+
+### Q7. What are the password requirements?
+
+The password must contain at least eight characters and include letters and numbers.
+
+### Q8. What happens if I leave my account inactive?
+
+Your session expires after 30 minutes of inactivity.
+
+You must log in again to continue using authenticated features.
+
+### Q9. How can I change or reset my password?
+
+To change your password while logged in, use the password-change feature and provide your current password.
+
+If you forget your password, use the password-reset process and follow the instructions sent to your registered email address.
+
+---
+
+# C. CREDIT ACCOUNT AND PAYMENTS
+
+### Q10. When is my credit account created?
+
+Your credit account is created after successful account activation.
+
+The initial credit balance is zero.
+
+### Q11. How do I add credit?
+
+The original system requirements specify that users contact platform staff to deposit funds.
+
+The final top-up process and supported payment methods must be confirmed in the approved platform instructions.
+
+### Q12. Do I have to authorize a payment method?
+
+Yes.
+
+You must authorize the supported payment provider or payment method to perform the payment operations required by the platform.
+
+This includes credit top-ups and any permitted withdrawals.
+
+### Q13. What happens if my payment fails?
+
+A failed payment must be rolled back.
+
+This rule also applies to a failed winner-payment transaction.
+
+The system must not leave an incomplete debit, credit, or settlement state.
+
+### Q14. Does the system reserve my credit when I place a bid?
+
+The recommended design is to reserve the amount of your current leading bid.
+
+Under this proposed design:
+
+- Your credit is reserved when you become the highest bidder.
+- Your previous reservation is released if another user outbids you.
+- The winning reservation is converted into a payment debit after successful settlement.
+- Other reservations are released when the auction closes.
+
+This reservation lifecycle is pending final approval.
+
+### Q15. Can my credit be locked?
+
+Yes.
+
+If the system detects suspicious or prohibited activity, the platform may restrict your account and temporarily lock or hold associated credit while the activity is reviewed.
+
+The final investigation, notification, appeal, and credit-release procedures require approval.
+
+---
+
+# D. SELLING AND LISTING GOODS
+
+### Q16. How do I create an auction?
+
+You must add your goods before creating an auction.
+
+The auction must contain the required information, including:
+
+- Auction name.
+- Description.
+- Goods.
+- Initial price.
+- Reserve price.
+- Start date and time.
+- Auction duration.
+
+### Q17. Can I edit or delete goods after listing them?
+
+Goods may only be edited or deleted when they are not associated with an active auction or a completed sale.
+
+### Q18. Can I cancel my auction?
+
+A seller may cancel an auction only before it starts.
+
+After cancellation, the auction is no longer presented as an active auction.
+
+### Q19. Am I responsible for the accuracy of my listing?
+
+Yes.
+
+Sellers are responsible for providing accurate goods information, including the item's description, images, identity, and condition.
+
+### Q20. Does the platform deliver the item to the winner?
+
+No.
+
+The platform does not provide shipping, delivery, or fulfillment services.
+
+The buyer and seller must arrange delivery, shipping, collection, and other fulfillment activities directly.
+
+---
+
+# E. BIDDING
+
+### Q21. Who can place a bid?
+
+A logged-in and eligible user may place a bid.
+
+The project requirements also specify that a user must join or participate in an active auction before bidding, where that participation workflow applies.
+
+### Q22. Can I place more than one bid in the same auction?
+
+Yes.
+
+You may place multiple valid bids in the same auction, provided that each bid satisfies the bidding rules and available-credit checks.
+
+### Q23. Can I bid on my own auction?
+
+No.
+
+Self-bidding is strictly prohibited.
+
+This includes bidding through another account or using another arrangement intended to manipulate your own auction.
+
+### Q24. What happens if I engage in self-bidding or suspicious activity?
+
+The platform may:
+
+- Restrict your account.
+- Suspend your account.
+- Permanently ban your account.
+- Temporarily lock or hold your associated credit while the activity is investigated.
+
+### Q25. How much higher must my bid be?
+
+The minimum increment depends on the current highest valid bid.
+
+| Current Highest Bid | Minimum Increment |
+|---|---:|
+| $1.00 to below $10.00 | $0.10 |
+| $10.00 to below $100.00 | $1.00 |
+| $100.00 through $1,000.00 inclusive | $10.00 |
+| Above $1,000.00 | $100.00 |
+
+The increment for a current highest bid below $1.00 has not been confirmed.
+
+A $0.01 increment has been suggested but is not yet an approved rule.
+
+### Q26. What happens if another user outbids me?
+
+Your bid is no longer the highest valid bid.
+
+Under the recommended credit reservation design, the reservation associated with your previous leading bid is released.
+
+The credit reservation design is pending final approval.
+
+### Q27. Does the auction automatically extend when someone bids near the end?
+
+A two-minute soft-close extension has been recommended.
+
+Under this proposal:
+
+- A valid bid received during the final two minutes extends the auction by another two minutes.
+- Another qualifying bid during the extended final two-minute period triggers another extension.
+
+This feature is pending approval and must not be treated as active until it appears in the approved auction rules.
+
+---
+
+# F. AUCTION CLOSING AND WINNER DETERMINATION
+
+### Q28. Who wins an auction?
+
+The bidder with the highest valid bid wins only if that bid is equal to or greater than the seller's reserve price.
+
+The highest bid alone does not guarantee a win.
+
+### Q29. What is a reserve price?
+
+A reserve price is the minimum price the seller requires for the item to be sold.
+
+The highest valid bid must reach or exceed the reserve price for the auction to have a winner.
+
+### Q30. What happens if the highest bid is below the reserve price?
+
+The auction closes as `UNSOLD`.
+
+In this situation:
+
+- No winner is declared.
+- No winner payment is processed.
+- No seller proceeds are generated.
+- All related credit reservations are released.
+
+### Q31. What happens if nobody places a valid bid?
+
+The auction closes as `UNSOLD`.
+
+No winner payment or seller proceeds are generated, and any related credit reservations are released.
+
+### Q32. What happens after I win?
+
+The system processes the winner-payment transaction.
+
+If the payment succeeds, the seller's proceeds are calculated after deducting the applicable platform commission.
+
+If the payment fails, it must be rolled back like any other failed payment.
+
+### Q33. Can I get a refund after winning?
+
+Completed auction sales are final.
+
+As the winner, you are responsible for your purchase. You cannot request a refund merely because:
+
+- You changed your mind.
+- You no longer want the item.
+- You decide not to complete the purchase for personal reasons.
+
+This policy does not override mandatory legal rights, legally required remedies, or corrections required because of fraud, unauthorized transactions, or platform processing errors.
+
+The final exceptions and procedures require legal and business approval.
+
+---
+
+# G. PLATFORM COMMISSION
+
+### Q34. How much commission does the platform charge?
+
+The source requirements specify the following seller commission schedule:
+
+| Winning Amount | Platform Commission |
+|---|---:|
+| Below $100 | 10% |
+| $100 through $999 | 5% |
+| $1,000 through $9,999 | 2% |
+| Above $10,000 | 1% |
+
+The exact treatment of a winning amount of $10,000, the final supported currency, and the commission rounding method still require confirmation.
+
+---
+
+# H. DISPUTES, SERVICE LIMITATIONS, AND SUPPORT
+
+### Q35. What should buyers and sellers do if there is a dispute?
+
+Both parties must understand and acknowledge the platform's service scope and limitations before a dispute case is handed off or escalated.
+
+They should first attempt to resolve the issue through the available support or communication process.
+
+If the dispute cannot be resolved, it may be referred to the competent court under applicable law.
+
+The intended jurisdictional reference is the court with jurisdiction where the item is held. The exact legal wording and enforceability require legal review.
+
+### Q36. Does the platform resolve every dispute?
+
+The platform provides only the services defined in its terms.
+
+The platform does not provide shipping, delivery, or fulfillment services.
+
+The precise scope of dispute assistance, evidence handling, and escalation must be defined in the approved terms.
+
+### Q37. Can my account be suspended or banned?
+
+Yes.
+
+Prohibited user behavior may result in account suspension or a permanent ban.
+
+Examples include:
+
+- Self-bidding.
+- Bid manipulation.
+- Fraudulent activities.
+- Suspicious or unnatural bidding behavior.
+- Other prohibited conduct.
+
+### Q38. Can I appeal an account restriction?
+
+An appeal process is recommended, but the exact procedure, deadlines, required evidence, and review process have not yet been approved.
+
+Contact platform support for the currently available procedure.
+
+---
+
+# I. IMPORTANT KNOWLEDGE-BASE NOTES
+
+The following instructions apply when this FAQ is used as a RAG knowledge source:
+
+1. Do not tell users that an unapproved recommendation is already implemented.
+2. Do not invent the bid increment for a current highest bid below $1.00.
+3. Do not invent the commission rate for exactly $10,000.
+4. Do not promise refunds or deny legally mandatory remedies.
+5. Do not claim that the platform provides shipping, delivery, or fulfillment.
+6. Do not state that a specific court definitely has jurisdiction until the governing law and venue clause has been reviewed and approved.
+7. The reserve-price requirement is CONFIRMED and must be applied during backend settlement.
+8. A failed winner-payment transaction must be rolled back in the same manner as any other failed payment.
+9. Self-bidding is prohibited.
+10. Suspicious or prohibited activity may result in account restrictions, bans, and credit holds.
+11. The winner is responsible for the completed purchase, subject to applicable mandatory legal rights.
+12. Distinguish confirmed policies from recommendations and pending decisions in every answer.
+
+---
+
+**END OF DOCUMENT**
