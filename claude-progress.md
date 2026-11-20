@@ -737,3 +737,32 @@
 - Gotchas met again: the main repo (E:/Auction_system) ran `npm run verify` on the same db container mid-gate (deadlocks 40P01, users vanishing: 79 be failures); and the VS Code Playwright test-server grabbed ports 4100/5180 mid-run (97 ECONNREFUSED). Both cleared by rerunning when they were idle. Do not test from two checkouts or from the IDE while a gate runs.
 - Left uncommitted (user's): be/rag/prompts/system.md (one 'Tonal friendly' line), fe/tsconfig.tsbuildinfo.
 - Next: rag-train-2 (record each chat turn through POST /api/rag/turns).
+
+### Session 029: Chat Widget History UI (merged from feature/gemini) (2026-11-20)
+
+- Merged `feature/gemini` into `main`.
+- `chat-ui-1.1` passing: Chat history session management and persistence module in `fe/src/chatHistory.ts`.
+  - Defined `ChatMessage` with timestamp tracking and `ChatSession` data models.
+  - Implemented automatic title derivation (`deriveTitle`) from first user message, truncated gracefully with ellipsis, or defaulting to "New Conversation".
+  - Implemented multi-session storage management (`loadSessions`, `saveSessions`, `loadActiveSessionId`, `saveActiveSessionId`, `createSession`, `addMessageToSession`, `deleteSession`, `clearAllSessions`) with safe cross-environment storage access.
+  - Added human-readable time formatters: `formatRelativeTime` (e.g. "Just now", "5m ago", "2h ago", "Yesterday", "3d ago", or date) and `formatMessageTime` (clock time).
+  - Unit tests in `fe/src/chatHistory.test.ts` (21/21 passed). Change doc in `docs/changes/chat-ui-1.1.md`.
+- `chat-ui-1.2` passing: Chat Widget UI updates in `fe/src/components/ChatBox.tsx` and `fe/src/styles.css`.
+  - Added header controls: "New conversation" button (`chat-new-btn`), "Chat history" view toggle (`chat-history-toggle`), and close button (`chat-close`).
+  - Added full History view panel: lists previous conversation sessions with derived titles, relative timestamps, message count badges, active session badge ("Current"), single-session deletion with trash icon (`chat-delete-session`), and "Clear all" button (`chat-history-clear`).
+  - Added empty state for history (`chat-history-empty`) with icon and "Start a conversation" button.
+  - Added message clock timestamps on chat bubbles for both user and model messages.
+  - Added quick prompt suggestion chips (`chat-chips`) when starting new conversations.
+  - Retained staff handoff support (`supportChat.ts`) and brand tokens from the Beat it! Look.
+  - Unit tests: `npm test -w fe` 28/28 test files passed (186 tests). Build: `npm run build -w fe` passed cleanly. Change doc in `docs/changes/chat-ui-1.2.md`.
+- `chat-ui-1.3` passing: E2E Playwright test suite in `e2e/chat-history-widget.spec.ts`.
+  - Comprehensive spec verifying opening widget, chatting with quick chips, receiving reply with timestamp, creating new conversation via header button, opening history view, verifying listed sessions with title and "Current" badge, switching sessions, restoring message log, deleting single session, clearing all history, empty state, and persistence across page reload.
+  - Configured `reuseExistingServer: !process.env.CI` in `playwright.config.ts`.
+  - Verification: `npx playwright test e2e/chat-history-widget.spec.ts` passed cleanly. Change doc in `docs/changes/chat-ui-1.3.md`.
+
+### Session 030: chat Log in button for guests; merged to main (2026-11-20)
+
+- guest.md tells the bot to write /login; ChatBox shows a Log in link-button (data-testid chat-login) under a guest's bot reply that contains /login. system.md 'Tonal friendly' line committed on the user's request.
+- Merged main (gemini chat history UI) into the branch: header taken from main, the Log in button moved into main's message bubbles.
+- Verified: fe tsc clean; Playwright chat-history-widget 1/1, pop-3.1 'guest Log in button' and 'unread count' pass.
+- Still broken (pre-existing from the gemini merge, not touched): pop-3.1 'launcher opens and closes' expects heading 'Auction desk' and the old status line; ChatBox now shows "Chat with Beat'em". Full ./init.sh gate not run.

@@ -1,25 +1,27 @@
 {
   "project": "Online Auction System",
-  "last_updated": "2026-11-18",
-  "scope": "Round 14. SRS.txt 'System - API for RAG - chatbox': write & retrieve data APIs, expected error handling, auth & authz on all routes, prompt ejection blocking middleware, global error handler, soft delete.",
+  "last_updated": "2026-11-20",
+  "scope": "Round 15: Chat Widget History UI. Add full chat history capabilities to the floating chat widget (fe/src/components/ChatBox.tsx): multi-session management, history browsing panel, session title auto-generation, switching between conversations, starting a new chat, per-session and bulk deletion, timestamp indicators, and persistence across reloads.",
   "source_requirements": {
-    "file": "SRS.txt",
-    "text": "Role description: You're my code-agent, i'm gonna create a sites for system auction, read all Requirements below, then write me a feature-list.json file, with e2e function, unit and intergration tests write to e2e folder. Write changed description (files, changed in code) to docs folder. All delete mean soft delete. System - API for RAG - chatbox. description and priority: Priority high. write me all api for write, retrieve datas for RAG chatbox system. api error should return expected error. Req-1: all routes have both authenticated and authorized. Req-2: Sercurity by block prompt ejection - middleware. Req-3: Api error handle global - catch all unexpected errors"
+    "file": "User Request",
+    "text": "checkout to project-gemini, update for me UI for history chat to chat widget"
   },
   "readings_to_confirm": [
-    "Req-1: all routes have both authenticated (valid token via cookie or Authorization header) and authorized (role checks: customer/staff/admin for chat & retrieve; staff/admin for docs management). 401 for unauthenticated, 403 for unauthorized.",
-    "Req-2: security middleware blocks prompt ejection/injection attempts across request bodies and queries before processing, returning HTTP 400 with expected JSON error.",
-    "Req-3: global error handler catches all unexpected exceptions and standard HTTP errors (400, 401, 403, 404, 405, 413, 429, 500) and returns structured JSON { 'error': '<message>' }.",
-    "Write and retrieve APIs: POST /api/docs (write doc + auto-chunks + embeddings), GET /api/docs (retrieve list), GET /api/docs/<id> (retrieve doc & chunks), POST /api/rag/retrieve (retrieve relevant chunks for query), DELETE /api/docs/<id> (soft delete with deleted_at).",
-    "All delete operations are soft delete (setting deleted_at timestamp); deleted items are excluded from retrieval.",
-    "Tests: unit tests in be/rag/*_test.py, integration/e2e tests in e2e/rag-chat-api.spec.ts.",
-    "Change documentation in docs/changes/rag-3.*.md."
+    "Multi-session conversation history management: sessions with unique IDs, auto-generated titles, timestamps, and message arrays.",
+    "Persistent across page reloads and route navigations via localStorage with safe fallbacks.",
+    "Chat widget header controls: 'New Chat' button to start fresh conversations, 'History' button to access past conversations, and close button.",
+    "History view panel within the widget: lists previous sessions chronologically with titles, relative timestamps, message count badges, active indicators, and delete buttons.",
+    "Seamless session loading: selecting a session loads its full conversation into the chat view.",
+    "Clear history: delete individual sessions or clear all sessions.",
+    "Message timestamps on chat bubbles for user and assistant messages.",
+    "Comprehensive unit tests in fe/src/chatHistory.test.ts and E2E specs in e2e/chat-history-widget.spec.ts.",
+    "Change documentation in docs/changes/chat-ui-1.*.md."
   ],
   "conventions": {
-    "tests": "Python: be/rag/*_test.py with unittest. Frontend: npm test -w fe. E2E: playwright test e2e/rag-chat-api.spec.ts.",
-    "existing_tests": "Existing test suites in be, fe, and e2e must pass.",
+    "tests": "Frontend unit tests: npm test -w fe. E2E tests: npx playwright test e2e/chat-history-widget.spec.ts.",
+    "existing_tests": "Existing test suites in fe, be/rag, and e2e must pass.",
     "change_docs": "docs/changes/<id>.md lists changed files.",
-    "run_all": "./init.sh or npm run verify must pass before round completion."
+    "run_all": "npm test -w fe && npm run build -w fe must pass before round completion."
   },
   "rules": {
     "single_active_feature": true,
@@ -34,141 +36,92 @@
   },
   "features": [
     {
-      "id": "rag-3.1",
+      "id": "chat-ui-1.1",
       "priority": 1,
-      "role": "backend",
-      "area": "backend",
-      "srs_ref": "SRS Req-3: Api error handle global - catch all unexpected errors; api error should return expected error",
-      "title": "Global API error handling middleware with structured JSON responses",
-      "user_visible_behavior": "All unexpected exceptions and standard HTTP error codes (400, 401, 403, 404, 405, 413, 429, 500) return a consistent JSON response format `{'error': '<message>'}` without HTML tracebacks.",
+      "role": "frontend",
+      "area": "frontend",
+      "srs_ref": "Chat Widget History: Multi-session storage, persistence, title generation, and lifecycle management",
+      "title": "Chat history session management and storage module",
+      "user_visible_behavior": "Conversations are saved into distinct sessions in localStorage, allowing chat history to be preserved across page reloads and navigations. Sessions have auto-generated titles, timestamps, and message lists.",
       "acceptance": [
-        "Flask global error handlers registered for standard HTTP errors and generic Exception.",
-        "Responses have Content-Type application/json with JSON body containing `error` key.",
-        "404 returns `{'error': 'Not Found'}`.",
-        "405 returns `{'error': 'Method Not Allowed'}`.",
-        "Unhandled exceptions return HTTP 500 `{'error': 'Internal server error'}`.",
-        "Python unit tests verify global error handling across error statuses."
+        "Module fe/src/chatHistory.ts provides ChatSession and ChatMessage types with timestamp tracking.",
+        "Auto-derives clean session title from first user message, truncated gracefully, or defaults to 'New Conversation'.",
+        "Provides loadSessions, saveSessions, getActiveSession, createSession, switchSession, deleteSession, and clearAllSessions.",
+        "Formats timestamps into human-readable relative time (Just now, 5m ago, 2h ago, Yesterday, or date).",
+        "Safe error handling if localStorage is unavailable or corrupted.",
+        "Unit tests in fe/src/chatHistory.test.ts cover all session operations, title derivation, relative times, and edge cases."
       ],
       "verification": [
-        "python -m unittest discover -s be/rag -p \"*_test.py\"",
-        "docs/changes/rag-3.1.md"
+        "npm test -w fe",
+        "docs/changes/chat-ui-1.1.md"
       ],
       "evidence": [
-        "python -m unittest be/rag/error_handler_test.py: 5/5 passed",
-        "python -m unittest discover -s be/rag -p \"*_test.py\": 92/92 passed",
-        "docs/changes/rag-3.1.md created"
+        "fe/src/chatHistory.ts created with ChatSession, ChatMessage, deriveTitle, loadSessions, saveSessions, addMessageToSession, deleteSession, formatRelativeTime",
+        "fe/src/chatHistory.test.ts 21/21 tests passed (npm test -w fe)",
+        "docs/changes/chat-ui-1.1.md created"
       ],
       "status": "passing"
     },
     {
-      "id": "rag-3.2",
+      "id": "chat-ui-1.2",
       "priority": 2,
-      "role": "backend",
-      "area": "backend",
-      "srs_ref": "SRS Req-2: Sercurity by block prompt ejection - middleware",
-      "title": "Security middleware blocking prompt ejection and injection attacks",
-      "user_visible_behavior": "Requests containing prompt ejection or jailbreak patterns (e.g. 'ignore previous instructions', system prompt leaks, roleplay overrides) are intercepted and rejected with HTTP 400 and an expected error message.",
+      "role": "frontend",
+      "area": "frontend",
+      "srs_ref": "Chat Widget History: UI updates for ChatBox with History View, New Chat action, and message timestamps",
+      "title": "Chat Widget UI updates with History view, session navigation, and timestamps",
+      "user_visible_behavior": "The chat widget features a History button to toggle between active chat and the conversation history list. Users can start a New Chat, browse past sessions, click a session to resume it, delete sessions, or clear all history. Chat messages display timestamps.",
       "acceptance": [
-        "Middleware inspects incoming JSON request bodies and query parameters before route execution.",
-        "Identifies prompt ejection signatures (instruction bypass, system prompt exfiltration, roleplay jailbreaks).",
-        "Rejects matching requests immediately with HTTP 400 `{'error': 'Prompt injection detected'}`.",
-        "Legitimate requests pass through without alteration or blockage.",
-        "Python unit tests verify blocking of various injection payloads and pass-through of valid prompts."
+        "ChatBox header contains 'New Chat' button and 'History' button (with clock icon and unread/session indicators).",
+        "Clicking 'History' displays the conversation history view with a list of past sessions, each showing title, time, and message count.",
+        "Clicking a session in the history list loads that conversation into the active chat window.",
+        "Active session is highlighted with a 'Current' badge.",
+        "Individual session delete button (trash icon) removes the session; 'Clear all' button removes all sessions.",
+        "'Back' button in history view returns to active conversation.",
+        "Empty state shown when no history exists with a prompt to start chatting.",
+        "Chat messages include formatted time indicators.",
+        "Styles in fe/src/styles.css adhere to the brand dark theme palette.",
+        "Frontend unit tests in fe/ pass and build succeeds cleanly."
       ],
       "verification": [
-        "python -m unittest discover -s be/rag -p \"*_test.py\"",
-        "docs/changes/rag-3.2.md"
+        "npm test -w fe",
+        "npm run build -w fe",
+        "docs/changes/chat-ui-1.2.md"
       ],
       "evidence": [
-        "python -m unittest be/rag/security_test.py: 28/28 passed",
-        "python -m unittest discover -s be/rag -p \"*_test.py\": 92/92 passed",
-        "docs/changes/rag-3.2.md created"
+        "fe/src/components/ChatBox.tsx updated with history panel, session switcher, new chat action, quick chips, message timestamps",
+        "fe/src/styles.css updated with responsive dark-theme styles for chat history components",
+        "npm test -w fe (28/28 test files passed)",
+        "npm run build -w fe passed cleanly in 1.95s",
+        "docs/changes/chat-ui-1.2.md created"
       ],
       "status": "passing"
     },
     {
-      "id": "rag-3.3",
+      "id": "chat-ui-1.3",
       "priority": 3,
-      "role": "backend",
-      "area": "backend",
-      "srs_ref": "SRS Req-1: all routes have both authenticated and authorized",
-      "title": "Authentication and authorization enforcement on all RAG and Chat routes",
-      "user_visible_behavior": "Every API route requires valid authentication (via cookie or Authorization Bearer header) and validates the user's role/permission before allowing access. Missing auth returns 401; insufficient role returns 403.",
-      "acceptance": [
-        "Authentication helper supports both cookie `auction_token` and `Authorization: Bearer <jwt>`.",
-        "POST /api/chat and POST /api/rag/retrieve require authenticated user (customer, staff, admin); unauthenticated receives 401.",
-        "POST /api/docs, GET /api/docs, GET /api/docs/<id>, DELETE /api/docs/<id> require staff or admin role; non-staff/admin receives 403.",
-        "Invalid, expired, or locked/disabled user tokens return 401 `{'error': 'Authentication required'}`.",
-        "Python unit tests verify 401 unauthenticated and 403 forbidden scenarios across all routes."
-      ],
-      "verification": [
-        "python -m unittest discover -s be/rag -p \"*_test.py\"",
-        "docs/changes/rag-3.3.md"
-      ],
-      "evidence": [
-        "python -m unittest be/rag/auth_test.py: 13/13 passed",
-        "python -m unittest be/rag/chat_test.py: 7/7 passed",
-        "python -m unittest be/rag/rag_user_test.py: 5/5 passed",
-        "python -m unittest discover -s be/rag -p \"*_test.py\": 92/92 passed",
-        "docs/changes/rag-3.3.md created"
-      ],
-      "status": "passing"
-    },
-    {
-      "id": "rag-3.4",
-      "priority": 4,
-      "role": "backend",
-      "area": "backend",
-      "srs_ref": "SRS: write me all api for write, retrieve datas for RAG chatbox system; All delete mean soft delete",
-      "title": "Complete Write and Retrieve Data APIs for RAG System with Soft Delete",
-      "user_visible_behavior": "Authorized users can write documents (auto-chunked and embedded before saving), retrieve document lists, retrieve single document details with chunks, retrieve relevant chunks for a search query, and soft-delete documents.",
-      "acceptance": [
-        "POST /api/docs writes document, auto-chunked via `rag.chunk_text` and embedded before saving; returns HTTP 201.",
-        "GET /api/docs retrieves all active (non-soft-deleted) documents.",
-        "GET /api/docs/<int:doc_id> retrieves a single document with its metadata and chunk details; returns 404 if deleted or not found.",
-        "POST /api/rag/retrieve embeds the query and retrieves top matching chunks from active documents.",
-        "DELETE /api/docs/<int:doc_id> soft-deletes the document and its chunks by setting `deleted_at = now()`; returns 204.",
-        "Soft-deleted documents and chunks are excluded from retrieval and chat context.",
-        "Python unit/integration tests verify write, retrieve, search, and soft-delete operations."
-      ],
-      "verification": [
-        "python -m unittest discover -s be/rag -p \"*_test.py\"",
-        "docs/changes/rag-3.4.md"
-      ],
-      "evidence": [
-        "python -m unittest be/rag/rag_api_test.py: 8/8 passed",
-        "python -m unittest discover -s be/rag -p \"*_test.py\": 92/92 passed",
-        "docs/changes/rag-3.4.md created"
-      ],
-      "status": "passing"
-    },
-    {
-      "id": "rag-3.5",
-      "priority": 5,
       "role": "qa",
       "area": "e2e",
-      "srs_ref": "SRS: with e2e function, unit and intergration tests write to e2e folder; Write changed description (files, changed in code) to docs folder",
-      "title": "E2E integration test suite for RAG Chatbox APIs",
-      "user_visible_behavior": "Full end-to-end integration test suite in e2e/ verifying global error handling, prompt injection security filter, auth/authz enforcement, write/chunk/retrieve API, and soft delete.",
+      "srs_ref": "Chat Widget History: E2E Playwright test suite verifying chat widget history workflow",
+      "title": "E2E Playwright test suite for Chat Widget History",
+      "user_visible_behavior": "Playwright integration spec at e2e/chat-history-widget.spec.ts verifies opening the widget, chatting, starting a new chat, viewing conversation history, switching between sessions, deleting a session, and persistence across page reload.",
       "acceptance": [
-        "Playwright integration spec created at e2e/rag-chat-api.spec.ts.",
-        "Covers global error handling (expected error formats for 404, 400).",
-        "Covers prompt injection blocking (middleware intercepts attack payloads).",
-        "Covers auth and authz checks (401 for guest, 403 for unauthorized role, 200/201 for authorized).",
-        "Covers full lifecycle: write document -> chunk verification -> retrieve query -> soft delete -> verify excluded.",
-        "All test suites pass cleanly; change docs created in docs/changes/."
+        "Playwright spec e2e/chat-history-widget.spec.ts verifies full user journey.",
+        "Tests opening chat panel, sending a message, verifying reply.",
+        "Tests clicking 'New Chat' button and starting a second conversation.",
+        "Tests opening History view and verifying both sessions are listed with titles.",
+        "Tests switching back to first conversation and verifying message restoration.",
+        "Tests deleting a session and clearing all history.",
+        "Tests message persistence across page reload.",
+        "Playwright test passes cleanly."
       ],
       "verification": [
-        "npx playwright test e2e/rag-chat-api.spec.ts",
-        "npm run test:py",
-        "npm test -w fe",
-        "docs/changes/rag-3.5.md"
+        "npx playwright test e2e/chat-history-widget.spec.ts",
+        "docs/changes/chat-ui-1.3.md"
       ],
       "evidence": [
-        "npx playwright test e2e/rag-chat-api.spec.ts: 4/4 passed",
-        "npm run test:py (python -m unittest discover -s be/rag -p \"*_test.py\"): 92/92 passed",
-        "npm test -w fe: 27/27 test files passed (165 tests)",
-        "docs/changes/rag-3.5.md created"
+        "e2e/chat-history-widget.spec.ts created covering open, quick chips, reply, new chat, history list, session switch, delete, clear all, and page reload persistence",
+        "npx playwright test e2e/chat-history-widget.spec.ts: 1/1 passed cleanly in 3.0s",
+        "docs/changes/chat-ui-1.3.md created"
       ],
       "status": "passing"
     }
