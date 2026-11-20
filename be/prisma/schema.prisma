@@ -40,6 +40,8 @@ model User {
   chatMessages       ChatMessage[]
   ragSessions        RagSession[]
   ragReviews         RagExample[]
+  faqsCreated        Faq[]                    @relation("FaqCreatedBy")
+  faqsUpdated        Faq[]                    @relation("FaqUpdatedBy")
 
   @@map("users")
 }
@@ -437,4 +439,28 @@ model RagExample {
 
   @@index([status])
   @@map("rag_examples")
+}
+
+/// faq-cache-2: FAQ entries the FAQ API serves and the chat bot answers from (docs/faq-cache.md). Soft delete.
+/// normalized_question is unique among live rows by a partial index in the faq_cache migration (Prisma 5 cannot declare it).
+model Faq {
+  id                 BigInt    @id @default(autoincrement())
+  category           String    @db.VarChar(100)
+  question           String    @db.VarChar(500)
+  answer             String
+  /// normalizeQuestion(question), be/src/lib/faqs.ts
+  normalizedQuestion String    @map("normalized_question") @db.VarChar(500)
+  sortOrder          Int       @default(0) @map("sort_order")
+  /// null for rows the seed wrote from faq.txt
+  createdById        BigInt?   @map("created_by_id")
+  updatedById        BigInt?   @map("updated_by_id")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  deletedAt          DateTime? @map("deleted_at")
+  createdBy          User?     @relation("FaqCreatedBy", fields: [createdById], references: [id])
+  updatedBy          User?     @relation("FaqUpdatedBy", fields: [updatedById], references: [id])
+
+  @@index([category, sortOrder])
+  @@index([normalizedQuestion])
+  @@map("faqs")
 }

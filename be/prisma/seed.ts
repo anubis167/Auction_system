@@ -1,5 +1,8 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { normalizeQuestion, parseFaqText } from '../src/lib/faqs';
 import { INCREMENT_LADDER } from '../src/lib/increments';
 import { DEFAULT_GRANTS, PERMISSIONS } from '../src/lib/permissions';
 
@@ -74,6 +77,16 @@ export async function seed(client: PrismaClient = prisma) {
       data: INCREMENT_LADDER.map((t) => ({ minBidAmount: t.from, maxBidAmount: t.to, incrementAmount: t.increment })),
     }),
   ]);
+  await seedFaqs(client);
+}
+
+/** faq-cache-2: the FAQ from faq.txt. Adds missing questions only, so staff edits and deletes are never undone. */
+export async function seedFaqs(client: PrismaClient = prisma, file = path.resolve(__dirname, '../../faq.txt')) {
+  const known = new Set((await client.faq.findMany({ select: { normalizedQuestion: true } })).map((f) => f.normalizedQuestion));
+  const data = parseFaqText(readFileSync(file, 'utf8'))
+    .map((entry) => ({ ...entry, normalizedQuestion: normalizeQuestion(entry.question) }))
+    .filter((f) => !known.has(f.normalizedQuestion));
+  if (data.length) await client.faq.createMany({ data });
 }
 
 if (require.main === module) {

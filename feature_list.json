@@ -57,7 +57,7 @@
       "requirement": "Req-2",
       "title": "Add the faqs table and seed it from faq.txt",
       "user_visible_behavior": "No visible change. The database holds every question and answer from faq.txt with its category.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Add model Faq (bigint id, category, question, answer, normalizedQuestion unique among non-deleted rows, sortOrder, createdById/updatedById -> User, createdAt, updatedAt, deletedAt) with @map snake_case names to be/prisma/schema.prisma; migration faq_cache applies on a clean database.",
         "One normalize function (lower case, trim, collapse whitespace, strip trailing ?!. ) shared by the seed, the API and the match lookup.",
@@ -65,7 +65,12 @@
         "e2e/unit/faq-cache-2-parse.test.ts: the faq.txt parser returns 38 entries with the right category, question and answer for Q1, Q5 and the last question; normalize cases above.",
         "e2e/integration/faq-cache-2-table.test.ts: seed stores 38 rows; a second seed keeps 38; a duplicate normalized question is rejected; a soft-deleted row frees its question."
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-11-20 model Faq + User back-relations; migration 20261121090000_faq_cache (prisma migrate diff from auction_test) plus a hand-written partial unique index on normalized_question WHERE deleted_at IS NULL. prisma validate OK; migrate reset applies it; migrate diff afterwards: empty.",
+        "2026-11-20 be/src/lib/faqs.ts normalizeQuestion + parseFaqText; seed.ts seedFaqs() inside seed() (one findMany + one createMany, skips known questions incl. deleted).",
+        "2026-11-20 e2e/unit/faq-cache-2-parse.test.ts 5/5 (38 entries, Q1/Q5/Q38, section I skipped, CRLF, normalize). e2e/integration/faq-cache-2-table.test.ts 4/4 (seed 38, reseed keeps 38 and edits, duplicate live question P2002, soft delete frees the question and is not re-seeded).",
+        "2026-11-20 be vitest 101 files / 461 tests pass; tsc --noEmit clean."
+      ],
       "notes": "faq.txt section I (knowledge-base notes) has no '### Qn.' blocks, so it is not seeded."
     },
     {
