@@ -463,20 +463,23 @@ export function ChatBox() {
                   <span className="chat-msg-text">{DEFAULT_WELCOME_MESSAGE}</span>
                 </p>
               )}
-              {displayMessages.map((m, i) => (
-                <p key={'id' in m && m.id ? m.id : `msg-${i}`} className={`chat-msg chat-msg-${m.role}`}>
-                  <span className="chat-msg-text">{m.text}</span>
-                  {/* be/rag/prompts/guest.md tells the bot to write /login when a guest needs to sign in. */}
-                  {!user && m.role === 'model' && m.text.includes('/login') && (
-                    <Link to="/login" state={{ from: location.pathname }} className="btn btn-primary btn-sm chat-login" data-testid="chat-login">
-                      Log in
-                    </Link>
-                  )}
-                  {'timestamp' in m && m.timestamp && (
-                    <span className="chat-msg-time">{formatMessageTime(m.timestamp)}</span>
-                  )}
-                </p>
-              ))}
+              {displayMessages.map((m, i) => {
+                // be/rag/prompts/guest.md has the bot end with (/login); the marker becomes a Log in button.
+                const login = !user && m.role === 'model' && m.text.includes('/login');
+                return (
+                  <p key={'id' in m && m.id ? m.id : `msg-${i}`} className={`chat-msg chat-msg-${m.role}`}>
+                    <span className="chat-msg-text">{login ? m.text.replace(/\s*\(?\/login\)?/g, '') : m.text}</span>
+                    {login && (
+                      <Link to="/login" state={{ from: location.pathname }} className="btn btn-primary btn-sm chat-login" data-testid="chat-login">
+                        Log in
+                      </Link>
+                    )}
+                    {'timestamp' in m && m.timestamp && (
+                      <span className="chat-msg-time">{formatMessageTime(m.timestamp)}</span>
+                    )}
+                  </p>
+                );
+              })}
               {busy && !staffMode && (
                 <p className="chat-msg chat-msg-model chat-typing" aria-label="Typing">
                   <span />

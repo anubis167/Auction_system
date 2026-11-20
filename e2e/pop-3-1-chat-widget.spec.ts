@@ -37,6 +37,7 @@ test('pop-3.1 a guest told to log in gets a Log in button to /login', async ({ p
   await page.getByTestId('chat-toggle').click();
   await page.getByTestId('chat-input').fill('What is my credit?');
   await page.keyboard.press('Enter');
+  await expect(page.getByTestId('chat-log').locator('.chat-msg-model .chat-msg-text').last()).toHaveText('Please log in first on the login page.');
   await page.getByTestId('chat-login').click();
   await expect(page).toHaveURL(/\/login$/);
 });
