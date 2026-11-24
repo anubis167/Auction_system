@@ -192,7 +192,12 @@ def _answer(reply, sources, turn_id):
         answer["turnId"] = turn_id
     return jsonify(answer)
 
-
+@app.get("/health")
+def health():
+    return {
+        "status": "ok",
+        "service": "auction-rag"
+    }, 200
 @app.route("/api/chat/feedback", methods=["POST"])
 def chat_feedback():
     """rag-train-4: thumbs up or down on a saved bot answer; Node checks the visitor token owns the turn."""
