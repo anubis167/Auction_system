@@ -1,0 +1,593 @@
+# ONLINE AUCTION SYSTEM — POLICIES
+
+**Document ID:** POL-AUC-001  
+**Version:** 0.2  
+**Status:** Draft — Pending Approval  
+**Audience:** Customers, Sellers, Bidders, and Platform Staff
+
+---
+
+## DOCUMENT CONTROL
+
+This document defines the policies governing the Online Auction System.
+
+Policies are classified as:
+
+- **CONFIRMED:** Explicitly confirmed by the product owner.
+- **DEFINED BY SRS:** Specified in the original Software Requirements Specification.
+- **PROJECT REQUIREMENT:** Added as an explicit project requirement.
+- **RECOMMENDATION:** Suggested for implementation but not yet approved.
+- **PENDING APPROVAL:** Requires further business or legal confirmation.
+
+This document is not legal advice. Policies involving consumer rights, payment processing, disputes, and jurisdiction must be reviewed before publication.
+
+---
+
+# 1. ACCOUNT REGISTRATION AND SECURITY
+
+### POL-ACC-001 — User Registration
+
+Users must register and provide the information required by the system, including:
+
+- Full name
+- Email address
+- Phone number
+- Address
+- Password
+
+**Source:** Defined by SRS.
+
+### POL-ACC-002 — Account Activation
+
+Newly registered users must complete the required email activation process before accessing features that require an activated account.
+
+**Source:** Defined by SRS.
+
+### POL-ACC-003 — Password Requirements
+
+Passwords must contain at least eight characters and include letters and numbers.
+
+**Source:** Defined by SRS.
+
+### POL-ACC-004 — Session Timeout
+
+User sessions must expire after 30 minutes of inactivity. Users must authenticate again after session expiration.
+
+**Source:** Defined by SRS.
+
+---
+
+# 2. CREDIT ACCOUNT AND PAYMENT POLICIES
+
+### POL-CRE-001 — Credit Account Creation
+
+A credit account is created after successful account activation.
+
+The initial credit balance is zero.
+
+The original requirements specify that users contact platform staff to deposit funds. The final top-up workflow must be documented separately.
+
+**Source:** Defined by SRS.
+
+### POL-CRE-002 — Payment Authorization
+
+**CONFIRMED**
+
+Users must authorize the supported payment provider or payment method to perform the payment operations required by the platform.
+
+This includes:
+
+- Adding credit to their account.
+- Authorizing permitted withdrawals.
+- Completing payment operations associated with auction settlement.
+
+Payment authorization must be obtained through the supported payment process.
+
+### POL-CRE-003 — Failed Payment Rollback
+
+**CONFIRMED**
+
+Every failed payment must be rolled back.
+
+A failed winner-payment transaction follows exactly the same rollback requirement as any other failed payment.
+
+The system must ensure that a failed transaction does not leave:
+
+- An incomplete debit.
+- An incomplete credit.
+- An incorrect account balance.
+- An incomplete seller payment.
+- An inconsistent auction settlement state.
+
+A failed transaction must not be treated as a successful payment.
+
+### POL-CRE-004 — Credit Reservation and Release
+
+**RECOMMENDATION — PENDING APPROVAL**
+
+The system should reserve credit when a bidder becomes the highest bidder.
+
+Recommended rules:
+
+1. Before accepting a bid, the system verifies that the bidder has sufficient available credit.
+2. When the bidder becomes the highest bidder, the system reserves the amount of their current leading bid.
+3. When another bidder outbids them, the previous reservation is released.
+4. The new highest bidder's current leading bid is reserved.
+5. When the auction closes successfully, the winner's reservation is converted into the final debit.
+6. Reservations belonging to other bidders are released.
+7. If an auction is cancelled or cannot be settled, all related reservations are released.
+
+Recommended calculation:
+
+`Available Credit = Posted Credit Balance - Active Credit Reservations`
+
+Reservations should be tracked independently from the posted credit balance.
+
+### POL-CRE-005 — Credit Restrictions
+
+**CONFIRMED**
+
+If the system detects suspicious or prohibited activity, the platform may restrict the user's account and temporarily lock or hold associated credit while the activity is reviewed.
+
+The platform must follow applicable laws and its approved account-enforcement procedures.
+
+### POL-CRE-006 — Payment Security
+
+**RECOMMENDATION**
+
+The platform should use a supported payment provider for payment authorization and processing.
+
+The application should not store raw card security codes (CVV/CVC) or unnecessary payment credentials.
+
+---
+
+# 3. GOODS AND SELLER RESPONSIBILITIES
+
+### POL-SEL-001 — Goods Information
+
+Sellers must provide the required goods information before creating an auction.
+
+Required information includes:
+
+- Goods name.
+- Description.
+- Images.
+- Category.
+
+Sellers are responsible for providing accurate and non-misleading information.
+
+**Source:** Defined by SRS and project requirements.
+
+### POL-SEL-002 — Goods Modification
+
+Goods may only be edited or deleted when they are not associated with an active auction or a completed sale.
+
+**Source:** Defined by SRS.
+
+### POL-SEL-003 — Seller Responsibility
+
+Sellers are responsible for the goods they list.
+
+They must provide accurate information about the item's identity, condition, and relevant characteristics.
+
+---
+
+# 4. AUCTION CREATION AND LIFECYCLE
+
+### POL-AUC-001 — Auction Creation
+
+A seller must add goods before creating an auction.
+
+An auction must contain the required information:
+
+- Auction name.
+- Description.
+- Goods.
+- Initial price.
+- Reserve price.
+- Start date and time.
+- Auction duration.
+
+**Source:** Defined by SRS.
+
+### POL-AUC-002 — Automatic Auction Lifecycle
+
+The system automatically starts and closes auctions according to their configured start and end times.
+
+The backend must evaluate auctions using due-time conditions rather than relying on exact timestamp equality.
+
+### POL-AUC-003 — Seller Cancellation
+
+A seller may cancel an auction only before it starts.
+
+After cancellation, the auction must no longer be presented as an active auction.
+
+**Source:** Defined by SRS.
+
+### POL-AUC-004 — Reserve Price
+
+**CONFIRMED**
+
+The reserve price is retained as a mandatory auction settlement condition.
+
+The highest valid bid wins only if it is equal to or greater than the seller's reserve price.
+
+The system must not declare a winner merely because a bidder has the highest bid.
+
+### POL-AUC-005 — Unsold Auction
+
+**CONFIRMED**
+
+An auction must be marked as `UNSOLD` when:
+
+- No valid bids were submitted before the auction closed; or
+- The highest valid bid is lower than the reserve price.
+
+For an unsold auction:
+
+- No winner payment is processed.
+- No seller proceeds are generated.
+- All credit reservations associated with the auction must be released.
+
+### POL-AUC-006 — Anti-Sniping / Soft-Close
+
+**RECOMMENDATION — PENDING APPROVAL**
+
+A soft-close mechanism is recommended.
+
+Under this proposal:
+
+- A valid bid received during the final two minutes extends the auction by another two minutes.
+- If another qualifying bid is received during the new final two-minute window, the auction is extended again.
+- The auction closes after the final extension period expires without another qualifying bid.
+
+This behavior must be approved before being treated as an active system policy.
+
+---
+
+# 5. BIDDING RULES
+
+### POL-BID-001 — Bidder Authentication
+
+Only logged-in and eligible users may place bids.
+
+**Source:** Defined by SRS.
+
+### POL-BID-002 — Auction Participation
+
+**PROJECT REQUIREMENT**
+
+A user must join or participate in an active auction before placing a bid, where the system's participation workflow requires it.
+
+### POL-BID-003 — Valid Bid
+
+A bid must exceed the current highest valid bid by at least the applicable minimum bid increment.
+
+The backend must validate every bid.
+
+Frontend validation alone is insufficient.
+
+### POL-BID-004 — Multiple Bids
+
+A bidder may place multiple valid bids in the same auction, subject to:
+
+- Bid increment requirements.
+- Auction status.
+- Available credit.
+- Account eligibility.
+- Other applicable bidding policies.
+
+**Source:** Defined by SRS.
+
+### POL-BID-005 — Self-Bidding Prohibition
+
+**CONFIRMED**
+
+Self-bidding is strictly prohibited.
+
+A seller must not bid on their own auction, either directly or through another account or arrangement intended to manipulate the auction.
+
+### POL-BID-006 — Suspicious Activity and Bid Manipulation
+
+**CONFIRMED**
+
+The platform prohibits suspicious or unnatural activities, including:
+
+- Self-bidding.
+- Bid manipulation.
+- Artificially increasing auction prices.
+- Fraudulent bidding.
+- Collusion intended to manipulate auction outcomes.
+- Using multiple accounts to manipulate bidding activities.
+
+If the system detects suspicious or prohibited activity, the platform may:
+
+- Restrict the account.
+- Suspend the account.
+- Permanently ban the account.
+- Temporarily lock or hold associated credit while the activity is investigated.
+
+The platform may take action according to its approved enforcement procedures and applicable laws.
+
+### POL-BID-007 — Minimum Bid Increment Schedule
+
+**CONFIRMED**
+
+The minimum increment depends on the current highest valid bid.
+
+| Current Highest Bid | Minimum Increment |
+|---|---:|
+| $1.00 to below $10.00 | $0.10 |
+| $10.00 to below $100.00 | $1.00 |
+| $100.00 through $1,000.00 inclusive | $10.00 |
+| Above $1,000.00 | $100.00 |
+
+The increment for a current highest bid below $1.00 has not yet been specified.
+
+A $0.01 increment is suggested, but it is not a confirmed policy.
+
+---
+
+# 6. AUCTION SETTLEMENT AND WINNER DETERMINATION
+
+### POL-SET-001 — Winner Determination
+
+**CONFIRMED**
+
+When an auction closes, the system identifies the highest valid bid.
+
+The bidder with the highest valid bid wins only if:
+
+`Highest Valid Bid >= Reserve Price`
+
+The reserve-price condition must be evaluated by the backend during settlement.
+
+### POL-SET-002 — Auction Without a Qualifying Winner
+
+An auction must close as `UNSOLD` if:
+
+- There are no valid bids; or
+- The highest valid bid is below the reserve price.
+
+For an unsold auction:
+
+- No winner is declared.
+- No winner debit is processed.
+- No seller proceeds are generated.
+- All related credit reservations are released.
+
+### POL-SET-003 — Successful Settlement
+
+When an auction is sold:
+
+1. The system identifies the winning bidder.
+2. The system processes the winner-payment transaction.
+3. The applicable platform commission is calculated.
+4. The seller receives the winning amount after the applicable commission is deducted.
+
+### POL-SET-004 — Atomic Settlement
+
+**RECOMMENDATION**
+
+Winner debit, seller proceeds, commission, reservation conversion, reservation release, and settlement status should be processed atomically or through an idempotent settlement workflow.
+
+A failed settlement must not result in duplicate charges or incomplete financial records.
+
+---
+
+# 7. REFUND POLICY
+
+### POL-REF-001 — Final Sale and Refund Restrictions
+
+**CONFIRMED**
+
+Completed auction sales are final.
+
+The winner takes responsibility for the purchase and is not entitled to a refund merely because they:
+
+- Change their mind.
+- No longer want the item.
+- Decide they do not want to complete the purchase for personal reasons.
+
+The platform does not voluntarily provide refunds for completed sales under this policy.
+
+**LEGAL QUALIFICATION**
+
+This policy does not override:
+
+- Mandatory consumer-protection laws.
+- Applicable auction laws.
+- Court orders.
+- Payment-provider requirements.
+- Legally required remedies.
+- Corrections required because of fraud, unauthorized transactions, or platform processing errors.
+
+The final refund exceptions and procedures must be reviewed by qualified legal counsel before publication.
+
+---
+
+# 8. PLATFORM COMMISSION
+
+### POL-COM-001 — Seller Commission
+
+The source requirements specify the following commission schedule:
+
+| Winning Amount | Platform Commission |
+|---|---:|
+| Below $100 | 10% |
+| $100 through $999 | 5% |
+| $1,000 through $9,999 | 2% |
+| Above $10,000 | 1% |
+
+The exact treatment of a winning amount of $10,000 has not been confirmed.
+
+The final currency and commission rounding method also require approval.
+
+---
+
+# 9. SHIPPING, DELIVERY, AND FULFILLMENT
+
+### POL-FUL-001 — Platform Service Limitations
+
+**CONFIRMED**
+
+The platform does not provide:
+
+- Shipping services.
+- Delivery services.
+- Fulfillment services.
+- Item transportation.
+- Physical collection or handover services.
+
+Buyers and sellers are responsible for arranging shipping, delivery, collection, and other fulfillment activities directly with one another.
+
+### POL-FUL-002 — Fulfillment Information Requests
+
+Users may contact the platform to request available information related to fulfillment.
+
+However, providing available information does not mean that the platform provides, guarantees, or assumes responsibility for shipping, delivery, or fulfillment.
+
+---
+
+# 10. DISPUTES AND SERVICE LIMITATIONS
+
+### POL-DIS-001 — Acknowledgement of Platform Service Boundaries
+
+**CONFIRMED**
+
+Before a dispute case is handed off or escalated, both the seller and bidder must understand and acknowledge the scope and limitations of the services provided by the platform.
+
+### POL-DIS-002 — Attempted Dispute Resolution
+
+Both parties should first attempt to resolve the dispute through the platform's available support or communication process.
+
+### POL-DIS-003 — Unresolved Disputes and Court Jurisdiction
+
+**CONFIRMED INTENT — LEGAL WORDING PENDING**
+
+If a dispute cannot be resolved through the available process, it may be referred to the competent court under applicable law.
+
+The product owner's intended jurisdictional reference is the court with jurisdiction in the location where the item is held.
+
+The governing law, court venue, and enforceability of this clause must be reviewed by qualified legal counsel before publication.
+
+### POL-DIS-004 — Platform Responsibility
+
+The platform facilitates online auction activities within its defined service scope.
+
+The platform does not provide shipping, delivery, or fulfillment services.
+
+The final terms must clearly define which services the platform provides and which responsibilities remain with buyers and sellers.
+
+---
+
+# 11. ACCOUNT SUSPENSION AND PROHIBITED USER BEHAVIOR
+
+### POL-ADM-001 — Prohibited User Behavior
+
+**CONFIRMED**
+
+Users must not engage in prohibited activities, including:
+
+- Self-bidding.
+- Bid manipulation.
+- Fraudulent activities.
+- Suspicious bidding behavior.
+- Abuse of platform functionality.
+- Other prohibited conduct defined by the platform.
+
+### POL-ADM-002 — Suspension and Permanent Ban
+
+**CONFIRMED**
+
+Prohibited user behavior may result in:
+
+- Temporary account suspension.
+- Permanent account ban.
+- Restriction of account functionality.
+
+The platform may determine the appropriate action based on the nature and severity of the violation.
+
+### POL-ADM-003 — Credit Lock and Investigation
+
+**CONFIRMED INTENT**
+
+When suspicious or prohibited activity is detected, the platform may lock or hold the user's credit while reviewing the case.
+
+The detailed process for:
+
+- User notification.
+- Investigation.
+- Evidence collection.
+- Appeal.
+- Credit release.
+
+Must be defined in the approved operational policy and comply with applicable law.
+
+---
+
+# 12. MESSAGES AND COMMENTS
+
+### POL-MSG-001 — Auction Communication
+
+Users may view auction comments and messages according to the system's access rules.
+
+Users must not use these features for:
+
+- Harassment.
+- Fraud.
+- Threats.
+- Spam.
+- Bid manipulation.
+- Other prohibited communication.
+
+---
+
+# 13. AUDIT AND RECORDKEEPING
+
+**RECOMMENDATION — PENDING APPROVAL**
+
+The system should maintain an auditable history of:
+
+- Bid submissions.
+- Auction state changes.
+- Auction start and close events.
+- Payment attempts.
+- Payment rollbacks.
+- Credit top-ups.
+- Credit reservations.
+- Credit releases.
+- Winner settlement.
+- Seller proceeds.
+- Commission calculations.
+- Account restrictions.
+- Dispute actions.
+
+Financial records should be traceable and should not be silently overwritten.
+
+---
+
+# 14. ITEMS REQUIRING FINAL APPROVAL
+
+The following matters remain unresolved and must not be treated as confirmed policies:
+
+1. Supported auction currency.
+2. Bid increment for current highest bids below $1.00.
+3. Anti-sniping / soft-close behavior.
+4. Credit reservation and release lifecycle.
+5. Exact commission treatment at $10,000.
+6. Commission rounding method.
+7. Legally required refund exceptions and procedures.
+8. Governing law and competent court for disputes.
+9. Enforceability of the proposed court jurisdiction where the item is held.
+10. Payment provider and supported authorization operations.
+11. Chargeback handling and payment disputes.
+12. Account suspension duration and appeal procedures.
+13. Credit release procedures after investigations.
+14. Detailed dispute evidence and escalation process.
+15. Detailed seller fulfillment obligations.
+16. Exceptions, if any, to seller cancellation before an auction starts.
+
+---
+
+**END OF DOCUMENT**

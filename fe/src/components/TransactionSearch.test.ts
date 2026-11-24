@@ -68,7 +68,7 @@ describe('ui-3b.2 search box, type and date presets', () => {
   it('offers presets derived from the 30-day window, never longer than it', () => {
     const presets = datePresets(today);
     expect(presets.map((p) => p.label)).toEqual(['Last 7 days', 'Last 14 days', 'Last 30 days']);
-    expect(presets.at(-1)).toMatchObject({ from: '2026-09-21', to: '2026-10-21' });
+    expect(presets[presets.length - 1]).toMatchObject({ from: '2026-09-21', to: '2026-10-21' });
     for (const p of presets) expect(validateTransactionFilter({ ...base, from: p.from, to: p.to }, today)).toEqual({});
   });
 

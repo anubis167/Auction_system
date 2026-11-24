@@ -25,7 +25,8 @@ import { staffCreditRouter } from './routes/staffCredit';
 import { staffGoodsRouter } from './routes/staffGoods';
 import { supportRouter } from './routes/support';
 import { uploadsRouter } from './routes/uploads';
-
+import { healthRouter } from './routes/checkendpoint';
+import { prisma } from './db';
 /** Serves config.uploadDir, looked up per request so tests can point UPLOAD_DIR at a temp folder. */
 function uploadsStatic(): express.RequestHandler {
   const handlers = new Map<string, express.RequestHandler>();
@@ -67,6 +68,17 @@ export function createApp() {
       next();
     }),
   );
+  app.get(
+    '/health/db',
+    asyncHandler(async (_req, res) => {
+      await prisma.$queryRaw`SELECT 1`;
+
+      res.json({
+        status: 'ok',
+        database: 'connected',
+      });
+    }),
+  );
   app.use('/api/auth', authRouter);
   app.use('/api/me', meRouter);
   app.use('/api/admin/users', adminUsersRouter);
@@ -86,7 +98,6 @@ export function createApp() {
   app.use('/api', auctionsRouter);
   app.use('/api', bidsRouter);
   app.use('/api', messagesRouter);
-  if (process.env.NODE_ENV !== 'production') app.use('/api/dev', devRouter);
 
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found' }));
   app.use(errorHandler);

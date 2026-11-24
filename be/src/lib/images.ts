@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { access, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import sharp, { type Sharp } from 'sharp';
+import sharp, {type Sharp, type Metadata } from 'sharp';
 import { config } from '../config';
 import { HttpError } from './http';
 
@@ -39,7 +39,7 @@ function encode(img: Sharp, format: ImageFormat, quality: number) {
  * then with the long edge stepped down by SCALE_STEP (aspect ratio kept) until it fits.
  */
 export async function fitImage(input: Buffer, limit = MAX_IMAGE_BYTES): Promise<FittedImage> {
-  let meta: sharp.Metadata;
+  let meta: Metadata;
   try {
     meta = await sharp(input).metadata();
   } catch {
