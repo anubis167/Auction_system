@@ -58,7 +58,28 @@ export function createApp() {
     uploadsStatic(),
     (_req: express.Request, res: express.Response) => res.status(404).json({ error: 'Not found' }),
   );
-  app.get('/api/health', (_req, res) => res.json({ ok: true }));
+
+app.get(
+  '/health/db',
+  asyncHandler(async (_req, res) => {
+    const databaseInfo = await prisma.$queryRaw<
+      { database: string; schema: string; connected_at: Date }[]
+    >`
+      SELECT
+        current_database() AS database,
+        current_schema() AS schema,
+        NOW() AS connected_at
+    `;
+
+    const userCount = await prisma.user.count();
+
+    res.json({
+      status: 'ok',
+      database: databaseInfo[0],
+      userCount,
+    });
+  }),
+);
   // Safety net beside the hourly close job: settle auctions whose end time passed before serving
   // anything that might show them. SETTLE_ON_REQUEST=0 leaves closing to the scheduler only.
   app.use(
