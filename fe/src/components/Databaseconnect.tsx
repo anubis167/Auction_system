@@ -3,7 +3,7 @@ import api from 'axios';
 
 export default function DatabaseTest() {
   useEffect(() => {
-    api.get('/health/db')
+    api.get('api/health/db')
       .then(({ data }) => {
         console.log('Neon connection:', data);
       })
