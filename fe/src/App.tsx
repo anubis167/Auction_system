@@ -29,14 +29,12 @@ import { StaffCreditDetailPage, StaffCreditPage } from './pages/StaffCredit';
 import { StaffGoodsDetailPage, StaffGoodsNewPage, StaffGoodsPage } from './pages/StaffGoods';
 import { StaffStatisticsPage } from './pages/StaffStatistics';
 import { VerifyEmailPage } from './pages/VerifyEmail';
-import DatabaseTest from './components/Databaseconnect';
 const authed = (el: ReactElement) => <RequireAuth>{el}</RequireAuth>;
 
 export function App() {
   return (
     <Routes>
       <Route element={<Layout />}>
-        <DatabaseTest />
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
