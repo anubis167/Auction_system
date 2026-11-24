@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import api from '@/lib/axios';
+import api from 'axios';
 
 export default function DatabaseTest() {
   useEffect(() => {
