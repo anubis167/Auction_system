@@ -12,7 +12,12 @@ export const NETWORK_ERROR = 'Could not reach the server. Check your connection 
  * sys-004: the one HTTP client for the API (see docs/api-client.md). Cookies go with every call;
  * SSE streams stay on EventSource (store/use*Events.ts).
  */
-export const http = axios.create({ baseURL: '/api', withCredentials: true });
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+
+export const http = axios.create({
+  baseURL: API_BASE_URL,
+  withCredentials: true,
+});
 
 let onUnauthorized: (() => void) | null = null;
 /** Registered by AuthProvider: a 401 from a protected call signs the user out. Returns an unregister function. */
