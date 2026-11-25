@@ -15,7 +15,7 @@ export type RevokeReason = 'rotated' | 'reuse' | 'logout' | 'idle' | 'password' 
 type SessionUser = { id: bigint; username: string; role: string };
 type Db = Prisma.TransactionClient | typeof prisma;
 
-const baseCookie: CookieOptions = { httpOnly: true, sameSite: 'lax', secure: false };
+const baseCookie: CookieOptions = { httpOnly: true, sameSite: 'none', secure: true };
 const REFRESH_PATH = '/api/auth';
 
 async function issueRefreshToken(db: Db, userId: bigint, expiresAt = new Date(Date.now() + config.refreshTokenTtlMs)) {
@@ -40,7 +40,7 @@ export async function startSession(res: Response, user: SessionUser) {
   setCookies(res, user, token);
 }
 
-export class RefreshError extends Error {}
+export class RefreshError extends Error { }
 
 /**
  * Exchanges a refresh token for a new pair. The old token is revoked ('rotated') in the same statement that
