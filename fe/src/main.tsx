@@ -7,12 +7,9 @@ import { AuthProvider } from './auth';
 import { store } from './store';
 import './styles.css';
 import { ToastProvider } from './toast';
-import DatabaseTest from './components/Databaseconnect';
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Provider store={store}>
-      <DatabaseTest />
-
       <BrowserRouter>
         <ToastProvider>
           <AuthProvider>
