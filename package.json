@@ -15,6 +15,9 @@
     "postinstall": "npx prisma generate --schema be/prisma/schema.prisma",
     "verify": "npm test && npm run e2e"
   },
+  "prisma": {
+    "seed": "tsx be/prisma/seed.ts"
+  },
   "devDependencies": {
     "@playwright/test": "^1.65.1",
     "concurrently": "9.1.0",

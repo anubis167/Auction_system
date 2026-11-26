@@ -483,7 +483,7 @@ export function ChatBox() {
         ) : (
           <>
             <div className="chat-log" role="log" aria-live="polite" ref={log} data-testid="chat-log">
-              {!staffMode && (
+              {!staffMode && !optOut && (
                 <p className="chat-msg chat-msg-model">
                   <span className="chat-msg-text">{DEFAULT_WELCOME_MESSAGE}</span>
                 </p>
