@@ -37,6 +37,9 @@ export const config = {
     return Number(process.env.ACTIVATION_RESEND_INTERVAL_MS ?? 60_000);
   },
   /** rag2-1.1: shared secret the Python RAG service sends as X-Internal-Token (be/src/routes/rag.ts); unset = routes off. */
+  get ragBaseUrl() {
+    return (process.env.RAG_BASE_URL ?? 'http://localhost:5000').replace(/\/+$/, '');
+  },
   get ragInternalToken() {
     return process.env.RAG_INTERNAL_TOKEN ?? '';
   },

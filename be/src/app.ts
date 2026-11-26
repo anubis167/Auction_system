@@ -25,7 +25,7 @@ import { staffCreditRouter } from './routes/staffCredit';
 import { staffGoodsRouter } from './routes/staffGoods';
 import { supportRouter } from './routes/support';
 import { uploadsRouter } from './routes/uploads';
-import { healthRouter } from './routes/checkendpoint';
+import { chatRouter } from './routes/chat';
 import { prisma } from './db';
 /** Serves config.uploadDir, looked up per request so tests can point UPLOAD_DIR at a temp folder. */
 function uploadsStatic(): express.RequestHandler {
@@ -59,27 +59,27 @@ export function createApp() {
     (_req: express.Request, res: express.Response) => res.status(404).json({ error: 'Not found' }),
   );
 
-app.get(
-  '/health/db',
-  asyncHandler(async (_req, res) => {
-    const databaseInfo = await prisma.$queryRaw<
-      { database: string; schema: string; connected_at: Date }[]
-    >`
+  app.get(
+    '/health/db',
+    asyncHandler(async (_req, res) => {
+      const databaseInfo = await prisma.$queryRaw<
+        { database: string; schema: string; connected_at: Date }[]
+      >`
       SELECT
         current_database() AS database,
         current_schema() AS schema,
         NOW() AS connected_at
     `;
 
-    const userCount = await prisma.user.count();
+      const userCount = await prisma.user.count();
 
-    res.json({
-      status: 'ok',
-      database: databaseInfo[0],
-      userCount,
-    });
-  }),
-);
+      res.json({
+        status: 'ok',
+        database: databaseInfo[0],
+        userCount,
+      });
+    }),
+  );
   // Safety net beside the hourly close job: settle auctions whose end time passed before serving
   // anything that might show them. SETTLE_ON_REQUEST=0 leaves closing to the scheduler only.
   app.use(
@@ -111,6 +111,7 @@ app.get(
   app.use('/api/staff', staffApprovalsRouter);
   app.use('/api/staff', staffRouter);
   app.use('/api/credit', creditRouter);
+  app.use('/api/chat', chatRouter);
   app.use('/api/rag', ragRouter);
   app.use('/api/faqs', faqsRouter);
   app.use('/api/support', supportRouter);
