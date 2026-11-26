@@ -553,7 +553,7 @@ export function ChatBox() {
               </p>
             )}
 
-            {!staffMode && (
+            {!staffMode && !optOut && (
               <p className="chat-notice" data-testid="chat-notice">
                 <span>
                   Chats are saved to improve our bot. <Link to="/privacy#chat">Privacy</Link>
