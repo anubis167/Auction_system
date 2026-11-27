@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useRef, useEffect, useState, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FIELD_LABELS, browseParams, readBrowse, type SearchField } from '../browseQuery';
 
@@ -18,7 +18,22 @@ export function TopSearch() {
     setQ(current.q);
     setField(current.field);
   }, [current.q, current.field]);
+  const [fieldOpen, setFieldOpen] = useState(false);
+  const fieldRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        fieldRef.current &&
+        !fieldRef.current.contains(event.target as Node)
+      ) {
+        setFieldOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   const submit = (e: FormEvent) => {
     e.preventDefault();
     const next = { ...current, q: q.trim(), field };
@@ -33,18 +48,42 @@ export function TopSearch() {
           <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="2.2" />
           <path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
         </svg>
-        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search lots, sellers, categories" />
+        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search..." />
       </label>
       {/* aria-label, not a wrapping <label>: a wrapper would fold the option texts into the accessible name. */}
-      <span className="top-search-field">
-        <select aria-label="Search in" value={field} onChange={(e) => setField(e.target.value as SearchField)}>
-          {Object.entries(FIELD_LABELS).map(([k, v]) => (
-            <option key={k} value={k}>
-              {v}
-            </option>
-          ))}
-        </select>
-      </span>
+      <div className="top-search-field" ref={fieldRef}>
+        <button
+          type="button"
+          className="top-search-select"
+          aria-haspopup="listbox"
+          aria-expanded={fieldOpen}
+          onClick={() => setFieldOpen((prev) => !prev)}
+        >
+          {FIELD_LABELS[field]}
+          <span className="top-search-select-arrow">▾</span>
+        </button>
+
+        {fieldOpen && (
+          <div className="top-search-select-menu" role="listbox">
+            {Object.entries(FIELD_LABELS).map(([k, v]) => (
+              <button
+                key={k}
+                type="button"
+                role="option"
+                aria-selected={field === k}
+                className={`top-search-select-option ${field === k ? 'active' : ''
+                  }`}
+                onClick={() => {
+                  setField(k as SearchField);
+                  setFieldOpen(false);
+                }}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </form>
   );
 }

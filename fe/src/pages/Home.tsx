@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useRef, useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api, type Auction } from '../api';
 import { lotLabel, priceLabel, toneFor } from '../brand';
@@ -142,7 +142,22 @@ export function HomePage() {
     { value: 'ending', label: 'Ending soon' },
     ...categories.map((c) => ({ value: String(c.id), label: c.name })),
   ];
+  const [sortOpen, setSortOpen] = useState(false);
+  const sortRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        sortRef.current &&
+        !sortRef.current.contains(event.target as Node)
+      ) {
+        setSortOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   return (
     <div className="home">
       {/* pop-1.1 / pop-1.2: the hero and the category ticker frame the unfiltered browse page. */}
@@ -174,13 +189,39 @@ export function HomePage() {
           </div>
           <label className="sort-control">
             <span className="sort-label">Sort:</span>
-            <select value={browse.sort} onChange={(e) => go({ sort: e.target.value as Sort })} data-testid="sort">
-              {Object.entries(SORT_LABELS).map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v}
-                </option>
-              ))}
-            </select>
+            <div className="custom-select" data-testid="sort" ref={sortRef}>
+              <button
+                type="button"
+                className="custom-select-trigger"
+                aria-haspopup="listbox"
+                aria-expanded={sortOpen}
+                onClick={() => setSortOpen((prev) => !prev)}
+              >
+                {SORT_LABELS[browse.sort]}
+                <span className="custom-select-arrow">▾</span>
+              </button>
+
+              {sortOpen && (
+                <div className="custom-select-menu" role="listbox">
+                  {Object.entries(SORT_LABELS).map(([k, v]) => (
+                    <button
+                      key={k}
+                      type="button"
+                      role="option"
+                      aria-selected={browse.sort === k}
+                      className={`custom-select-option ${browse.sort === k ? 'active' : ''
+                        }`}
+                      onClick={() => {
+                        go({ sort: k as Sort });
+                        setSortOpen(false);
+                      }}
+                    >
+                      {v}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </label>
         </div>
         <div className="chip-bar">
